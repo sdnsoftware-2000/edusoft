@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exams & Results — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ══ TABS ══ */
+    .main-tabs { display:flex; gap:4px; padding:4px; background:rgba(14,165,233,0.07); border-radius:var(--radius-sm); margin-bottom:24px; width:fit-content; flex-wrap:wrap; }
+    .main-tab  { padding:9px 20px; border-radius:7px; font-size:13px; font-weight:500; color:var(--text-3); cursor:pointer; transition:all .18s; border:none; background:none; }
+    .main-tab.active { background:white; color:var(--primary-dark); font-weight:700; box-shadow:0 2px 8px rgba(14,165,233,0.14); }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; animation:pageEnter .25s var(--ease) both; }
+
+    /* ══ EXAM CARD ══ */
+    .exam-card {
+      border-radius:var(--radius); border:1.5px solid var(--border);
+      background:rgba(255,255,255,0.52); overflow:hidden;
+      transition:all .18s; margin-bottom:12px;
+    }
+    .exam-card:hover { border-color:var(--border-strong); box-shadow:0 4px 18px rgba(14,165,233,0.09); }
+    .exam-card-head {
+      display:flex; align-items:center; gap:14px; padding:16px 20px;
+      cursor:pointer; user-select:none;
+    }
+    .exam-type-badge {
+      width:42px; height:42px; border-radius:10px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:18px;
+    }
+    .exam-card-body { padding:0 20px 16px; display:none; animation:pageEnter .2s var(--ease) both; }
+    .exam-card-body.open { display:block; }
+
+    /* ══ MARKS ENTRY TABLE ══ */
+    .marks-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+    .marks-table thead tr { border-bottom:1.5px solid rgba(14,165,233,0.1); }
+    .marks-table th { padding:10px 12px; text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-3); }
+    .marks-table td { padding:9px 12px; border-bottom:1px solid rgba(14,165,233,0.055); vertical-align:middle; }
+    .marks-table tbody tr:last-child td { border-bottom:none; }
+    .marks-table tbody tr:hover { background:rgba(14,165,233,0.03); }
+
+    .marks-input {
+      width:70px; padding:6px 10px; border-radius:8px;
+      border:1.5px solid var(--border); background:rgba(255,255,255,0.7);
+      font-family:var(--font); font-size:13.5px; font-weight:600;
+      text-align:center; outline:none; transition:border .18s;
+      color:var(--text);
+    }
+    .marks-input:focus { border-color:var(--primary); background:white; box-shadow:0 0 0 3px rgba(14,165,233,0.1); }
+    .marks-input.invalid { border-color:var(--danger); background:var(--danger-light); }
+    .marks-input.filled  { border-color:var(--teal); }
+
+    /* grade pill */
+    .grade-pill {
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:36px; padding:3px 10px; border-radius:99px;
+      font-size:12px; font-weight:800; letter-spacing:.3px;
+    }
+    .gp-ap { background:#dcfce7; color:#15803d; }
+    .gp-a  { background:#d1fae5; color:#065f46; }
+    .gp-bp { background:#dbeafe; color:#1d4ed8; }
+    .gp-b  { background:#ede9fe; color:#5b21b6; }
+    .gp-cp { background:#fef3c7; color:#92400e; }
+    .gp-c  { background:#ffedd5; color:#c2410c; }
+    .gp-f  { background:#fee2e2; color:#b91c1c; }
+    .gp-na { background:#f1f5f9; color:#64748b; }
+
+    /* ══ GRADE CARD / REPORT CARD ══ */
+    .grade-card-paper {
+      background:white; border-radius:20px; overflow:hidden;
+      box-shadow:0 8px 40px rgba(14,165,233,0.12);
+    }
+    .gc-header {
+      background:linear-gradient(135deg,#0ea5e9,#14b8a6);
+      padding:24px 28px; position:relative; overflow:hidden;
+    }
+    .gc-header::after { content:''; position:absolute; right:-20px; bottom:-20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.07); }
+    .gc-inst   { font-family:var(--font-display); font-size:22px; color:white; margin-bottom:2px; }
+    .gc-sub    { font-size:10px; color:rgba(255,255,255,0.7); letter-spacing:2px; text-transform:uppercase; }
+    .gc-title  { font-size:14px; font-weight:700; color:rgba(255,255,255,0.9); margin-top:10px; }
+    .gc-body   { padding:24px 28px; }
+    .gc-student-row { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+    .gc-avatar { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:white; flex-shrink:0; }
+    .gc-name   { font-size:18px; font-weight:800; color:var(--text); }
+    .gc-meta   { font-size:12.5px; color:var(--text-3); margin-top:2px; }
+    .gc-table  { width:100%; border-collapse:collapse; font-size:13px; }
+    .gc-table th { padding:8px 10px; text-align:left; font-size:10px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-3); border-bottom:1px solid var(--border); }
+    .gc-table td { padding:10px 10px; border-bottom:1px solid rgba(14,165,233,0.05); vertical-align:middle; }
+    .gc-table tbody tr:last-child td { border-bottom:none; }
+    .gc-totals { background:rgba(14,165,233,0.05); border-radius:var(--radius-sm); padding:14px 16px; margin-top:14px; }
+    .gc-footer { padding:16px 28px; background:#f8fafc; border-top:1px solid #e2e8f0; text-align:center; font-size:11px; color:#94a3b8; }
+    .result-stamp { display:inline-flex; align-items:center; justify-content:center; flex-direction:column; width:72px; height:72px; border-radius:50%; border:3px solid; }
+    .stamp-pass { border-color:#22c55e; color:#15803d; }
+    .stamp-fail { border-color:#ef4444; color:#b91c1c; }
+
+    /* ══ MERIT LIST ══ */
+    .merit-rank { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; }
+    .rank-1 { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; }
+    .rank-2 { background:linear-gradient(135deg,#94a3b8,#64748b); color:white; }
+    .rank-3 { background:linear-gradient(135deg,#cd7c2f,#b45309); color:white; }
+    .rank-n { background:rgba(14,165,233,0.12); color:var(--primary-dark); }
+
+    /* ══ HALL TICKET ══ */
+    .hall-ticket {
+      border:2px solid rgba(14,165,233,0.2); border-radius:var(--radius-lg);
+      overflow:hidden; background:white;
+    }
+    .ht-header { background:linear-gradient(135deg,#0ea5e9,#14b8a6); padding:18px 22px; }
+    .ht-body   { padding:20px 22px; }
+    .ht-table  { width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px; }
+    .ht-table td { padding:7px 10px; border:1px solid #e2e8f0; }
+    .ht-table .ht-label { background:#f8fafc; color:#64748b; font-weight:600; width:35%; }
+    .ht-photo { width:70px; height:80px; border-radius:8px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; font-size:24px; border:1px solid var(--border); flex-shrink:0; }
+    .ht-barcode { text-align:center; padding:10px; font-size:11px; letter-spacing:4px; font-family:monospace; color:var(--text-3); border-top:1px dashed rgba(14,165,233,0.2); }
+
+    /* ══ SUBJECT MARKS ROW ══ */
+    .subj-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .subj-row:last-child { border-bottom:none; }
+    .subj-bar { flex:1; }
+
+    /* ══ FILTER BAR ══ */
+    .filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+    .filter-bar select, .filter-bar input[type="text"] {
+      padding:8px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border);
+      background:rgba(255,255,255,0.6); font-family:var(--font); font-size:13px; color:var(--text); outline:none; transition:border .2s;
+    }
+    .filter-bar select:focus, .filter-bar input:focus { border-color:var(--primary); }
+
+    /* ══ PAGINATION ══ */
+    .pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 0 0; border-top:1px solid var(--border); flex-wrap:wrap; gap:10px; }
+    .page-info { font-size:12.5px; color:var(--text-3); }
+    .page-btns { display:flex; gap:4px; }
+    .page-btn { width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.5); font-size:12.5px; font-weight:500; cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center; transition:all .15s; }
+    .page-btn:hover:not(:disabled) { background:var(--primary-light); color:var(--primary); }
+    .page-btn.active { background:var(--primary); border-color:var(--primary); color:white; font-weight:700; }
+    .page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+    /* ══ TOPBAR ══ */
+    .topbar { display:none; position:fixed; top:0; left:0; right:0; height:60px; z-index:150; align-items:center; justify-content:space-between; padding:0 18px; border-radius:0 0 16px 16px; }
+    @media (max-width:900px) { .topbar { display:flex; } }
+
+    @media print {
+      .sidebar,.topbar,.main-tabs,.page-actions,.btn,.filter-bar { display:none !important; }
+      .main-content { margin-left:0 !important; padding:0 !important; }
+      .glass { background:white !important; backdrop-filter:none !important; box-shadow:none !important; border:1px solid #e2e8f0 !important; }
+      body::before, body::after { display:none !important; }
+      .grade-card-paper { box-shadow:none; }
+      .gc-header { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Exams & Results</span></div>
+      <div class="page-title">Exams & Results</div>
+      <div class="page-sub">Schedule exams, enter marks, generate grade cards & merit lists</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button>
+      <button class="btn btn-primary" onclick="Modal.open('addExamModal')">+ Schedule Exam</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue">
+      <div class="stat-icon">📝</div>
+      <div class="stat-label">Total Exams</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-delta delta-flat">scheduled</div>
+    </div>
+    <div class="stat-card glass warn">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-label">Upcoming</div>
+      <div class="stat-value" id="statUpcoming">0</div>
+      <div class="stat-delta delta-flat">in schedule</div>
+    </div>
+    <div class="stat-card glass teal">
+      <div class="stat-icon">✓</div>
+      <div class="stat-label">Completed</div>
+      <div class="stat-value" id="statCompleted">0</div>
+      <div class="stat-delta delta-up">results entered</div>
+    </div>
+    <div class="stat-card glass success">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-label">Pass Rate</div>
+      <div class="stat-value" id="statPassRate">—</div>
+      <div class="stat-delta delta-up">overall</div>
+    </div>
+    <div class="stat-card glass danger">
+      <div class="stat-icon">✗</div>
+      <div class="stat-label">Failed Students</div>
+      <div class="stat-value" id="statFailed">0</div>
+      <div class="stat-delta delta-down">across all exams</div>
+    </div>
+    <div class="stat-card glass accent">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-label">Top Score</div>
+      <div class="stat-value" id="statTopScore">—</div>
+      <div class="stat-delta delta-up" id="statTopName">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('schedule',this)">📅 Exam Schedule</button>
+    <button class="main-tab" onclick="switchTab('marks',this)">✏️ Enter Marks</button>
+    <button class="main-tab" onclick="switchTab('results',this)">📊 Results Table</button>
+    <button class="main-tab" onclick="switchTab('gradecards',this)">🎓 Grade Cards</button>
+    <button class="main-tab" onclick="switchTab('merit',this)">🏆 Merit List</button>
+    <button class="main-tab" onclick="switchTab('halltickets',this)">🪪 Hall Tickets</button>
+    <button class="main-tab" onclick="switchTab('analytics',this)">📈 Analytics</button>
+  </div>
+
+  <!-- ═══════════════ TAB: SCHEDULE ═══════════════ -->
+  <div id="tab-schedule" class="tab-pane active">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px">
+
+      <div>
+        <div class="filter-bar">
+          <select id="schedFilterCourse" onchange="renderSchedule()">
+            <option value="">All Courses</option>
+          </select>
+          <select id="schedFilterStatus" onchange="renderSchedule()">
+            <option value="">All Status</option>
+            <option>Upcoming</option><option>Ongoing</option>
+            <option>Completed</option><option>Cancelled</option>
+          </select>
+          <input type="text" id="schedSearch" placeholder="Search exam..." oninput="renderSchedule()" style="flex:1;max-width:220px">
+        </div>
+        <div id="examCardList"></div>
+      </div>
+
+      <!-- Upcoming timeline -->
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Upcoming Exams</div><div class="card-sub">Next 30 days</div></div>
+          <div id="upcomingTimeline"></div>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Exam Distribution</div></div>
+          <canvas id="schedDistChart" height="200"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: ENTER MARKS ═══════════════ -->
+  <div id="tab-marks" class="tab-pane">
+    <div class="card glass">
+      <div class="card-header">
+        <div><div class="card-title">Enter / Edit Marks</div><div class="card-sub">Select exam and enter marks for each student</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:200px">
+          <label>Select Exam</label>
+          <select id="marksExamSelect" onchange="loadMarksTable()">
+            <option value="">— Select Exam —</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;min-width:200px" id="marksExamInfo" style="display:none">
+          <label>Exam Info</label>
+          <div id="marksExamInfoBox" style="padding:10px 14px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:13px"></div>
+        </div>
+      </div>
+      <div id="marksTableWrap">
+        <div class="table-empty">
+          <div class="empty-icon">📝</div>
+          <div class="empty-msg">Select an exam above</div>
+          <div class="empty-sub">Student list will appear here</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: RESULTS TABLE ═══════════════ -->
+  <div id="tab-results" class="tab-pane">
+    <div class="card glass">
+      <div class="filter-bar">
+        <select id="rptExam" onchange="renderResultsTable()">
+          <option value="">All Exams</option>
+        </select>
+        <select id="rptCourse" onchange="renderResultsTable()">
+          <option value="">All Courses</option>
+        </select>
+        <select id="rptGrade" onchange="renderResultsTable()">
+          <option value="">All Grades</option>
+          <option>A+</option><option>A</option><option>B+</option>
+          <option>B</option><option>C+</option><option>C</option><option>F</option>
+        </select>
+        <select id="rptResult" onchange="renderResultsTable()">
+          <option value="">Pass & Fail</option>
+          <option value="Pass">Pass Only</option>
+          <option value="Fail">Fail Only</option>
+        </select>
+        <input type="text" id="rptSearch" placeholder="Search student..." oninput="renderResultsTable()" style="flex:1;max-width:200px">
+        <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="rptCount">0 results</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Student</th><th>Exam</th><th>Course</th>
+              <th>Max</th><th>Obtained</th><th>%</th><th>Grade</th><th>Result</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="rptPageInfo">—</div>
+        <div class="page-btns" id="rptPageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: GRADE CARDS ═══════════════ -->
+  <div id="tab-gradecards" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Generate Grade Card</div></div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Select Student</label>
+          <select id="gcStudent" onchange="previewGradeCard()">
+            <option value="">— Select Student —</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Exam / Term</label>
+          <select id="gcExam" onchange="previewGradeCard()">
+            <option value="">All Exams (Consolidated)</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:20px">
+          <label>Academic Year</label>
+          <input type="text" id="gcYear" value="2024-25">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" onclick="printGradeCard()">🖨 Print Grade Card</button>
+          <button class="btn btn-outline" onclick="previewGradeCard()">👁 Preview</button>
+        </div>
+        <div class="divider"></div>
+        <div class="card-title" style="margin-bottom:10px;font-size:13px">Bulk Print</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Course</label>
+          <select id="gcBulkCourse"><option value="">All Courses</option></select>
+        </div>
+        <button class="btn btn-outline" onclick="bulkPrintCards()">📦 Print All Grade Cards</button>
+      </div>
+
+      <div id="gradeCardPreview">
+        <div class="card glass" style="height:100%;display:flex;align-items:center;justify-content:center;min-height:300px">
+          <div style="text-align:center;color:var(--text-3)">
+            <div style="font-size:40px;margin-bottom:12px">🎓</div>
+            <div style="font-size:14px;font-weight:500">Select a student to preview grade card</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: MERIT LIST ═══════════════ -->
+  <div id="tab-merit" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div><div class="card-title">Merit / Rank List</div><div class="card-sub">Sorted by percentage</div></div>
+          <div style="display:flex;gap:8px">
+            <select id="meritExam" onchange="renderMeritList()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none">
+              <option value="">All Exams</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="printMeritList()">🖨 Print</button>
+          </div>
+        </div>
+        <div id="meritListBody"></div>
+      </div>
+
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Grade Distribution</div></div>
+          <canvas id="gradeDistChart" height="220"></canvas>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Top Performers</div></div>
+          <div id="topPerformers"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: HALL TICKETS ═══════════════ -->
+  <div id="tab-halltickets" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Generate Hall Ticket</div></div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Select Student</label>
+          <select id="htStudent" onchange="previewHallTicket()">
+            <option value="">— Select Student —</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Select Exam</label>
+          <select id="htExam" onchange="previewHallTicket()">
+            <option value="">— Select Exam —</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Exam Centre</label>
+          <input type="text" id="htCentre" value="Main Examination Hall, Block A" placeholder="Exam centre name">
+        </div>
+        <div class="field" style="margin-bottom:20px">
+          <label>Reporting Time</label>
+          <input type="text" id="htTime" value="08:30 AM (30 min before exam)" placeholder="HH:MM AM/PM">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" onclick="printHallTicket()">🖨 Print Hall Ticket</button>
+          <button class="btn btn-outline" onclick="previewHallTicket()">👁 Preview</button>
+        </div>
+        <div class="divider"></div>
+        <div class="card-title" style="font-size:13px;margin-bottom:10px">Bulk Generate</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>For Exam</label>
+          <select id="htBulkExam"></select>
+        </div>
+        <button class="btn btn-outline" onclick="bulkPrintTickets()">📦 Print All Hall Tickets</button>
+      </div>
+
+      <div id="hallTicketPreview">
+        <div class="card glass" style="height:100%;display:flex;align-items:center;justify-content:center;min-height:280px">
+          <div style="text-align:center;color:var(--text-3)">
+            <div style="font-size:40px;margin-bottom:10px">🪪</div>
+            <div style="font-size:14px;font-weight:500">Select student & exam to preview hall ticket</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: ANALYTICS ═══════════════ -->
+  <div id="tab-analytics" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Exam-wise Pass Rate</div></div>
+        <canvas id="passRateChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Score Distribution</div><div class="card-sub">Number of students in each range</div></div>
+        <canvas id="scoreDistChart" height="220"></canvas>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Course-wise Average Score</div></div>
+        <canvas id="courseAvgChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Grade Breakdown</div></div>
+        <canvas id="gradeBreakChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ════════════════════════════════════
+     MODAL: SCHEDULE EXAM
+════════════════════════════════════ -->
+<div class="modal-overlay" id="addExamModal">
+  <div class="modal glass modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="examModalTitle">Schedule New Exam</div>
+        <div class="modal-sub">Fill in all exam details</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('addExamModal')">✕</button>
+    </div>
+    <input type="hidden" id="editExamId">
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Exam Name *</label>
+        <input type="text" id="eName" placeholder="Unit Test 1 / Mid Term / Final...">
+        <span class="field-error">Exam name is required</span>
+      </div>
+      <div class="field">
+        <label>Exam Type</label>
+        <select id="eType">
+          <option>Unit Test</option><option>Mid Term</option><option>Final Exam</option>
+          <option>Practical</option><option>Internal Assessment</option><option>Viva</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Course *</label>
+        <select id="eCourse">
+          <option value="">— Select Course —</option>
+        </select>
+        <span class="field-error">Please select a course</span>
+      </div>
+      <div class="field">
+        <label>Subject</label>
+        <select id="eSubject">
+          <option value="">— Select Subject —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Exam Date *</label>
+        <input type="date" id="eDate">
+      </div>
+      <div class="field">
+        <label>Start Time</label>
+        <input type="time" id="eTime" value="10:00">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Duration</label>
+        <input type="text" id="eDuration" placeholder="2 Hours 30 Minutes">
+      </div>
+      <div class="field">
+        <label>Maximum Marks *</label>
+        <input type="number" id="eMaxMarks" placeholder="100" min="1">
+        <span class="field-error">Max marks required</span>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Passing Marks</label>
+        <input type="number" id="ePassMarks" placeholder="35">
+      </div>
+      <div class="field">
+        <label>Exam Hall / Venue</label>
+        <input type="text" id="eVenue" placeholder="Main Hall / Room 101">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Status</label>
+        <select id="eStatus">
+          <option>Upcoming</option><option>Ongoing</option>
+          <option>Completed</option><option>Cancelled</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Invigilator</label>
+        <select id="eInvigilator">
+          <option value="">— Select Faculty —</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Instructions / Notes</label>
+      <textarea id="eNotes" rows="2" placeholder="No calculators. Bring Hall Ticket. Blue/Black pen only..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveExam()">Save Exam</button>
+      <button class="btn btn-outline" onclick="Modal.close('addExamModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL: EDIT RESULT
+════════════════════════════════════ -->
+<div class="modal-overlay" id="editResultModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Edit Result</div>
+      <button class="modal-close" onclick="Modal.close('editResultModal')">✕</button>
+    </div>
+    <input type="hidden" id="editResultId">
+    <div style="padding:10px 14px;background:rgba(14,165,233,0.06);border-radius:var(--radius-sm);margin-bottom:16px;font-size:13px" id="editResultInfo"></div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Marks Obtained</label>
+        <input type="number" id="editMarks" min="0">
+      </div>
+      <div class="field">
+        <label>Remarks</label>
+        <input type="text" id="editRemarks" placeholder="Good / Needs improvement...">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Override Result</label>
+      <select id="editResult">
+        <option value="">Auto (based on marks)</option>
+        <option value="Pass">Pass</option>
+        <option value="Fail">Fail</option>
+        <option value="Absent">Absent</option>
+        <option value="Withheld">Withheld</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveEditResult()">Save</button>
+      <button class="btn btn-outline" onclick="Modal.close('editResultModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+/* ════════════════════════════════
+   CONSTANTS & STATE
+════════════════════════════════ */
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+const EXAM_TYPE_ICONS = { 'Unit Test':'📋','Mid Term':'📒','Final Exam':'📕','Practical':'🔬','Internal Assessment':'📄','Viva':'🎤' };
+const GRADE_CONFIG = [
+  { min:90, grade:'A+', cls:'gp-ap', label:'Outstanding' },
+  { min:80, grade:'A',  cls:'gp-a',  label:'Excellent' },
+  { min:70, grade:'B+', cls:'gp-bp', label:'Very Good' },
+  { min:60, grade:'B',  cls:'gp-b',  label:'Good' },
+  { min:50, grade:'C+', cls:'gp-cp', label:'Average' },
+  { min:40, grade:'C',  cls:'gp-c',  label:'Below Average' },
+  { min:0,  grade:'F',  cls:'gp-f',  label:'Fail' },
+];
+
+let rptPage = 1;
+const RPT_PER_PAGE = 12;
+let filteredResults = [];
+
+/* ════════════════════════════════
+   SEED RICH EXAM DATA
+════════════════════════════════ */
+function seedExamData() {
+  if (DB.get('examSeeded')) return;
+
+  DB.set('exams', [
+    { id:'E001', name:'Unit Test 1',     type:'Unit Test',    courseId:'C001', subject:'Mathematics',       date:'2024-08-10', time:'10:00', duration:'2 Hours',   maxMarks:100, passMarks:35, venue:'Room 101', status:'Completed', invigilator:'F001', notes:'No calculators allowed.' },
+    { id:'E002', name:'Unit Test 1',     type:'Unit Test',    courseId:'C003', subject:'Physics',            date:'2024-08-12', time:'10:00', duration:'2 Hours',   maxMarks:100, passMarks:35, venue:'Room 102', status:'Completed', invigilator:'F002', notes:'' },
+    { id:'E003', name:'Mid Term Exam',   type:'Mid Term',     courseId:'C001', subject:'CS Theory',          date:'2024-09-05', time:'09:00', duration:'3 Hours',   maxMarks:100, passMarks:40, venue:'Main Hall', status:'Completed', invigilator:'F003', notes:'Blue/Black pen only.' },
+    { id:'E004', name:'Mid Term Exam',   type:'Mid Term',     courseId:'C002', subject:'Accounts',           date:'2024-09-08', time:'09:00', duration:'3 Hours',   maxMarks:100, passMarks:40, venue:'Room 201', status:'Completed', invigilator:'F004', notes:'' },
+    { id:'E005', name:'Practical Exam',  type:'Practical',    courseId:'C001', subject:'Practical',          date:'2024-09-15', time:'11:00', duration:'3 Hours',   maxMarks:50,  passMarks:20, venue:'Computer Lab', status:'Completed', invigilator:'F003', notes:'Bring your own USB.' },
+    { id:'E006', name:'Unit Test 2',     type:'Unit Test',    courseId:'C003', subject:'Chemistry',          date:'2024-10-05', time:'10:00', duration:'2 Hours',   maxMarks:100, passMarks:35, venue:'Room 102', status:'Upcoming',  invigilator:'F002', notes:'' },
+    { id:'E007', name:'Final Exam',      type:'Final Exam',   courseId:'C002', subject:'Economics',          date:'2024-11-20', time:'09:00', duration:'3 Hours',   maxMarks:100, passMarks:40, venue:'Main Hall', status:'Upcoming',  invigilator:'F004', notes:'Bring Hall Ticket.' },
+    { id:'E008', name:'Internal Viva',   type:'Viva',         courseId:'C004', subject:'C Programming',      date:'2024-10-18', time:'10:00', duration:'1 Hour',    maxMarks:50,  passMarks:20, venue:'Lab 1', status:'Upcoming',  invigilator:'F003', notes:'' },
+    { id:'E009', name:'Mid Term Exam',   type:'Mid Term',     courseId:'C004', subject:'DBMS',               date:'2024-09-20', time:'09:00', duration:'2 Hours',   maxMarks:100, passMarks:40, venue:'Room 301', status:'Completed', invigilator:'F003', notes:'' },
+    { id:'E010', name:'Unit Test 1',     type:'Unit Test',    courseId:'C005', subject:'History',            date:'2024-08-22', time:'10:00', duration:'2 Hours',   maxMarks:100, passMarks:35, venue:'Room 103', status:'Completed', invigilator:'F005', notes:'' },
+  ]);
+
+  // Rich results — multiple students per exam
+  const results = [
+    // E001 – CS Unit Test 1
+    { id:'R001', studentId:'S001', examId:'E001', marksObtained:78, remarks:'Good effort' },
+    { id:'R002', studentId:'S005', examId:'E001', marksObtained:65, remarks:'Can do better' },
+    // E002 – Science Unit Test 1
+    { id:'R003', studentId:'S003', examId:'E002', marksObtained:91, remarks:'Excellent' },
+    { id:'R004', studentId:'S007', examId:'E002', marksObtained:55, remarks:'Average' },
+    // E003 – CS Mid Term
+    { id:'R005', studentId:'S001', examId:'E003', marksObtained:82, remarks:'Very good' },
+    { id:'R006', studentId:'S005', examId:'E003', marksObtained:70, remarks:'Good' },
+    // E004 – Commerce Mid Term
+    { id:'R007', studentId:'S002', examId:'E004', marksObtained:88, remarks:'Excellent' },
+    // E005 – CS Practical
+    { id:'R008', studentId:'S001', examId:'E005', marksObtained:44, remarks:'Practical skills good' },
+    { id:'R009', studentId:'S005', examId:'E005', marksObtained:38, remarks:'Needs improvement' },
+    // E009 – BCA DBMS
+    { id:'R010', studentId:'S004', examId:'E009', marksObtained:72, remarks:'Good understanding' },
+    // E010 – Arts History
+    { id:'R011', studentId:'S006', examId:'E010', marksObtained:85, remarks:'Great' },
+  ];
+
+  // compute grade + result for each
+  results.forEach(r => {
+    const exam = DB.find('exams', r.examId) || {};
+    const pct  = (r.marksObtained / (exam.maxMarks || 100)) * 100;
+    const pass = r.marksObtained >= (exam.passMarks || 35);
+    r.grade  = calcGrade(pct);
+    r.result = pass ? 'Pass' : 'Fail';
+  });
+
+  DB.set('results', results);
+  DB.set('examSeeded', true);
+}
+
+/* ════════════════════════════════
+   HELPERS
+════════════════════════════════ */
+function calcGrade(pct) {
+  for (const g of GRADE_CONFIG) {
+    if (pct >= g.min) return g.grade;
+  }
+  return 'F';
+}
+
+function gradeClass(grade) {
+  const map = { 'A+':'gp-ap','A':'gp-a','B+':'gp-bp','B':'gp-b','C+':'gp-cp','C':'gp-c','F':'gp-f' };
+  return map[grade] || 'gp-na';
+}
+
+function gradePill(grade) {
+  return `<span class="grade-pill ${gradeClass(grade)}">${grade}</span>`;
+}
+
+function pctColor(pct) {
+  return pct >= 75 ? 'var(--success-dark)' : pct >= 50 ? 'var(--warning-dark)' : 'var(--danger-dark)';
+}
+
+function studentAvatar(s, size = 30) {
+  const color = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+  const init  = (s.firstName[0] + s.lastName[0]).toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.37)}px;font-weight:700;color:white;flex-shrink:0">${init}</div>`;
+}
+
+function populateFacultySelect(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const faculty = DB.get('faculty') || [];
+  el.innerHTML = '<option value="">— Select Faculty —</option>' +
+    faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+}
+
+function populateSubjectSelect(courseId) {
+  const el = document.getElementById('eSubject');
+  if (!el) return;
+  const course = DB.find('courses', courseId);
+  el.innerHTML = '<option value="">— Select Subject —</option>' +
+    (course?.subjects || []).map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('exams');
+  seedExamData();
+  updateStats();
+  populateCourseSelect('schedFilterCourse');
+  populateCourseSelect('eCourse');
+  populateCourseSelect('rptCourse');
+  populateCourseSelect('gcBulkCourse');
+  populateFacultySelect('eInvigilator');
+  populateExamSelects();
+  renderSchedule();
+
+  document.getElementById('eDate').value = Utils.today();
+  document.getElementById('eCourse').addEventListener('change', function() {
+    populateSubjectSelect(this.value);
+  });
+});
+
+function populateExamSelects() {
+  const exams = DB.get('exams') || [];
+  const opts  = exams.map(e => `<option value="${e.id}">${e.name} — ${getCourseName(e.courseId)} (${Utils.formatDate(e.date)})</option>`).join('');
+  const blankOpts = '<option value="">— Select Exam —</option>' + opts;
+  ['marksExamSelect','gcExam','meritExam','htExam','htBulkExam','rptExam'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const blank = id === 'meritExam' || id === 'rptExam'
+      ? '<option value="">All Exams</option>'
+      : '<option value="">— Select Exam —</option>';
+    el.innerHTML = blank + opts;
+  });
+  populateStudentSelect('gcStudent');
+  populateStudentSelect('htStudent');
+}
+
+/* ════════════════════════════════
+   STATS
+════════════════════════════════ */
+function updateStats() {
+  const exams   = DB.get('exams')   || [];
+  const results = DB.get('results') || [];
+
+  const pass   = results.filter(r => r.result === 'Pass').length;
+  const fail   = results.filter(r => r.result === 'Fail').length;
+  const rate   = results.length ? Math.round((pass / results.length) * 100) : null;
+
+  // top score
+  const top = [...results].sort((a, b) => {
+    const ea = DB.find('exams', a.examId), eb = DB.find('exams', b.examId);
+    return (b.marksObtained / (eb?.maxMarks||100)) - (a.marksObtained / (ea?.maxMarks||100));
+  })[0];
+  const topS = top ? DB.find('students', top.studentId) : null;
+
+  document.getElementById('statTotal').textContent     = exams.length;
+  document.getElementById('statUpcoming').textContent  = exams.filter(e => e.status === 'Upcoming').length;
+  document.getElementById('statCompleted').textContent = exams.filter(e => e.status === 'Completed').length;
+  document.getElementById('statPassRate').textContent  = rate !== null ? rate + '%' : '—';
+  document.getElementById('statFailed').textContent    = fail;
+  document.getElementById('statTopScore').textContent  = top
+    ? Math.round((top.marksObtained / (DB.find('exams',top.examId)?.maxMarks||100)) * 100) + '%'
+    : '—';
+  document.getElementById('statTopName').textContent   = topS ? topS.firstName + ' ' + topS.lastName : '—';
+}
+
+/* ════════════════════════════════
+   EXAM SCHEDULE
+════════════════════════════════ */
+function renderSchedule() {
+  const exams     = DB.get('exams') || [];
+  const courseF   = document.getElementById('schedFilterCourse').value;
+  const statusF   = document.getElementById('schedFilterStatus').value;
+  const searchQ   = document.getElementById('schedSearch').value.toLowerCase();
+
+  const filtered  = exams.filter(e =>
+    (!courseF  || e.courseId === courseF) &&
+    (!statusF  || e.status   === statusF) &&
+    (!searchQ  || e.name.toLowerCase().includes(searchQ) || (e.subject||'').toLowerCase().includes(searchQ))
+  ).sort((a,b) => a.date.localeCompare(b.date));
+
+  const statCls = { Upcoming:'badge-blue', Ongoing:'badge-yellow', Completed:'badge-teal', Cancelled:'badge-gray' };
+
+  document.getElementById('examCardList').innerHTML = filtered.length
+    ? filtered.map(e => {
+        const course = DB.find('courses', e.courseId);
+        const inv    = DB.find('faculty', e.invigilator);
+        const rCount = (DB.get('results')||[]).filter(r => r.examId === e.id).length;
+        const icon   = EXAM_TYPE_ICONS[e.type] || '📝';
+        const isPast = e.date < Utils.today();
+        return `
+        <div class="exam-card">
+          <div class="exam-card-head" onclick="toggleExamCard('ec-${e.id}','arr-${e.id}')">
+            <div class="exam-type-badge" style="background:${e.status==='Completed'?'var(--teal-light)':e.status==='Upcoming'?'var(--primary-light)':'var(--warning-light)'}">${icon}</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:var(--text)">${e.name}</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px">${course?.name||'—'} · ${e.subject||''} · ${Utils.formatDate(e.date)} ${e.time?'at '+e.time:''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${Utils.statusBadge(e.status)}
+              <span style="font-size:14px;color:var(--text-3);transition:transform .2s" id="arr-${e.id}">▼</span>
+            </div>
+          </div>
+          <div class="exam-card-body" id="ec-${e.id}">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+              ${infoChip('Max Marks', e.maxMarks)}
+              ${infoChip('Pass Marks', e.passMarks || Math.round(e.maxMarks * 0.35))}
+              ${infoChip('Duration', e.duration || '—')}
+              ${infoChip('Venue', e.venue || '—')}
+              ${infoChip('Invigilator', inv?.name || '—')}
+              ${infoChip('Results Entered', rCount + ' students')}
+            </div>
+            ${e.notes ? `<div class="alert alert-info" style="margin-bottom:12px"><span>📌</span>${e.notes}</div>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" onclick="openEditExam('${e.id}')">✏️ Edit</button>
+              ${e.status === 'Completed' || rCount > 0
+                ? `<button class="btn btn-primary btn-sm" onclick="goToMarksEntry('${e.id}')">✏️ ${rCount ? 'Edit Marks' : 'Enter Marks'}</button>`
+                : `<button class="btn btn-primary btn-sm" onclick="goToMarksEntry('${e.id}')">✏️ Enter Marks</button>`}
+              <button class="btn btn-outline btn-sm" onclick="generateAllHallTickets('${e.id}')">🪪 Hall Tickets</button>
+              <button class="btn btn-danger-soft btn-sm" onclick="deleteExam('${e.id}')">🗑 Delete</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="table-empty glass" style="border-radius:var(--radius)"><div class="empty-icon">📝</div><div class="empty-msg">No exams found</div><div class="empty-sub">Try adjusting filters or schedule a new exam</div></div>`;
+
+  renderUpcomingTimeline(exams);
+  renderSchedDistChart(exams);
+}
+
+function infoChip(label, value) {
+  return `<div style="padding:8px 12px;background:rgba(14,165,233,0.05);border-radius:8px;border:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:2px">${label}</div>
+    <div style="font-size:13px;font-weight:600;color:var(--text)">${value}</div>
+  </div>`;
+}
+
+function toggleExamCard(bodyId, arrId) {
+  const body = document.getElementById(bodyId);
+  const arr  = document.getElementById(arrId);
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  if (arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function renderUpcomingTimeline(exams) {
+  const upcoming = exams.filter(e => e.status === 'Upcoming' && e.date >= Utils.today())
+                        .sort((a,b) => a.date.localeCompare(b.date)).slice(0, 6);
+  document.getElementById('upcomingTimeline').innerHTML = upcoming.length
+    ? upcoming.map(e => {
+        const course = DB.find('courses', e.courseId);
+        const daysLeft = Math.ceil((new Date(e.date) - new Date()) / 86400000);
+        const urgency  = daysLeft <= 3 ? 'var(--danger)' : daysLeft <= 7 ? 'var(--warning)' : 'var(--primary)';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(14,165,233,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+            <div style="font-size:14px;font-weight:800;color:var(--primary-dark);line-height:1">${new Date(e.date).getDate()}</div>
+            <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date(e.date).getMonth()]}</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${e.name}</div>
+            <div style="font-size:11px;color:var(--text-3)">${course?.name||'—'} · ${e.subject||''}</div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:${urgency};white-space:nowrap">${daysLeft}d left</div>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">No upcoming exams</div>';
+}
+
+function renderSchedDistChart(exams) {
+  const counts = {};
+  exams.forEach(e => { counts[e.status] = (counts[e.status]||0) + 1; });
+  const ctx = document.getElementById('schedDistChart');
+  if (!ctx) return;
+  if (window._schedChart) window._schedChart.destroy();
+  window._schedChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{ data: Object.values(counts), backgroundColor: ['rgba(14,165,233,0.75)','rgba(245,158,11,0.75)','rgba(20,184,166,0.75)','rgba(100,116,139,0.65)'], borderWidth:0, hoverOffset:6 }]
+    },
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } } }
+  });
+}
+
+/* ════════════════════════════════
+   ADD / EDIT EXAM
+════════════════════════════════ */
+function saveExam() {
+  const name = document.getElementById('eName').value.trim();
+  const courseId = document.getElementById('eCourse').value;
+  const maxMarks = document.getElementById('eMaxMarks').value;
+  if (!name)    { document.getElementById('eName').closest('.field').classList.add('has-error'); Toast.error('Exam name required'); return; }
+  if (!courseId){ document.getElementById('eCourse').closest('.field').classList.add('has-error'); Toast.error('Course required'); return; }
+  if (!maxMarks){ document.getElementById('eMaxMarks').closest('.field').classList.add('has-error'); Toast.error('Max marks required'); return; }
+
+  const editId = document.getElementById('editExamId').value;
+  const data = {
+    name,
+    type:       document.getElementById('eType').value,
+    courseId,
+    subject:    document.getElementById('eSubject').value,
+    date:       document.getElementById('eDate').value,
+    time:       document.getElementById('eTime').value,
+    duration:   document.getElementById('eDuration').value,
+    maxMarks:   Number(maxMarks),
+    passMarks:  Number(document.getElementById('ePassMarks').value) || Math.round(Number(maxMarks) * 0.35),
+    venue:      document.getElementById('eVenue').value.trim(),
+    status:     document.getElementById('eStatus').value,
+    invigilator:document.getElementById('eInvigilator').value,
+    notes:      document.getElementById('eNotes').value.trim(),
+  };
+
+  if (editId) {
+    DB.update('exams', editId, data);
+    Toast.success('Exam updated!');
+  } else {
+    data.id = DB.nextId('exams', 'E');
+    DB.push('exams', data);
+    Toast.success('Exam scheduled: ' + name);
+  }
+
+  Modal.close('addExamModal');
+  updateStats();
+  populateExamSelects();
+  renderSchedule();
+}
+
+function openEditExam(id) {
+  const e = DB.find('exams', id);
+  if (!e) return;
+  document.getElementById('examModalTitle').textContent = 'Edit Exam';
+  document.getElementById('editExamId').value = id;
+  document.getElementById('eName').value      = e.name;
+  document.getElementById('eType').value      = e.type || 'Unit Test';
+  document.getElementById('eCourse').value    = e.courseId;
+  populateSubjectSelect(e.courseId);
+  document.getElementById('eSubject').value   = e.subject || '';
+  document.getElementById('eDate').value      = e.date;
+  document.getElementById('eTime').value      = e.time || '10:00';
+  document.getElementById('eDuration').value  = e.duration || '';
+  document.getElementById('eMaxMarks').value  = e.maxMarks;
+  document.getElementById('ePassMarks').value = e.passMarks || '';
+  document.getElementById('eVenue').value     = e.venue || '';
+  document.getElementById('eStatus').value    = e.status;
+  document.getElementById('eInvigilator').value = e.invigilator || '';
+  document.getElementById('eNotes').value     = e.notes || '';
+  Modal.open('addExamModal');
+}
+
+function deleteExam(id) {
+  const e = DB.find('exams', id);
+  if (!Utils.confirmDelete(`Delete exam "${e?.name}"? All results for this exam will also be deleted.`)) return;
+  DB.delete('exams', id);
+  DB.set('results', (DB.get('results')||[]).filter(r => r.examId !== id));
+  updateStats(); populateExamSelects(); renderSchedule();
+  Toast.error('Exam deleted');
+}
+
+function goToMarksEntry(examId) {
+  switchTab('marks', null);
+  setTimeout(() => {
+    document.getElementById('marksExamSelect').value = examId;
+    loadMarksTable();
+  }, 100);
+}
+
+/* ════════════════════════════════
+   MARKS ENTRY
+════════════════════════════════ */
+function loadMarksTable() {
+  const examId  = document.getElementById('marksExamSelect').value;
+  const exam    = DB.find('exams', examId);
+  const wrap    = document.getElementById('marksTableWrap');
+
+  if (!examId || !exam) {
+    wrap.innerHTML = `<div class="table-empty"><div class="empty-icon">📝</div><div class="empty-msg">Select an exam above</div></div>`;
+    document.getElementById('marksExamInfo').style.display = 'none';
+    return;
+  }
+
+  // show exam info
+  document.getElementById('marksExamInfo').style.display = 'block';
+  document.getElementById('marksExamInfoBox').innerHTML =
+    `<strong>${exam.name}</strong> · ${getCourseName(exam.courseId)} · ${exam.subject||''}<br>
+     📅 ${Utils.formatDate(exam.date)} · Max: <strong>${exam.maxMarks}</strong> · Pass: <strong>${exam.passMarks||Math.round(exam.maxMarks*0.35)}</strong>`;
+
+  const students = (DB.get('students')||[]).filter(s => s.course === exam.courseId && s.status === 'Active');
+  if (!students.length) {
+    wrap.innerHTML = `<div class="table-empty"><div class="empty-icon">🎓</div><div class="empty-msg">No students in this course</div></div>`;
+    return;
+  }
+
+  const results  = DB.get('results') || [];
+  const passMarks= exam.passMarks || Math.round(exam.maxMarks * 0.35);
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--text-2)">${students.length} students · Max marks: <strong>${exam.maxMarks}</strong> · Pass: <strong>${passMarks}</strong></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-outline" onclick="autofillDemo('${examId}')">🎲 Demo Fill</button>
+        <button class="btn btn-primary btn-sm" onclick="saveAllMarks('${examId}')">💾 Save All Marks</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="marks-table" id="marksEntryTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Student</th><th>Roll No.</th>
+            <th>Marks <span style="font-weight:400;color:var(--text-3)">(out of ${exam.maxMarks})</span></th>
+            <th>%</th><th>Grade</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${students.map((s, i) => {
+            const existing = results.find(r => r.studentId === s.id && r.examId === examId);
+            const marks    = existing?.marksObtained ?? '';
+            const pct      = marks !== '' ? Math.round((Number(marks)/exam.maxMarks)*100) : null;
+            const grade    = pct !== null ? calcGrade(pct) : '—';
+            const pass     = marks !== '' ? Number(marks) >= passMarks : null;
+            const color    = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+            const init     = (s.firstName[0]+s.lastName[0]).toUpperCase();
+            return `<tr id="mrow-${s.id}">
+              <td style="color:var(--text-3);font-size:12px">${i+1}</td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+                <div><div style="font-weight:600;font-size:13px">${s.firstName} ${s.lastName}</div></div>
+              </div></td>
+              <td><span class="badge badge-blue">${s.rollNo||s.id}</span></td>
+              <td>
+                <input class="marks-input ${marks!==''?'filled':''}" id="marks-${s.id}"
+                  type="number" min="0" max="${exam.maxMarks}" value="${marks}"
+                  placeholder="0–${exam.maxMarks}"
+                  oninput="onMarksInput(this,'${s.id}',${exam.maxMarks},${passMarks})">
+              </td>
+              <td id="pct-${s.id}" style="font-weight:700;color:${pct!==null?pctColor(pct):'var(--text-3)'}">${pct!==null?pct+'%':'—'}</td>
+              <td id="grade-${s.id}">${pct!==null?gradePill(grade):'<span style="color:var(--text-3)">—</span>'}</td>
+              <td id="status-${s.id}">${pass!==null?Utils.statusBadge(pass?'Pass':'Fail'):'<span style="color:var(--text-3)">—</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" onclick="saveAllMarks('${examId}')">💾 Save All Marks</button>
+    </div>`;
+}
+
+function onMarksInput(input, studentId, maxMarks, passMarks) {
+  const val = Number(input.value);
+  input.classList.remove('invalid','filled');
+  if (input.value === '') {
+    document.getElementById('pct-'+studentId).textContent = '—';
+    document.getElementById('grade-'+studentId).innerHTML = '<span style="color:var(--text-3)">—</span>';
+    document.getElementById('status-'+studentId).innerHTML = '<span style="color:var(--text-3)">—</span>';
+    return;
+  }
+  if (val < 0 || val > maxMarks) {
+    input.classList.add('invalid');
+    Toast.error(`Marks must be between 0 and ${maxMarks}`);
+    return;
+  }
+  input.classList.add('filled');
+  const pct   = Math.round((val/maxMarks)*100);
+  const grade = calcGrade(pct);
+  const pass  = val >= passMarks;
+  document.getElementById('pct-'+studentId).textContent   = pct + '%';
+  document.getElementById('pct-'+studentId).style.color   = pctColor(pct);
+  document.getElementById('grade-'+studentId).innerHTML   = gradePill(grade);
+  document.getElementById('status-'+studentId).innerHTML  = Utils.statusBadge(pass?'Pass':'Fail');
+}
+
+function autofillDemo(examId) {
+  const exam = DB.find('exams', examId);
+  if (!exam) return;
+  const students = (DB.get('students')||[]).filter(s => s.course===exam.courseId && s.status==='Active');
+  students.forEach(s => {
+    const inp = document.getElementById('marks-'+s.id);
+    if (!inp) return;
+    const marks = Math.floor(Math.random()*(exam.maxMarks - 30) + 30);
+    inp.value = marks;
+    onMarksInput(inp, s.id, exam.maxMarks, exam.passMarks||Math.round(exam.maxMarks*0.35));
+  });
+  Toast.info('Demo marks filled — review and save');
+}
+
+function saveAllMarks(examId) {
+  const exam = DB.find('exams', examId);
+  if (!exam) return;
+  const students = (DB.get('students')||[]).filter(s => s.course===exam.courseId && s.status==='Active');
+  const passMarks= exam.passMarks || Math.round(exam.maxMarks * 0.35);
+  let results    = (DB.get('results')||[]).filter(r => r.examId !== examId); // remove old
+  let saved = 0, skipped = 0;
+
+  students.forEach(s => {
+    const inp = document.getElementById('marks-'+s.id);
+    if (!inp || inp.value === '') { skipped++; return; }
+    const val  = Number(inp.value);
+    if (val < 0 || val > exam.maxMarks) return;
+    const pct  = (val/exam.maxMarks)*100;
+    results.push({
+      id:            DB.nextId('results','R') + '_' + s.id,
+      studentId:     s.id,
+      examId,
+      marksObtained: val,
+      grade:         calcGrade(pct),
+      result:        val >= passMarks ? 'Pass' : 'Fail',
+      remarks:       '',
+    });
+    saved++;
+  });
+
+  DB.set('results', results);
+  // update exam status to Completed if marks entered
+  if (saved > 0) DB.update('exams', examId, { status: 'Completed' });
+  updateStats();
+  renderSchedule();
+  populateExamSelects();
+  Toast.success(`Marks saved for ${saved} student${saved!==1?'s':''}`+(skipped?` (${skipped} skipped)`:''));
+}
+
+/* ════════════════════════════════
+   RESULTS TABLE
+════════════════════════════════ */
+function renderResultsTable() {
+  const results  = DB.get('results') || [];
+  const examF    = document.getElementById('rptExam')?.value    || '';
+  const courseF  = document.getElementById('rptCourse')?.value  || '';
+  const gradeF   = document.getElementById('rptGrade')?.value   || '';
+  const resultF  = document.getElementById('rptResult')?.value  || '';
+  const searchQ  = (document.getElementById('rptSearch')?.value || '').toLowerCase();
+
+  filteredResults = results.filter(r => {
+    const s      = DB.find('students', r.studentId);
+    const exam   = DB.find('exams', r.examId);
+    const course = DB.find('courses', exam?.courseId);
+    const name   = s ? (s.firstName+' '+s.lastName).toLowerCase() : '';
+    return (!examF   || r.examId === examF) &&
+           (!courseF || exam?.courseId === courseF) &&
+           (!gradeF  || r.grade === gradeF) &&
+           (!resultF || r.result === resultF) &&
+           (!searchQ || name.includes(searchQ) || (s?.rollNo||'').toLowerCase().includes(searchQ));
+  }).sort((a,b) => {
+    const ea = DB.find('exams',a.examId), eb = DB.find('exams',b.examId);
+    return (b.marksObtained/(eb?.maxMarks||100)) - (a.marksObtained/(ea?.maxMarks||100));
+  });
+
+  document.getElementById('rptCount').textContent = filteredResults.length + ' result' + (filteredResults.length!==1?'s':'');
+  rptPage = 1;
+  renderResultsPage();
+}
+
+function renderResultsPage() {
+  const total = filteredResults.length;
+  const start = (rptPage-1)*RPT_PER_PAGE;
+  const end   = Math.min(start+RPT_PER_PAGE, total);
+  const page  = filteredResults.slice(start, end);
+
+  document.getElementById('rptPageInfo').textContent =
+    total === 0 ? 'No results' : `Showing ${start+1}–${end} of ${total}`;
+
+  const tbody = document.getElementById('resultsTableBody');
+
+  if (!total) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="table-empty"><div class="empty-icon">📊</div><div class="empty-msg">No results found</div><div class="empty-sub">Enter marks or adjust filters</div></div></td></tr>`;
+    document.getElementById('rptPageBtns').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = page.map((r, i) => {
+    const s      = DB.find('students', r.studentId);
+    const exam   = DB.find('exams', r.examId);
+    const course = DB.find('courses', exam?.courseId);
+    const pct    = exam ? Math.round((r.marksObtained/exam.maxMarks)*100) : 0;
+    const color  = s ? AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length] : '#94a3b8';
+    const init   = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+    return `<tr>
+      <td style="color:var(--text-3);font-size:12px">${start+i+1}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+        <div>
+          <div style="font-weight:600;font-size:13px">${s?s.firstName+' '+s.lastName:'—'}</div>
+          <div style="font-size:11px;color:var(--text-3)">${s?.rollNo||r.studentId}</div>
+        </div>
+      </div></td>
+      <td style="font-size:12.5px;color:var(--text-2)">${exam?.name||'—'}</td>
+      <td style="font-size:12.5px;color:var(--text-3)">${course?.name||'—'}</td>
+      <td style="color:var(--text-3)">${exam?.maxMarks||'—'}</td>
+      <td><strong style="font-size:14px">${r.marksObtained}</strong></td>
+      <td><strong style="color:${pctColor(pct)}">${pct}%</strong></td>
+      <td>${gradePill(r.grade)}</td>
+      <td>${Utils.statusBadge(r.result)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn-icon" onclick="openEditResult('${r.id}')" style="font-size:12px">✏️</button>
+        <button class="btn-icon" onclick="deleteResult('${r.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  // pagination
+  const pages = Math.ceil(total/RPT_PER_PAGE);
+  const container = document.getElementById('rptPageBtns');
+  if (pages <= 1) { container.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goRptPage(${rptPage-1})" ${rptPage===1?'disabled':''}>‹</button>`;
+  for (let i=1;i<=pages;i++) html+=`<button class="page-btn${i===rptPage?' active':''}" onclick="goRptPage(${i})">${i}</button>`;
+  html += `<button class="page-btn" onclick="goRptPage(${rptPage+1})" ${rptPage===pages?'disabled':''}>›</button>`;
+  container.innerHTML = html;
+}
+
+function goRptPage(n) {
+  const pages = Math.ceil(filteredResults.length/RPT_PER_PAGE);
+  if (n<1||n>pages) return;
+  rptPage = n; renderResultsPage();
+}
+
+function openEditResult(id) {
+  const r = DB.find('results', id);
+  if (!r) return;
+  const s    = DB.find('students', r.studentId);
+  const exam = DB.find('exams',    r.examId);
+  document.getElementById('editResultId').value     = id;
+  document.getElementById('editMarks').value        = r.marksObtained;
+  document.getElementById('editMarks').max          = exam?.maxMarks || 100;
+  document.getElementById('editRemarks').value      = r.remarks || '';
+  document.getElementById('editResult').value       = '';
+  document.getElementById('editResultInfo').innerHTML =
+    `<strong>${s?s.firstName+' '+s.lastName:'—'}</strong> · ${exam?.name||'—'} · Max: ${exam?.maxMarks||100}`;
+  Modal.open('editResultModal');
+}
+
+function saveEditResult() {
+  const id      = document.getElementById('editResultId').value;
+  const r       = DB.find('results', id);
+  const exam    = DB.find('exams', r?.examId);
+  const marks   = Number(document.getElementById('editMarks').value);
+  const passM   = exam?.passMarks || Math.round((exam?.maxMarks||100)*0.35);
+  const pct     = exam ? (marks/exam.maxMarks)*100 : marks;
+  const override= document.getElementById('editResult').value;
+  DB.update('results', id, {
+    marksObtained: marks,
+    grade:         calcGrade(pct),
+    result:        override || (marks >= passM ? 'Pass' : 'Fail'),
+    remarks:       document.getElementById('editRemarks').value.trim(),
+  });
+  Modal.close('editResultModal');
+  updateStats(); renderResultsTable();
+  Toast.success('Result updated');
+}
+
+function deleteResult(id) {
+  if (!Utils.confirmDelete('Delete this result record?')) return;
+  DB.delete('results', id);
+  updateStats(); renderResultsTable();
+  Toast.error('Result deleted');
+}
+
+/* ════════════════════════════════
+   GRADE CARDS
+════════════════════════════════ */
+function previewGradeCard() {
+  const sid    = document.getElementById('gcStudent').value;
+  const examId = document.getElementById('gcExam').value;
+  const year   = document.getElementById('gcYear').value || '2024-25';
+  if (!sid) return;
+
+  const s       = DB.find('students', sid);
+  const course  = DB.find('courses',  s?.course);
+  const results = (DB.get('results')||[]).filter(r =>
+    r.studentId === sid && (!examId || r.examId === examId)
+  );
+  const color   = AVATAR_COLORS[parseInt(sid.replace(/\D/g,''))%AVATAR_COLORS.length];
+  const init    = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+
+  const totalMarks  = results.reduce((a,r) => a + r.marksObtained, 0);
+  const totalMax    = results.reduce((a,r) => { const e=DB.find('exams',r.examId); return a+(e?.maxMarks||100); }, 0);
+  const overallPct  = totalMax ? Math.round((totalMarks/totalMax)*100) : 0;
+  const overallGrade= calcGrade(overallPct);
+  const allPass     = results.every(r => r.result === 'Pass');
+
+  document.getElementById('gradeCardPreview').innerHTML = `
+    <div id="gcPrintArea">
+      <div class="grade-card-paper">
+        <div class="gc-header">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">
+            <div>
+              <div class="gc-inst">EduSoft Institute</div>
+              <div class="gc-sub">by Uniitechs · Ahmedabad</div>
+              <div class="gc-title">📋 ${examId ? (DB.find('exams',examId)?.name||'') : 'Consolidated'} Grade Card · ${year}</div>
+            </div>
+            <div class="result-stamp ${allPass?'stamp-pass':'stamp-fail'}">
+              <div style="font-size:12px;font-weight:800;letter-spacing:1px">${allPass?'PASS':'FAIL'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="gc-body">
+          <div class="gc-student-row">
+            <div class="gc-avatar" style="background:${color}">${init}</div>
+            <div>
+              <div class="gc-name">${s?s.firstName+' '+s.lastName:'—'}</div>
+              <div class="gc-meta">${s?.rollNo||sid} · ${course?.name||'—'} · Batch ${s?.batch||'—'}</div>
+            </div>
+          </div>
+
+          ${results.length ? `
+          <table class="gc-table">
+            <thead><tr><th>Exam / Subject</th><th>Max</th><th>Obtained</th><th>%</th><th>Grade</th><th>Result</th></tr></thead>
+            <tbody>
+              ${results.map(r => {
+                const exam = DB.find('exams', r.examId);
+                const pct  = exam ? Math.round((r.marksObtained/exam.maxMarks)*100) : 0;
+                return `<tr>
+                  <td><strong>${exam?.name||'—'}</strong><br><span style="font-size:11px;color:var(--text-3)">${exam?.subject||''}</span></td>
+                  <td>${exam?.maxMarks||'—'}</td>
+                  <td><strong>${r.marksObtained}</strong></td>
+                  <td style="color:${pctColor(pct)};font-weight:700">${pct}%</td>
+                  <td>${gradePill(r.grade)}</td>
+                  <td>${Utils.statusBadge(r.result)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div class="gc-totals">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center">
+              ${gcStat('Total Marks', totalMarks + '/' + totalMax)}
+              ${gcStat('Percentage', overallPct + '%')}
+              ${gcStat('Overall Grade', overallGrade, gradeClass(overallGrade))}
+              ${gcStat('Result', allPass?'PASS':'FAIL', allPass?'gp-a':'gp-f')}
+            </div>
+          </div>` : `<div style="text-align:center;padding:24px;color:var(--text-3)">No exam results found for this student</div>`}
+
+          <div style="display:flex;justify-content:space-between;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="text-align:center">
+              <div style="width:100px;border-top:1px solid var(--border);padding-top:6px;font-size:11px;color:var(--text-3)">Class Teacher</div>
+            </div>
+            <div style="text-align:center">
+              <div style="width:100px;border-top:1px solid var(--border);padding-top:6px;font-size:11px;color:var(--text-3)">Principal</div>
+            </div>
+          </div>
+        </div>
+        <div class="gc-footer">
+          Computer-generated grade card · EduSoft Institute · Academic Year ${year}
+        </div>
+      </div>
+    </div>`;
+}
+
+function gcStat(label, val, cls = '') {
+  return `<div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:5px">${label}</div>
+    <div class="${cls?'grade-pill '+cls:''}" style="${cls?'':' font-size:16px;font-weight:800;color:var(--primary-dark)'}">${val}</div>
+  </div>`;
+}
+
+function printGradeCard() {
+  const area = document.getElementById('gcPrintArea');
+  if (!area) { Toast.error('Preview a grade card first'); return; }
+  const w = window.open('', '_blank', 'width=750,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>Grade Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Plus Jakarta Sans',sans-serif;color:#0f172a;padding:24px;font-size:13px;background:#f0f9ff}
+      .grade-card-paper{background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(14,165,233,0.12)}
+      .gc-header{background:linear-gradient(135deg,#0ea5e9,#14b8a6);padding:22px 26px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .gc-inst{font-family:'DM Serif Display',serif;font-size:22px;color:white}
+      .gc-sub{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase}
+      .gc-title{font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);margin-top:8px}
+      .gc-body{padding:22px 26px}
+      .result-stamp{display:inline-flex;align-items:center;justify-content:center;flex-direction:column;width:64px;height:64px;border-radius:50%;border:3px solid}
+      .stamp-pass{border-color:#22c55e;color:#15803d}.stamp-fail{border-color:#ef4444;color:#b91c1c}
+      .gc-student-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
+      .gc-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:white}
+      table{width:100%;border-collapse:collapse;font-size:12.5px}
+      th{padding:7px 9px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;border-bottom:1px solid #e2e8f0}
+      td{padding:9px 9px;border-bottom:1px solid #f8fafc}
+      .grade-pill{display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:800}
+      .gp-ap{background:#dcfce7;color:#15803d}.gp-a{background:#d1fae5;color:#065f46}
+      .gp-bp{background:#dbeafe;color:#1d4ed8}.gp-b{background:#ede9fe;color:#5b21b6}
+      .gp-cp{background:#fef3c7;color:#92400e}.gp-c{background:#ffedd5;color:#c2410c}
+      .gp-f{background:#fee2e2;color:#b91c1c}
+      .gc-totals{background:#f0f9ff;border-radius:10px;padding:12px;margin-top:12px}
+      .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+      .badge-green{background:#dcfce7;color:#15803d}.badge-red{background:#fee2e2;color:#b91c1c}
+      .badge-blue{background:#e0f2fe;color:#0369a1}
+      .gc-footer{padding:12px 26px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8}
+      @media print{body{padding:0;background:white}.grade-card-paper{box-shadow:none;border-radius:0}.gc-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body>${area.innerHTML}
+    <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+function bulkPrintCards() {
+  Toast.info('Bulk grade card printing — opens individual cards for each student');
+}
+
+/* ════════════════════════════════
+   MERIT LIST
+════════════════════════════════ */
+function renderMeritList() {
+  const examId  = document.getElementById('meritExam')?.value || '';
+  const results = (DB.get('results')||[]).filter(r => !examId || r.examId === examId);
+  const students = DB.get('students') || [];
+
+  // aggregate per student
+  const aggMap = {};
+  results.forEach(r => {
+    const exam = DB.find('exams', r.examId);
+    if (!aggMap[r.studentId]) aggMap[r.studentId] = { total:0, max:0, count:0 };
+    aggMap[r.studentId].total += r.marksObtained;
+    aggMap[r.studentId].max   += exam?.maxMarks || 100;
+    aggMap[r.studentId].count++;
+  });
+
+  const ranked = Object.entries(aggMap)
+    .map(([sid, d]) => ({ sid, pct: d.max ? Math.round((d.total/d.max)*100) : 0, total:d.total, max:d.max }))
+    .sort((a,b) => b.pct - a.pct);
+
+  const list = document.getElementById('meritListBody');
+  list.innerHTML = !ranked.length
+    ? `<div class="table-empty"><div class="empty-icon">🏆</div><div class="empty-msg">No results yet</div></div>`
+    : ranked.map(({ sid, pct, total, max }, i) => {
+        const s      = DB.find('students', sid);
+        const course = DB.find('courses', s?.course);
+        const color  = AVATAR_COLORS[parseInt(sid.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init   = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+        const rank   = i+1;
+        const rankCls= rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-n';
+        const grade  = calcGrade(pct);
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+            <div class="merit-rank ${rankCls}">${rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+            <div style="flex:1">
+              <div style="font-size:13.5px;font-weight:700;color:var(--text)">${s?s.firstName+' '+s.lastName:'—'}</div>
+              <div style="font-size:11.5px;color:var(--text-3)">${s?.rollNo||sid} · ${course?.name||'—'}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:20px;font-weight:800;color:${pctColor(pct)}">${pct}%</div>
+              <div style="font-size:11px;color:var(--text-3)">${total}/${max} marks</div>
+            </div>
+            ${gradePill(grade)}
+          </div>`;
+      }).join('');
+
+  renderGradeDistChart(results);
+  renderTopPerformers(ranked);
+}
+
+function renderGradeDistChart(results) {
+  const counts = { 'A+':0,'A':0,'B+':0,'B':0,'C+':0,'C':0,'F':0 };
+  results.forEach(r => { if (counts[r.grade]!==undefined) counts[r.grade]++; });
+  const ctx = document.getElementById('gradeDistChart');
+  if (!ctx) return;
+  if (window._gradeDistChart) window._gradeDistChart.destroy();
+  window._gradeDistChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{ label:'Students', data: Object.values(counts),
+        backgroundColor: ['rgba(34,197,94,0.7)','rgba(34,197,94,0.5)','rgba(14,165,233,0.65)','rgba(99,102,241,0.65)','rgba(245,158,11,0.65)','rgba(249,115,22,0.65)','rgba(239,68,68,0.65)'],
+        borderRadius:8, borderSkipped:false }]
+    },
+    options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,0.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}} }
+  });
+}
+
+function renderTopPerformers(ranked) {
+  document.getElementById('topPerformers').innerHTML = ranked.slice(0,3).map(({ sid, pct }, i) => {
+    const s    = DB.find('students', sid);
+    const color= AVATAR_COLORS[parseInt(sid.replace(/\D/g,''))%AVATAR_COLORS.length];
+    const init = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+    const medals = ['🥇','🥈','🥉'];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:18px">${medals[i]}</span>
+      <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">${init}</div>
+      <div style="flex:1;font-size:13px;font-weight:600">${s?s.firstName+' '+s.lastName:'—'}</div>
+      <strong style="color:${pctColor(pct)}">${pct}%</strong>
+    </div>`;
+  }).join('') || '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:16px">No data</div>';
+}
+
+function printMeritList() { window.print(); }
+
+/* ════════════════════════════════
+   HALL TICKETS
+════════════════════════════════ */
+function previewHallTicket() {
+  const sid    = document.getElementById('htStudent').value;
+  const examId = document.getElementById('htExam').value;
+  if (!sid || !examId) return;
+
+  const s      = DB.find('students', sid);
+  const exam   = DB.find('exams',   examId);
+  const course = DB.find('courses', exam?.courseId);
+  const color  = AVATAR_COLORS[parseInt(sid.replace(/\D/g,''))%AVATAR_COLORS.length];
+  const init   = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+  const centre = document.getElementById('htCentre').value || 'Main Examination Hall';
+  const time   = document.getElementById('htTime').value || '08:30 AM';
+
+  document.getElementById('hallTicketPreview').innerHTML = `
+    <div id="htPrintArea">
+      <div class="hall-ticket">
+        <div class="ht-header">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-family:var(--font-display);font-size:20px;color:white;line-height:1">EduSoft Institute</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;margin-top:2px">Hall Ticket / Admit Card</div>
+              <div style="background:rgba(255,255,255,0.2);color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:99px;margin-top:8px;display:inline-block">${exam?.name||'—'}</div>
+            </div>
+            <div style="width:56px;height:64px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;border:2px solid rgba(255,255,255,0.4)">${init}</div>
+          </div>
+        </div>
+
+        <div class="ht-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <table class="ht-table">
+              <tr><td class="ht-label">Student Name</td><td>${s?s.firstName+' '+s.lastName:'—'}</td></tr>
+              <tr><td class="ht-label">Roll Number</td><td><strong>${s?.rollNo||sid}</strong></td></tr>
+              <tr><td class="ht-label">Course</td><td>${course?.name||'—'}</td></tr>
+              <tr><td class="ht-label">Batch</td><td>${s?.batch||'—'}</td></tr>
+            </table>
+            <table class="ht-table">
+              <tr><td class="ht-label">Exam Name</td><td><strong>${exam?.name||'—'}</strong></td></tr>
+              <tr><td class="ht-label">Subject</td><td>${exam?.subject||'—'}</td></tr>
+              <tr><td class="ht-label">Date</td><td><strong>${Utils.formatDate(exam?.date)}</strong></td></tr>
+              <tr><td class="ht-label">Duration</td><td>${exam?.duration||'—'}</td></tr>
+            </table>
+          </div>
+
+          <div style="margin-top:12px;padding:10px 12px;background:#f0f9ff;border-radius:8px;border:1px solid rgba(14,165,233,0.15)">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12.5px">
+              <div><span style="color:#64748b">Exam Centre: </span><strong>${centre}</strong></div>
+              <div><span style="color:#64748b">Reporting Time: </span><strong>${time}</strong></div>
+              <div><span style="color:#64748b">Max Marks: </span><strong>${exam?.maxMarks||'—'}</strong></div>
+            </div>
+          </div>
+
+          ${exam?.notes ? `<div style="margin-top:10px;padding:8px 12px;background:#fef3c7;border-radius:8px;border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#92400e"><strong>Instructions:</strong> ${exam.notes}</div>` : ''}
+
+          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:10.5px;color:#94a3b8;max-width:60%">This hall ticket is mandatory for exam entry. Carry a valid photo ID. Mobile phones not allowed in exam hall.</div>
+            <div style="text-align:center">
+              <div style="width:80px;border-top:1px solid #cbd5e1;padding-top:5px;font-size:10px;color:#94a3b8">Principal's Sign</div>
+            </div>
+          </div>
+        </div>
+        <div class="ht-barcode">||||| ${s?.rollNo||sid} · ${exam?.id||''} |||||</div>
+      </div>
+    </div>`;
+}
+
+function printHallTicket() {
+  const area = document.getElementById('htPrintArea');
+  if (!area) { Toast.error('Preview a hall ticket first'); return; }
+  const w = window.open('', '_blank', 'width=750,height=600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Hall Ticket</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Plus Jakarta Sans',sans-serif;color:#0f172a;padding:24px;background:#f0f9ff}
+      .hall-ticket{border:2px solid rgba(14,165,233,0.2);border-radius:14px;overflow:hidden;background:white;max-width:640px;margin:0 auto}
+      .ht-header{background:linear-gradient(135deg,#0ea5e9,#14b8a6);padding:16px 20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .ht-body{padding:16px 20px}
+      .ht-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+      .ht-table td{padding:6px 9px;border:1px solid #e2e8f0}
+      .ht-label{background:#f8fafc;color:#64748b;font-weight:600;width:38%}
+      .ht-barcode{text-align:center;padding:10px;font-size:11px;letter-spacing:4px;font-family:monospace;color:#94a3b8;border-top:1px dashed rgba(14,165,233,0.2)}
+      @media print{body{padding:0;background:white}}
+    </style></head><body>${area.innerHTML}
+    <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+function generateAllHallTickets(examId) {
+  switchTab('halltickets', null);
+  setTimeout(() => {
+    document.getElementById('htBulkExam').value = examId;
+    document.getElementById('htExam').value = examId;
+    Toast.info('Select a student to generate individual hall tickets');
+  }, 100);
+}
+
+function bulkPrintTickets() { Toast.info('Bulk printing generates hall tickets for all enrolled students'); }
+
+/* ════════════════════════════════
+   ANALYTICS
+════════════════════════════════ */
+function renderAnalytics() {
+  const results = DB.get('results') || [];
+  const exams   = DB.get('exams')   || [];
+
+  // Pass rate by exam
+  const examData = exams.filter(e => e.status === 'Completed').map(e => {
+    const eResults = results.filter(r => r.examId === e.id);
+    const pass     = eResults.filter(r => r.result === 'Pass').length;
+    return { name: e.name.substring(0,12), rate: eResults.length ? Math.round((pass/eResults.length)*100) : 0 };
+  });
+
+  const passCtx = document.getElementById('passRateChart');
+  if (passCtx) {
+    if (window._passChart) window._passChart.destroy();
+    window._passChart = new Chart(passCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: examData.map(e => e.name),
+        datasets: [{ label:'Pass Rate %', data: examData.map(e => e.rate),
+          backgroundColor: examData.map(e => e.rate>=75?'rgba(34,197,94,0.65)':e.rate>=50?'rgba(245,158,11,0.65)':'rgba(239,68,68,0.65)'),
+          borderRadius:8, borderSkipped:false }]
+      },
+      options: { responsive:true, plugins:{legend:{display:false}}, scales:{ y:{min:0,max:100,grid:{color:'rgba(14,165,233,0.06)'},ticks:{callback:v=>v+'%',font:{size:11}}}, x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}} } }
+    });
+  }
+
+  // Score distribution buckets
+  const buckets = { '0–39':0,'40–49':0,'50–59':0,'60–69':0,'70–79':0,'80–89':0,'90–100':0 };
+  results.forEach(r => {
+    const exam = DB.find('exams', r.examId);
+    const pct  = exam ? Math.round((r.marksObtained/exam.maxMarks)*100) : 0;
+    if (pct<40) buckets['0–39']++;
+    else if (pct<50) buckets['40–49']++;
+    else if (pct<60) buckets['50–59']++;
+    else if (pct<70) buckets['60–69']++;
+    else if (pct<80) buckets['70–79']++;
+    else if (pct<90) buckets['80–89']++;
+    else             buckets['90–100']++;
+  });
+
+  const scoreCtx = document.getElementById('scoreDistChart');
+  if (scoreCtx) {
+    if (window._scoreChart) window._scoreChart.destroy();
+    window._scoreChart = new Chart(scoreCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(buckets),
+        datasets: [{ label:'Students', data: Object.values(buckets),
+          backgroundColor: ['rgba(239,68,68,0.7)','rgba(249,115,22,0.65)','rgba(245,158,11,0.65)','rgba(14,165,233,0.55)','rgba(14,165,233,0.65)','rgba(34,197,94,0.55)','rgba(34,197,94,0.75)'],
+          borderRadius:8, borderSkipped:false }]
+      },
+      options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,0.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}} }
+    });
+  }
+
+  // Course avg
+  const courses  = DB.get('courses') || [];
+  const courseAvg= courses.map(c => {
+    const sIds    = (DB.get('students')||[]).filter(s=>s.course===c.id).map(s=>s.id);
+    const cResults= results.filter(r=>sIds.includes(r.studentId));
+    if (!cResults.length) return { name:c.code, avg:0 };
+    const totalPct = cResults.reduce((a,r) => {
+      const e = DB.find('exams',r.examId);
+      return a + (e ? (r.marksObtained/e.maxMarks)*100 : 0);
+    }, 0);
+    return { name:c.code, avg: Math.round(totalPct/cResults.length) };
+  });
+
+  const courseCtx = document.getElementById('courseAvgChart');
+  if (courseCtx) {
+    if (window._courseAvgChart) window._courseAvgChart.destroy();
+    window._courseAvgChart = new Chart(courseCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: courseAvg.map(c=>c.name),
+        datasets: [{ label:'Avg %', data: courseAvg.map(c=>c.avg),
+          backgroundColor:['rgba(14,165,233,0.65)','rgba(20,184,166,0.65)','rgba(99,102,241,0.65)','rgba(245,158,11,0.65)','rgba(239,68,68,0.65)'],
+          borderRadius:8, borderSkipped:false }]
+      },
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(14,165,233,0.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+    });
+  }
+
+  // Grade breakdown pie
+  const gradeCounts = { 'A+':0,'A':0,'B+':0,'B':0,'C+':0,'C':0,'F':0 };
+  results.forEach(r => { if(gradeCounts[r.grade]!==undefined) gradeCounts[r.grade]++; });
+  const gradeCtx = document.getElementById('gradeBreakChart');
+  if (gradeCtx) {
+    if (window._gradeBreakChart) window._gradeBreakChart.destroy();
+    window._gradeBreakChart = new Chart(gradeCtx.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(gradeCounts),
+        datasets: [{ data: Object.values(gradeCounts),
+          backgroundColor:['rgba(34,197,94,0.75)','rgba(34,197,94,0.5)','rgba(14,165,233,0.7)','rgba(99,102,241,0.65)','rgba(245,158,11,0.65)','rgba(249,115,22,0.65)','rgba(239,68,68,0.7)'],
+          borderWidth:0, hoverOffset:6 }]
+      },
+      options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+    });
+  }
+}
+
+/* ════════════════════════════════
+   TAB SWITCH
+════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    const match = document.querySelector(`.main-tab[onclick*="'${name}'"]`);
+    if (match) match.classList.add('active');
+  }
+  if (name === 'results')     renderResultsTable();
+  if (name === 'merit')       renderMeritList();
+  if (name === 'analytics')   renderAnalytics();
+  if (name === 'halltickets') populateStudentSelect('htStudent', false);
+  if (name === 'schedule')    renderSchedule();
+}
+
+/* ════════════════════════════════
+   EXPORT CSV
+════════════════════════════════ */
+function exportResultsCSV() {
+  const results = DB.get('results') || [];
+  const headers = ['Student','Roll No','Course','Exam','Subject','Max Marks','Obtained','%','Grade','Result'];
+  const rows = results.map(r => {
+    const s = DB.find('students', r.studentId);
+    const e = DB.find('exams',    r.examId);
+    const c = DB.find('courses',  e?.courseId);
+    const pct = e ? Math.round((r.marksObtained/e.maxMarks)*100) : 0;
+    return [s?s.firstName+' '+s.lastName:'—', s?.rollNo||r.studentId, c?.name||'—', e?.name||'—', e?.subject||'—', e?.maxMarks||'—', r.marksObtained, pct+'%', r.grade, r.result].map(v=>`"${v}"`).join(',');
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `exam_results_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Results exported!');
+}
+</script>
+</body>
+</html>

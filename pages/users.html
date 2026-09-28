@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users & Access — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .main-tabs{display:flex;gap:4px;padding:4px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);margin-bottom:24px;width:fit-content;flex-wrap:wrap}
+    .main-tab{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .18s;border:none;background:none}
+    .main-tab.active{background:white;color:var(--primary-dark);font-weight:700;box-shadow:0 2px 8px rgba(14,165,233,0.14)}
+    .tab-pane{display:none}.tab-pane.active{display:block;animation:pageEnter .25s var(--ease) both}
+
+    /* User card */
+    .user-list-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:rgba(255,255,255,.52);margin-bottom:9px;transition:all .15s}
+    .user-list-card:hover{border-color:var(--border-strong)}
+    .ulc-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:white;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .ulc-info{flex:1}
+    .ulc-name{font-size:14px;font-weight:700;color:var(--text)}
+    .ulc-meta{font-size:12px;color:var(--text-3);margin-top:2px}
+
+    /* Permission matrix */
+    .perm-matrix{width:100%;border-collapse:collapse;font-size:12.5px}
+    .perm-matrix th,.perm-matrix td{border:1px solid var(--border);padding:9px 12px;text-align:center}
+    .perm-matrix th{background:rgba(14,165,233,.05);font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3)}
+    .perm-matrix td.module-name{text-align:left;font-weight:600;color:var(--text);background:rgba(14,165,233,.03)}
+    .perm-check{accent-color:var(--primary);width:16px;height:16px;cursor:pointer}
+    .perm-yes{color:var(--success-dark);font-size:16px}
+    .perm-no{color:var(--text-4);font-size:16px}
+
+    /* Role badge */
+    .role-admin{background:var(--danger-light);color:var(--danger-dark)}
+    .role-faculty{background:var(--accent-light);color:var(--accent)}
+    .role-student{background:var(--primary-light);color:var(--primary-dark)}
+    .role-parent{background:var(--success-light);color:var(--success-dark)}
+    .role-accountant{background:var(--warning-light);color:var(--warning-dark)}
+
+    /* Activity log */
+    .log-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+    .log-row:last-child{border-bottom:none}
+    .log-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+    /* Password strength */
+    .pw-strength{height:5px;border-radius:99px;background:var(--border);margin-top:5px;overflow:hidden;transition:all .3s}
+    .pw-bar{height:100%;border-radius:99px;transition:all .3s}
+
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}}
+  </style>
+</head>
+<body>
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand"><div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div><div class="brand-tagline">by Uniitechs</div></div>
+    <div class="nav-section"><div class="nav-label">Main</div><a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a></div>
+    <div class="nav-section"><div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card"><div class="avatar" data-user-avatar>A</div><div class="user-info"><div class="u-name" data-user-name>Admin</div><div class="u-role" data-user-role>Administrator</div></div></div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Users & Access</span></div>
+      <div class="page-title">Users & Access Control</div>
+      <div class="page-sub">Manage system users, roles and permissions</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportUsersCSV()">⬇ Export</button>
+      <button class="btn btn-primary" onclick="openAddUser()">+ Add User</button>
+    </div>
+  </div>
+
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue">  <div class="stat-icon">👤</div><div class="stat-label">Total Users</div>    <div class="stat-value" id="uTotal">0</div><div class="stat-delta delta-flat">system accounts</div></div>
+    <div class="stat-card glass success"><div class="stat-icon">✓</div> <div class="stat-label">Active Users</div>   <div class="stat-value" id="uActive">0</div><div class="stat-delta delta-up">can login</div></div>
+    <div class="stat-card glass danger"> <div class="stat-icon">🔐</div><div class="stat-label">Admins</div>         <div class="stat-value" id="uAdmins">0</div><div class="stat-delta delta-flat">full access</div></div>
+    <div class="stat-card glass teal">  <div class="stat-icon">📅</div><div class="stat-label">Logins Today</div>  <div class="stat-value" id="uLogins">0</div><div class="stat-delta delta-flat">sessions</div></div>
+    <div class="stat-card glass warn">  <div class="stat-icon">⚠️</div><div class="stat-label">Inactive</div>       <div class="stat-value" id="uInactive">0</div><div class="stat-delta delta-down">disabled accounts</div></div>
+    <div class="stat-card glass accent"><div class="stat-icon">🔑</div><div class="stat-label">Roles</div>           <div class="stat-value" id="uRoles">5</div><div class="stat-delta delta-flat">defined</div></div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('users',this)">👤 User List</button>
+    <button class="main-tab" onclick="switchTab('roles',this)">🔐 Roles & Permissions</button>
+    <button class="main-tab" onclick="switchTab('password',this)">🔑 Password Manager</button>
+    <button class="main-tab" onclick="switchTab('activity',this)">📋 Activity Log</button>
+  </div>
+
+  <!-- ══ USERS ══ -->
+  <div id="tab-users" class="tab-pane active">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+      <div class="card glass">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div class="search-wrap" style="flex:1;min-width:180px"><span class="search-icon">🔍</span><input class="form-input" type="text" id="userSearch" placeholder="Search name, username..." oninput="renderUserList()"></div>
+          <select id="userRoleFilter" onchange="renderUserList()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none"><option value="">All Roles</option><option>Admin</option><option>Faculty</option><option>Student</option><option>Parent</option><option>Accountant</option></select>
+          <select id="userStatusFilter" onchange="renderUserList()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none"><option value="">All Status</option><option>Active</option><option>Inactive</option><option>Suspended</option></select>
+        </div>
+        <div id="userListEl"></div>
+      </div>
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Users by Role</div></div>
+          <canvas id="roleChart" height="200"></canvas>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Quick Stats</div></div>
+          <div id="userQuickStats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROLES & PERMISSIONS ══ -->
+  <div id="tab-roles" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:20px">
+      <!-- Role cards -->
+      <div>
+        <div class="card-header" style="margin-bottom:14px"><div class="card-title">Defined Roles</div></div>
+        <div id="roleCards"></div>
+      </div>
+      <!-- Permission matrix -->
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Permission Matrix</div><div class="card-sub">Module access by role</div></div>
+        <div style="overflow-x:auto">
+          <table class="perm-matrix" id="permMatrix"></table>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text-3)">✓ = Full access &nbsp;·&nbsp; 👁 = View only &nbsp;·&nbsp; — = No access</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASSWORD MANAGER ══ -->
+  <div id="tab-password" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Reset User Password</div><div class="card-sub">Admin override for any account</div></div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Select User</label>
+          <select id="pwUser" onchange="onPwUserSelect()"><option value="">— Select User —</option></select>
+        </div>
+        <div id="pwUserInfo" style="display:none;padding:10px 14px;background:rgba(14,165,233,.06);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:14px;font-size:13px"></div>
+        <div class="field" style="margin-bottom:14px">
+          <label>New Password *</label>
+          <div class="input-group">
+            <input type="password" id="pwNew" placeholder="Min 6 characters" oninput="checkPwStrength()">
+            <span class="input-suffix" style="cursor:pointer" onclick="togglePw('pwNew')">👁</span>
+          </div>
+          <div class="pw-strength"><div class="pw-bar" id="pwBar" style="width:0%;background:var(--danger)"></div></div>
+          <div style="font-size:11.5px;margin-top:3px;color:var(--text-3)" id="pwStrengthLabel">Enter password above</div>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Confirm Password *</label>
+          <input type="password" id="pwConfirm" placeholder="Re-enter password">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="resetPassword()">🔑 Reset Password</button>
+          <button class="btn btn-outline" onclick="generateRandomPw()">🎲 Generate Random</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Password Policy</div></div>
+          <div id="pwPolicyList"></div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <button class="btn btn-outline btn-sm btn-full" onclick="savePwPolicy()">Save Policy</button>
+          </div>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Default Credentials</div><div class="card-sub">Demo login info</div></div>
+          <div style="font-size:13px;line-height:2.2">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0"><span style="color:var(--text-3)">Admin</span><span><code style="background:rgba(14,165,233,.08);padding:2px 8px;border-radius:5px;font-size:12px">admin / admin123 · OTP: 1234</code></span></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0"><span style="color:var(--text-3)">Faculty</span><span><code style="background:rgba(14,165,233,.08);padding:2px 8px;border-radius:5px;font-size:12px">faculty / faculty123 · OTP: 3456</code></span></div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0"><span style="color:var(--text-3)">Student</span><span><code style="background:rgba(14,165,233,.08);padding:2px 8px;border-radius:5px;font-size:12px">student / student123 · OTP: 2345</code></span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text-3)">Parent</span><span><code style="background:rgba(14,165,233,.08);padding:2px 8px;border-radius:5px;font-size:12px">parent / parent123 · OTP: 4567</code></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ACTIVITY LOG ══ -->
+  <div id="tab-activity" class="tab-pane">
+    <div class="card glass">
+      <div class="card-header">
+        <div><div class="card-title">System Activity Log</div><div class="card-sub">All login, logout and key actions</div></div>
+        <div style="display:flex;gap:8px">
+          <select id="logTypeFilter" onchange="renderActivityLog()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none"><option value="">All Actions</option><option>Login</option><option>Logout</option><option>Password Reset</option><option>User Created</option><option>Record Updated</option><option>Record Deleted</option></select>
+          <button class="btn btn-outline btn-sm" onclick="exportActivityCSV()">⬇ Export</button>
+          <button class="btn btn-danger-soft btn-sm" onclick="clearLog()">🗑 Clear Log</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Date & Time</th><th>User</th><th>Role</th><th>Action</th><th>Details</th><th>IP / Device</th></tr></thead>
+          <tbody id="activityTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ MODAL: ADD USER ══ -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div><div class="modal-title" id="userModalTitle">Add System User</div></div>
+      <button class="modal-close" onclick="Modal.close('addUserModal')">✕</button>
+    </div>
+    <input type="hidden" id="editUserId">
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Full Name *</label><input type="text" id="uName" placeholder="Arjun Patel"></div>
+      <div class="field"><label>Username *</label><input type="text" id="uUsername" placeholder="arjun.patel" style="text-transform:lowercase"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Email</label><input type="email" id="uEmail" placeholder="arjun@email.com"></div>
+      <div class="field"><label>Phone</label><input type="text" id="uPhone" placeholder="9876543210"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Role *</label><select id="uRole"><option>Admin</option><option>Faculty</option><option>Student</option><option>Parent</option><option>Accountant</option></select></div>
+      <div class="field"><label>Status</label><select id="uStatus"><option>Active</option><option>Inactive</option><option>Suspended</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Password</label>
+      <input type="password" id="uPassword" placeholder="Leave blank to keep existing">
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Linked Record (optional)</label>
+      <input type="text" id="uLinked" placeholder="Student ID / Faculty ID / S001 / F002...">
+      <span class="field-hint">Link this user account to a student or faculty record</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+      <button class="btn btn-outline" onclick="Modal.close('addUserModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+const AVATAR_COLORS=['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+const ROLE_COLORS={Admin:'role-admin',Faculty:'role-faculty',Student:'role-student',Parent:'role-parent',Accountant:'role-accountant'};
+
+const MODULES=['Dashboard','Students','Courses','Fees','Attendance','Exams & Results','Faculty','Timetable','Reports','Library','Communication','Accounts','Users & Access','Settings'];
+const ROLE_PERMS={
+  Admin:      {Dashboard:'✓',Students:'✓',Courses:'✓',Fees:'✓',Attendance:'✓','Exams & Results':'✓',Faculty:'✓',Timetable:'✓',Reports:'✓',Library:'✓',Communication:'✓',Accounts:'✓','Users & Access':'✓',Settings:'✓'},
+  Faculty:    {Dashboard:'✓',Students:'👁',Courses:'👁',Fees:'—',Attendance:'✓','Exams & Results':'✓',Faculty:'👁',Timetable:'✓',Reports:'👁',Library:'✓',Communication:'👁',Accounts:'—','Users & Access':'—',Settings:'—'},
+  Student:    {Dashboard:'👁',Students:'—',Courses:'👁',Fees:'👁',Attendance:'👁','Exams & Results':'👁',Faculty:'—',Timetable:'👁',Reports:'—',Library:'✓',Communication:'👁',Accounts:'—','Users & Access':'—',Settings:'—'},
+  Parent:     {Dashboard:'👁',Students:'—',Courses:'👁',Fees:'👁',Attendance:'👁','Exams & Results':'👁',Faculty:'—',Timetable:'—',Reports:'—',Library:'—',Communication:'👁',Accounts:'—','Users & Access':'—',Settings:'—'},
+  Accountant: {Dashboard:'✓',Students:'👁',Courses:'—',Fees:'✓',Attendance:'—','Exams & Results':'—',Faculty:'👁',Timetable:'—',Reports:'✓',Library:'—',Communication:'👁',Accounts:'✓','Users & Access':'—',Settings:'—'},
+};
+
+/* ══ SEED ══ */
+function seedUsers(){
+  if(DB.get('usersSeeded'))return;
+  DB.set('systemUsers',[
+    {id:'U001',name:'Admin User',        username:'admin',  email:'admin@edusoft.in',   phone:'9800000001',role:'Admin',      status:'Active',  linkedId:'',    createdAt:'2024-06-01',lastLogin:'2024-08-25 10:23 AM'},
+    {id:'U002',name:'Prof. Meera Shah',  username:'faculty',email:'meera@edusoft.in',   phone:'9800100200',role:'Faculty',    status:'Active',  linkedId:'F001',createdAt:'2024-06-01',lastLogin:'2024-08-24 09:15 AM'},
+    {id:'U003',name:'Arjun Patel',       username:'student',email:'arjun@email.com',    phone:'9876543210',role:'Student',   status:'Active',  linkedId:'S001',createdAt:'2024-06-01',lastLogin:'2024-08-20 02:30 PM'},
+    {id:'U004',name:'Rajesh Patel',      username:'parent', email:'rajesh@email.com',   phone:'9876543211',role:'Parent',    status:'Active',  linkedId:'S001',createdAt:'2024-06-02',lastLogin:'2024-08-10 11:05 AM'},
+    {id:'U005',name:'Mr. Ajay Verma',    username:'ajay.v', email:'ajay@edusoft.in',    phone:'9800100203',role:'Faculty',   status:'Active',  linkedId:'F004',createdAt:'2024-06-01',lastLogin:'2024-08-23 08:45 AM'},
+    {id:'U006',name:'Priya Shah',        username:'priya.s',email:'priya@email.com',    phone:'9123456789',role:'Student',   status:'Active',  linkedId:'S002',createdAt:'2024-06-03',lastLogin:'2024-08-19 03:10 PM'},
+    {id:'U007',name:'Ramesh Accountant', username:'accounts',email:'accounts@edusoft.in',phone:'9800000002',role:'Accountant',status:'Active', linkedId:'',    createdAt:'2024-07-01',lastLogin:'2024-08-22 10:00 AM'},
+    {id:'U008',name:'Neha Gupta',        username:'neha.g', email:'neha@email.com',     phone:'9011223344',role:'Student',   status:'Inactive',linkedId:'S004',createdAt:'2024-06-08',lastLogin:'Never'},
+  ]);
+  DB.set('activityLog',[
+    {id:'AL001',datetime:'2024-08-25 10:23 AM',user:'Admin User',  role:'Admin',    action:'Login',          detail:'Successful login',               ip:'192.168.1.1'},
+    {id:'AL002',datetime:'2024-08-25 09:15 AM',user:'Prof. Meera', role:'Faculty',  action:'Login',          detail:'Successful login',               ip:'192.168.1.45'},
+    {id:'AL003',datetime:'2024-08-24 04:30 PM',user:'Admin User',  role:'Admin',    action:'Record Updated', detail:'Student S003 fees status updated',ip:'192.168.1.1'},
+    {id:'AL004',datetime:'2024-08-24 02:15 PM',user:'Admin User',  role:'Admin',    action:'Password Reset',  detail:'Password reset for arjun.patel', ip:'192.168.1.1'},
+    {id:'AL005',datetime:'2024-08-23 11:00 AM',user:'Admin User',  role:'Admin',    action:'User Created',   detail:'New user arjun.patel created',   ip:'192.168.1.1'},
+    {id:'AL006',datetime:'2024-08-23 08:45 AM',user:'Mr. Ajay V.', role:'Faculty',  action:'Login',          detail:'Successful login',               ip:'192.168.1.67'},
+    {id:'AL007',datetime:'2024-08-22 05:10 PM',user:'Arjun Patel', role:'Student',  action:'Logout',         detail:'User logged out',                ip:'192.168.1.23'},
+    {id:'AL008',datetime:'2024-08-22 10:00 AM',user:'Accountant',  role:'Accountant',action:'Login',         detail:'Successful login',               ip:'192.168.1.89'},
+    {id:'AL009',datetime:'2024-08-20 03:30 PM',user:'Admin User',  role:'Admin',    action:'Record Deleted', detail:'Removed old attendance record',  ip:'192.168.1.1'},
+    {id:'AL010',datetime:'2024-08-19 09:00 AM',user:'Admin User',  role:'Admin',    action:'Login',          detail:'Successful login',               ip:'192.168.1.1'},
+  ]);
+  DB.set('usersSeeded',true);
+}
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initSidebar('users');seedUsers();
+  updateStats();renderUserList();renderRoleChart();renderUserQuickStats();renderRoleCards();renderPermMatrix();renderPwPolicy();populatePwUserSelect();
+});
+
+/* ══ STATS ══ */
+function updateStats(){
+  const users=DB.get('systemUsers')||[];
+  const active=users.filter(u=>u.status==='Active').length;
+  const admins=users.filter(u=>u.role==='Admin').length;
+  const inactive=users.filter(u=>u.status!=='Active').length;
+  document.getElementById('uTotal').textContent=users.length;
+  document.getElementById('uActive').textContent=active;
+  document.getElementById('uAdmins').textContent=admins;
+  document.getElementById('uLogins').textContent=(DB.get('activityLog')||[]).filter(l=>l.action==='Login'&&l.datetime.includes(new Date().toISOString().split('T')[0].replace(/-/g,'/'))).length||3;
+  document.getElementById('uInactive').textContent=inactive;
+}
+
+/* ══ USER LIST ══ */
+function renderUserList(){
+  const users=DB.get('systemUsers')||[];
+  const q=(document.getElementById('userSearch')?.value||'').toLowerCase();
+  const roleF=document.getElementById('userRoleFilter')?.value||'';
+  const statF=document.getElementById('userStatusFilter')?.value||'';
+  const filtered=users.filter(u=>(!q||u.name.toLowerCase().includes(q)||u.username.toLowerCase().includes(q))&&(!roleF||u.role===roleF)&&(!statF||u.status===statF));
+  document.getElementById('userListEl').innerHTML=filtered.length
+    ?filtered.map(u=>{
+        const color=AVATAR_COLORS[parseInt(u.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init=u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="user-list-card">
+          <div class="ulc-avatar" style="background:${color}">${init}</div>
+          <div class="ulc-info">
+            <div class="ulc-name">${u.name}</div>
+            <div class="ulc-meta">@${u.username} · ${u.email} · Last: ${u.lastLogin||'Never'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="badge ${ROLE_COLORS[u.role]||'badge-gray'}">${u.role}</span>
+            ${Utils.statusBadge(u.status)}
+            <div style="display:flex;gap:4px">
+              <button class="btn-icon" onclick="openEditUser('${u.id}')" style="font-size:12px">✏️</button>
+              <button class="btn-icon" onclick="toggleUserStatus('${u.id}')" style="font-size:12px" data-tip="${u.status==='Active'?'Deactivate':'Activate'}">${u.status==='Active'?'🔒':'🔓'}</button>
+              <button class="btn-icon" onclick="deleteUser('${u.id}')" style="font-size:12px;background:rgba(239,68,68,.08)">🗑</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    :'<div style="text-align:center;padding:32px;color:var(--text-3)"><div style="font-size:32px;margin-bottom:8px">👤</div><div>No users found</div></div>';
+}
+
+function renderRoleChart(){
+  const users=DB.get('systemUsers')||[];
+  const roles={};users.forEach(u=>{roles[u.role]=(roles[u.role]||0)+1;});
+  if(window._roleC)window._roleC.destroy();
+  window._roleC=new Chart(document.getElementById('roleChart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(roles),datasets:[{data:Object.values(roles),backgroundColor:['rgba(239,68,68,.7)','rgba(99,102,241,.7)','rgba(14,165,233,.7)','rgba(34,197,94,.7)','rgba(245,158,11,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+}
+
+function renderUserQuickStats(){
+  const users=DB.get('systemUsers')||[];
+  const roles=['Admin','Faculty','Student','Parent','Accountant'];
+  document.getElementById('userQuickStats').innerHTML=roles.map(r=>{
+    const count=users.filter(u=>u.role===r).length;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:8px"><span class="badge ${ROLE_COLORS[r]||'badge-gray'}" style="min-width:80px;justify-content:center">${r}</span></span><strong style="color:var(--primary-dark)">${count} user${count!==1?'s':''}</strong></div>`;
+  }).join('');
+}
+
+/* ══ ADD / EDIT USER ══ */
+function openAddUser(){
+  document.getElementById('userModalTitle').textContent='Add System User';
+  document.getElementById('editUserId').value='';
+  ['uName','uUsername','uEmail','uPhone','uPassword','uLinked'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('uRole').value='Student';document.getElementById('uStatus').value='Active';
+  Modal.open('addUserModal');
+}
+
+function openEditUser(id){
+  const u=DB.find('systemUsers',id);if(!u)return;
+  document.getElementById('userModalTitle').textContent='Edit User — '+u.name;
+  document.getElementById('editUserId').value=id;
+  document.getElementById('uName').value=u.name||'';document.getElementById('uUsername').value=u.username||'';
+  document.getElementById('uEmail').value=u.email||'';document.getElementById('uPhone').value=u.phone||'';
+  document.getElementById('uRole').value=u.role||'Student';document.getElementById('uStatus').value=u.status||'Active';
+  document.getElementById('uPassword').value='';document.getElementById('uLinked').value=u.linkedId||'';
+  Modal.open('addUserModal');
+}
+
+function saveUser(){
+  const name=document.getElementById('uName').value.trim();const username=document.getElementById('uUsername').value.trim().toLowerCase();
+  if(!name||!username){Toast.error('Name and username required');return;}
+  const editId=document.getElementById('editUserId').value;
+  const data={name,username,email:document.getElementById('uEmail').value.trim(),phone:document.getElementById('uPhone').value.trim(),role:document.getElementById('uRole').value,status:document.getElementById('uStatus').value,linkedId:document.getElementById('uLinked').value.trim(),lastLogin:editId?undefined:'Never',createdAt:editId?undefined:Utils.today()};
+  const pw=document.getElementById('uPassword').value;if(pw)data.password=pw;
+  if(editId){DB.update('systemUsers',editId,data);Toast.success('User updated!');}
+  else{data.id=DB.nextId('systemUsers','U');DB.push('systemUsers',data);addLog('User Created','New user '+username+' created');Toast.success('User added: '+name);}
+  Modal.close('addUserModal');updateStats();renderUserList();renderRoleChart();renderUserQuickStats();populatePwUserSelect();
+}
+
+function toggleUserStatus(id){
+  const u=DB.find('systemUsers',id);if(!u)return;
+  const newStatus=u.status==='Active'?'Inactive':'Active';
+  DB.update('systemUsers',id,{status:newStatus});
+  addLog('Record Updated',`User ${u.username} ${newStatus==='Active'?'activated':'deactivated'}`);
+  updateStats();renderUserList();Toast.success(`User ${newStatus==='Active'?'activated':'deactivated'}`);
+}
+
+function deleteUser(id){
+  const u=DB.find('systemUsers',id);
+  if(!Utils.confirmDelete(`Delete user "${u?.name}"?`))return;
+  DB.delete('systemUsers',id);updateStats();renderUserList();renderRoleChart();renderUserQuickStats();Toast.error('User deleted');
+}
+
+/* ══ ROLES ══ */
+function renderRoleCards(){
+  const ROLE_DESCS={Admin:'Full system access — can manage all modules, users, settings and data.',Faculty:'Teaching staff — can mark attendance, enter results and view student records.',Student:'Enrolled student — can view their own profile, grades, attendance and fees.',Parent:'Parent/guardian — read-only view of their ward\'s performance and dues.',Accountant:'Finance staff — manages fees, accounts and payroll only.'};
+  const ROLE_ICONS={Admin:'🔐',Faculty:'👩‍🏫',Student:'🎓',Parent:'👨‍👩‍👧',Accountant:'🏧'};
+  document.getElementById('roleCards').innerHTML=Object.entries(ROLE_DESCS).map(([role,desc])=>{
+    const users=(DB.get('systemUsers')||[]).filter(u=>u.role===role).length;
+    return `<div class="user-list-card" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px;width:100%">
+        <span style="font-size:22px">${ROLE_ICONS[role]}</span>
+        <div style="flex:1"><div style="font-weight:700;font-size:14px">${role}</div><div style="font-size:12px;color:var(--text-3)">${users} user${users!==1?'s':''}</div></div>
+        <span class="badge ${ROLE_COLORS[role]||'badge-gray'}">${role}</span>
+      </div>
+      <div style="font-size:12.5px;color:var(--text-2);line-height:1.5">${desc}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPermMatrix(){
+  const roles=Object.keys(ROLE_PERMS);
+  const permIcon={'✓' :'<span class="perm-yes">✓</span>','👁':'<span style="color:var(--warning-dark);font-size:13px">👁</span>','—':'<span class="perm-no">—</span>'};
+  let html=`<thead><tr><th style="text-align:left;width:150px">Module</th>${roles.map(r=>`<th><span class="badge ${ROLE_COLORS[r]}" style="font-size:10.5px">${r}</span></th>`).join('')}</tr></thead><tbody>`;
+  MODULES.forEach(m=>{html+=`<tr><td class="module-name">${m}</td>${roles.map(r=>`<td>${permIcon[ROLE_PERMS[r]?.[m]||'—']||'<span class="perm-no">—</span>'}</td>`).join('')}</tr>`;});
+  html+='</tbody>';
+  document.getElementById('permMatrix').innerHTML=html;
+}
+
+/* ══ PASSWORD ══ */
+function populatePwUserSelect(){
+  const users=DB.get('systemUsers')||[];
+  const el=document.getElementById('pwUser');if(!el)return;
+  el.innerHTML='<option value="">— Select User —</option>'+users.map(u=>`<option value="${u.id}">${u.name} (@${u.username}) — ${u.role}</option>`).join('');
+}
+
+function onPwUserSelect(){
+  const id=document.getElementById('pwUser').value;
+  const u=id?DB.find('systemUsers',id):null;
+  const box=document.getElementById('pwUserInfo');
+  if(!u){box.style.display='none';return;}
+  box.style.display='block';
+  box.innerHTML=`<strong>${u.name}</strong> · @${u.username} · ${u.role} · Status: ${u.status}<br>Last login: ${u.lastLogin||'Never'}`;
+}
+
+function checkPwStrength(){
+  const pw=document.getElementById('pwNew').value;
+  const bar=document.getElementById('pwBar');const lbl=document.getElementById('pwStrengthLabel');
+  let score=0;
+  if(pw.length>=6)score++;if(pw.length>=10)score++;if(/[A-Z]/.test(pw))score++;if(/[0-9]/.test(pw))score++;if(/[^A-Za-z0-9]/.test(pw))score++;
+  const levels=[{pct:0,color:'var(--border)',label:'Enter password'},{pct:20,color:'var(--danger)',label:'Very Weak'},{pct:40,color:'var(--warning)',label:'Weak'},{pct:60,color:'var(--warning)',label:'Fair'},{pct:80,color:'var(--success)',label:'Strong'},{pct:100,color:'var(--teal)',label:'Very Strong'}];
+  const l=levels[Math.min(score,5)];
+  bar.style.width=l.pct+'%';bar.style.background=l.color;lbl.textContent=l.label;lbl.style.color=l.color;
+}
+
+function generateRandomPw(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+  const pw=Array.from({length:10},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+  document.getElementById('pwNew').value=pw;document.getElementById('pwConfirm').value=pw;
+  document.getElementById('pwNew').type='text';
+  checkPwStrength();Toast.info('Random password generated — copy it before saving!');
+}
+
+function resetPassword(){
+  const id=document.getElementById('pwUser').value;
+  if(!id){Toast.error('Select a user');return;}
+  const pw=document.getElementById('pwNew').value;const conf=document.getElementById('pwConfirm').value;
+  if(!pw){Toast.error('Enter new password');return;}
+  if(pw.length<6){Toast.error('Password must be at least 6 characters');return;}
+  if(pw!==conf){Toast.error('Passwords do not match');return;}
+  const u=DB.find('systemUsers',id);
+  DB.update('systemUsers',id,{password:pw});
+  addLog('Password Reset','Password reset for @'+u?.username);
+  Toast.success('Password reset successfully for '+u?.name);
+  document.getElementById('pwNew').value='';document.getElementById('pwConfirm').value='';
+  document.getElementById('pwUser').value='';document.getElementById('pwUserInfo').style.display='none';
+  document.getElementById('pwBar').style.width='0%';document.getElementById('pwStrengthLabel').textContent='Enter password above';
+}
+
+function togglePw(id){const el=document.getElementById(id);if(!el)return;el.type=el.type==='password'?'text':'password';}
+
+function renderPwPolicy(){
+  const policies=[{label:'Minimum password length',key:'minLength',value:'6 characters'},{label:'Require uppercase letter',key:'requireUpper',value:'Enabled'},{label:'Require number',key:'requireNum',value:'Enabled'},{label:'Require special character',key:'requireSpecial',value:'Recommended'},{label:'OTP verification on login',key:'otp',value:'Enabled'},{label:'Session timeout',key:'timeout',value:'8 hours'}];
+  document.getElementById('pwPolicyList').innerHTML=policies.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text-2)">${p.label}</span><span class="badge badge-teal" style="font-size:11px">${p.value}</span></div>`).join('');
+}
+
+function savePwPolicy(){Toast.success('Password policy saved!');}
+
+/* ══ ACTIVITY LOG ══ */
+function renderActivityLog(){
+  const log=DB.get('activityLog')||[];
+  const typeF=document.getElementById('logTypeFilter')?.value||'';
+  const filtered=log.filter(l=>!typeF||l.action===typeF);
+  const actionIcon={Login:'🔐',Logout:'🚪','Password Reset':'🔑','User Created':'👤','Record Updated':'✏️','Record Deleted':'🗑'};
+  const actionBg={Login:'background:var(--success-light)',Logout:'background:rgba(14,165,233,.1)','Password Reset':'background:var(--accent-light)','User Created':'background:var(--teal-light)','Record Updated':'background:var(--warning-light)','Record Deleted':'background:var(--danger-light)'};
+  document.getElementById('activityTableBody').innerHTML=filtered.map((l,i)=>`<tr>
+    <td style="color:var(--text-3);font-size:12px">${i+1}</td>
+    <td style="font-size:12.5px">${l.datetime}</td>
+    <td><strong>${l.user}</strong></td>
+    <td><span class="badge ${ROLE_COLORS[l.role]||'badge-gray'}" style="font-size:10.5px">${l.role}</span></td>
+    <td><div style="display:flex;align-items:center;gap:7px"><div style="width:26px;height:26px;border-radius:7px;${actionBg[l.action]||''};display:flex;align-items:center;justify-content:center;font-size:13px">${actionIcon[l.action]||'📋'}</div>${l.action}</div></td>
+    <td class="td-muted" style="font-size:12.5px">${l.detail}</td>
+    <td class="td-muted" style="font-family:monospace;font-size:11.5px">${l.ip||'—'}</td>
+  </tr>`).join('')||'<tr><td colspan="7"><div class="table-empty"><div class="empty-icon">📋</div><div class="empty-msg">No activity records</div></div></td></tr>';
+}
+
+function addLog(action,detail){
+  const session=Auth.getSession();
+  const log=DB.get('activityLog')||[];
+  log.unshift({id:DB.nextId('activityLog','AL'),datetime:new Date().toLocaleString('en-IN'),user:session?.name||'Admin',role:session?.role||'Admin',action,detail,ip:'192.168.1.1'});
+  DB.set('activityLog',log.slice(0,100));
+}
+
+function clearLog(){if(!Utils.confirmDelete('Clear all activity logs?'))return;DB.set('activityLog',[]);renderActivityLog();Toast.error('Activity log cleared');}
+
+function exportUsersCSV(){
+  const users=DB.get('systemUsers')||[];
+  const h=['ID','Name','Username','Email','Phone','Role','Status','Created','Last Login'];
+  const r=users.map(u=>[u.id,u.name,u.username,u.email||'',u.phone||'',u.role,u.status,u.createdAt||'',u.lastLogin||'Never'].map(v=>`"${v}"`).join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='users_'+Utils.today()+'.csv';a.click();Toast.success('Exported!');
+}
+
+function exportActivityCSV(){
+  const log=DB.get('activityLog')||[];
+  const h=['DateTime','User','Role','Action','Detail','IP'];
+  const r=log.map(l=>[l.datetime,l.user,l.role,l.action,l.detail,l.ip||''].map(v=>`"${v}"`).join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='activity_log_'+Utils.today()+'.csv';a.click();Toast.success('Exported!');
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');else{const m=document.querySelector(`.main-tab[onclick*="'${name}'"]`);if(m)m.classList.add('active');}
+  if(name==='activity')renderActivityLog();
+}
+</script>
+</body>
+</html>

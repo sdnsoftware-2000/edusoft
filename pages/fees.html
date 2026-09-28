@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fees Management — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+
+    /* ── tabs ── */
+    .main-tabs {
+      display: flex; gap: 4px; padding: 4px;
+      background: rgba(14,165,233,0.07);
+      border-radius: var(--radius-sm);
+      margin-bottom: 24px; width: fit-content;
+    }
+    .main-tab {
+      padding: 9px 22px; border-radius: 7px; font-size: 13.5px;
+      font-weight: 500; color: var(--text-3); cursor: pointer;
+      transition: all .18s; border: none; background: none;
+    }
+    .main-tab.active {
+      background: white; color: var(--primary-dark); font-weight: 700;
+      box-shadow: 0 2px 8px rgba(14,165,233,0.14);
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: pageEnter .25s var(--ease) both; }
+
+    /* ── filter bar ── */
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center; margin-bottom: 18px;
+    }
+    .filter-bar .search-wrap { flex:1; min-width:200px; max-width:280px; }
+    .filter-bar select {
+      padding: 9px 14px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: rgba(255,255,255,0.6);
+      font-family: var(--font); font-size: 13px; color: var(--text);
+      outline: none; cursor: pointer; transition: border .2s;
+    }
+    .filter-bar select:focus { border-color: var(--primary); }
+
+    /* ── receipt card ── */
+    .receipt-card {
+      border: 2px dashed rgba(14,165,233,0.25);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      background: rgba(255,255,255,0.55);
+      display: none;
+      margin-top: 20px;
+      animation: pageEnter .3s var(--ease) both;
+    }
+    .receipt-card.show { display: block; }
+
+    .receipt-brand .rname { font-family: var(--font-display); font-size: 26px; background: linear-gradient(135deg,var(--primary),var(--teal)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1; }
+    .receipt-brand .rsub  { font-size:10px; color:var(--text-3); letter-spacing:2px; text-transform:uppercase; }
+    .receipt-no { font-size:22px; font-weight:800; color:var(--primary-dark); }
+    .receipt-label { font-size:10px; color:var(--text-3); letter-spacing:1px; text-transform:uppercase; }
+
+    .rrow {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 0; border-bottom:1px solid rgba(14,165,233,0.07); font-size:13.5px;
+    }
+    .rrow:last-of-type { border-bottom:none; }
+    .rrow .rlabel { color:var(--text-3); }
+    .rrow .rval   { font-weight:600; color:var(--text); }
+
+    .receipt-total-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px 0 0; border-top:2px solid rgba(14,165,233,0.2); margin-top:6px;
+    }
+    .receipt-total-row .rt-label { font-size:15px; font-weight:700; color:var(--text); }
+    .receipt-total-row .rt-amount { font-size:26px; font-weight:800; color:var(--teal-dark); }
+
+    /* ── due card ── */
+    .due-card {
+      display:flex; align-items:center; gap:14px; padding:14px 16px;
+      border-radius:var(--radius-sm); border:1px solid var(--border);
+      background:rgba(255,255,255,0.5); transition:all .15s;
+      margin-bottom:8px;
+    }
+    .due-card:hover { border-color:var(--border-strong); transform:translateX(3px); }
+    .due-avatar {
+      width:38px; height:38px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:700; color:white; flex-shrink:0;
+    }
+    .due-info .due-name  { font-size:13.5px; font-weight:600; color:var(--text); }
+    .due-info .due-meta  { font-size:11.5px; color:var(--text-3); margin-top:1px; }
+    .due-right { margin-left:auto; text-align:right; }
+    .due-right .due-amount  { font-size:15px; font-weight:800; color:var(--danger-dark); }
+    .due-right .due-days    { font-size:11px; color:var(--text-3); margin-top:2px; }
+
+    /* ── calculator ── */
+    .calc-result-box {
+      border-radius:var(--radius);
+      padding:20px 24px;
+      background:linear-gradient(135deg,rgba(14,165,233,0.07),rgba(20,184,166,0.07));
+      border:1px solid rgba(14,165,233,0.15);
+      display:none;
+      margin-top:16px;
+      animation:pageEnter .25s var(--ease) both;
+    }
+    .calc-result-box.show { display:block; }
+    .calc-total-amount { font-size:34px; font-weight:800; color:var(--primary-dark); letter-spacing:-1px; }
+    .calc-per-inst     { font-size:15px; color:var(--teal-dark); font-weight:600; margin-top:4px; }
+    .calc-breakdown-row {
+      display:flex; justify-content:space-between;
+      padding:6px 0; font-size:13px;
+      border-bottom:1px solid rgba(14,165,233,0.07);
+    }
+    .calc-breakdown-row:last-child { border-bottom:none; }
+
+    /* ── fee structure card ── */
+    .structure-card {
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.45);
+      overflow:hidden; margin-bottom:14px;
+      transition:all .15s;
+    }
+    .structure-card:hover { border-color:var(--border-strong); }
+    .structure-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px;
+      border-bottom:1px solid var(--border);
+      background:rgba(14,165,233,0.04);
+      cursor:pointer;
+    }
+    .structure-head .sh-name { font-size:15px; font-weight:700; color:var(--text); }
+    .structure-head .sh-code { font-size:11px; color:var(--text-3); margin-top:2px; }
+    .structure-body { padding:16px 20px; display:none; }
+    .structure-body.open { display:block; animation:pageEnter .2s var(--ease) both; }
+    .struct-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:7px 0; font-size:13px; border-bottom:1px solid rgba(14,165,233,0.055);
+    }
+    .struct-row:last-child { border-bottom:none; }
+    .struct-row .sr-label { color:var(--text-2); }
+    .struct-row .sr-val   { font-weight:600; color:var(--text); }
+
+    /* ── payment mode icons ── */
+    .mode-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px;
+    }
+    .mode-tile {
+      padding:12px 8px; border-radius:var(--radius-sm);
+      border:1.5px solid var(--border); background:rgba(255,255,255,0.5);
+      text-align:center; cursor:pointer; transition:all .18s;
+      user-select:none;
+    }
+    .mode-tile:hover { border-color:var(--border-strong); }
+    .mode-tile.selected {
+      border-color:var(--primary); background:var(--primary-light);
+      box-shadow:0 0 0 3px rgba(14,165,233,0.1);
+    }
+    .mode-tile .mt-icon { font-size:20px; margin-bottom:5px; }
+    .mode-tile .mt-name { font-size:11.5px; font-weight:600; color:var(--text); }
+
+    /* ── pagination ── */
+    .pagination {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0 0; border-top:1px solid var(--border); flex-wrap:wrap; gap:10px;
+    }
+    .page-info { font-size:12.5px; color:var(--text-3); }
+    .page-btns { display:flex; gap:4px; }
+    .page-btn {
+      width:32px; height:32px; border-radius:8px; border:1px solid var(--border);
+      background:rgba(255,255,255,0.5); font-size:12.5px; font-weight:500;
+      cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center;
+      transition:all .15s;
+    }
+    .page-btn:hover:not(:disabled) { background:var(--primary-light); color:var(--primary); }
+    .page-btn.active { background:var(--primary); border-color:var(--primary); color:white; font-weight:700; }
+    .page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+    /* ── topbar ── */
+    .topbar { display:none; position:fixed; top:0; left:0; right:0; height:60px; z-index:150; align-items:center; justify-content:space-between; padding:0 18px; border-radius:0 0 16px 16px; }
+    @media (max-width:900px) { .topbar { display:flex; } }
+    @media (max-width:640px) { .mode-grid { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Fees</span></div>
+      <div class="page-title">Fees Management</div>
+      <div class="page-sub">Collect fees, generate receipts, track dues</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-primary" onclick="openCollectModal()">+ Collect Fee</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass success">
+      <div class="stat-icon">✓</div>
+      <div class="stat-label">Total Collected</div>
+      <div class="stat-value" id="statCollected">₹0</div>
+      <div class="stat-delta delta-up" id="statCollectedSub">this session</div>
+    </div>
+    <div class="stat-card glass danger">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-label">Total Pending</div>
+      <div class="stat-value" id="statPending">₹0</div>
+      <div class="stat-delta delta-down" id="statPendingCount">0 students</div>
+    </div>
+    <div class="stat-card glass blue">
+      <div class="stat-icon">🧾</div>
+      <div class="stat-label">Receipts Issued</div>
+      <div class="stat-value" id="statReceipts">0</div>
+      <div class="stat-delta delta-flat">transactions</div>
+    </div>
+    <div class="stat-card glass teal">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Collection Rate</div>
+      <div class="stat-value" id="statRate">0%</div>
+      <div class="stat-delta delta-up">of total expected</div>
+    </div>
+    <div class="stat-card glass warn">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-label">Overdue Students</div>
+      <div class="stat-value" id="statOverdue">0</div>
+      <div class="stat-delta delta-down">need follow-up</div>
+    </div>
+    <div class="stat-card glass accent">
+      <div class="stat-icon">📅</div>
+      <div class="stat-label">This Month</div>
+      <div class="stat-value" id="statMonth">₹0</div>
+      <div class="stat-delta delta-up" id="statMonthSub">collected</div>
+    </div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('transactions',this)">📋 Transactions</button>
+    <button class="main-tab" onclick="switchTab('due',this)">⚠️ Due Alerts</button>
+    <button class="main-tab" onclick="switchTab('calculator',this)">🧮 Calculator</button>
+    <button class="main-tab" onclick="switchTab('structures',this)">📐 Fee Structures</button>
+    <button class="main-tab" onclick="switchTab('analytics',this)">📊 Analytics</button>
+  </div>
+
+  <!-- ═══ TAB: TRANSACTIONS ═══ -->
+  <div id="tab-transactions" class="tab-pane active">
+    <div class="card glass">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="form-input" type="text" id="txnSearch" placeholder="Search receipt, name..." oninput="renderTransactions()">
+        </div>
+        <select id="txnFilterMode" onchange="renderTransactions()">
+          <option value="">All Modes</option>
+          <option>Cash</option><option>UPI</option>
+          <option>Bank Transfer</option><option>Cheque</option>
+          <option>Card</option><option>DD</option>
+        </select>
+        <select id="txnFilterStatus" onchange="renderTransactions()">
+          <option value="">All Status</option>
+          <option>Paid</option><option>Partial</option><option>Refunded</option>
+        </select>
+        <input type="date" id="txnDateFrom" onchange="renderTransactions()" style="padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none;color:var(--text)">
+        <input type="date" id="txnDateTo"   onchange="renderTransactions()" style="padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none;color:var(--text)">
+        <button class="btn btn-ghost btn-sm" onclick="clearTxnFilters()">✕ Clear</button>
+        <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="txnCount">0 records</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Receipt No.</th>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Amount</th>
+              <th>Mode</th>
+              <th>Date</th>
+              <th>Remarks</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="txnTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <div class="page-info" id="txnPageInfo">–</div>
+        <div class="page-btns" id="txnPageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: DUE ALERTS ═══ -->
+  <div id="tab-due" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div><div class="card-title">Students with Pending Fees</div><div class="card-sub" id="dueSubtitle">Loading...</div></div>
+          <select id="dueFilterCourse" onchange="renderDueList()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none">
+            <option value="">All Courses</option>
+          </select>
+        </div>
+        <div id="dueList"></div>
+      </div>
+
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Fee Status Summary</div></div>
+          <canvas id="dueChart" height="200"></canvas>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px" id="dueChartLegend"></div>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Quick Actions</div></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="sendDueReminders()">📲 Send Due Reminders (SMS/WhatsApp)</button>
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="exportDueList()">⬇ Export Due List (CSV)</button>
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="printDueList()">🖨 Print Due List</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ TAB: CALCULATOR ═══ -->
+  <div id="tab-calculator" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Fee Calculator</div><div class="card-sub">Calculate installment-wise fees for any course</div></div>
+
+        <div class="form-row" style="margin-bottom:16px">
+          <div class="field">
+            <label>Course</label>
+            <select id="calcCourse" onchange="calculateFee()">
+              <option value="">— Select Course —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Academic Year</label>
+            <input type="text" id="calcYear" value="2024-25" oninput="calculateFee()">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:16px">
+          <label>Installment Plan</label>
+          <select id="calcPlan" onchange="calculateFee()">
+            <option value="1">Full Year — One-time Payment (0% charge)</option>
+            <option value="2">2 Installments — Half Yearly (+2%)</option>
+            <option value="4">4 Installments — Quarterly (+4%)</option>
+            <option value="12">12 Installments — Monthly (+6%)</option>
+          </select>
+        </div>
+
+        <div class="form-row" style="margin-bottom:16px">
+          <div class="field">
+            <label>Discount Type</label>
+            <select id="calcDiscType" onchange="calculateFee()">
+              <option value="none">No Discount</option>
+              <option value="percent">Percentage (%)</option>
+              <option value="flat">Flat Amount (₹)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Discount Value</label>
+            <input type="number" id="calcDiscValue" value="0" min="0" oninput="calculateFee()" placeholder="0">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:16px">
+          <label>Late Fine (₹ per day, if applicable)</label>
+          <input type="number" id="calcFine" value="0" min="0" oninput="calculateFee()" placeholder="0">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Days Overdue</label>
+          <input type="number" id="calcOverdueDays" value="0" min="0" oninput="calculateFee()" placeholder="0">
+        </div>
+
+        <div class="calc-result-box" id="calcResult">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:4px">Total Amount</div>
+              <div class="calc-total-amount" id="calcTotalAmt">₹0</div>
+              <div class="calc-per-inst" id="calcPerInst"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="useCalculatorResult()">Use This →</button>
+          </div>
+          <div id="calcBreakdown"></div>
+        </div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Installment Schedule</div><div class="card-sub" id="scheduleSubtitle">Select a course to generate</div></div>
+        <div id="installmentSchedule">
+          <div class="table-empty" style="padding:28px 0">
+            <div class="empty-icon">🗓️</div>
+            <div class="empty-msg">No schedule yet</div>
+            <div class="empty-sub">Select course and plan above</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ TAB: FEE STRUCTURES ═══ -->
+  <div id="tab-structures" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div>
+        <div class="card-header" style="margin-bottom:14px">
+          <div class="card-title">Course-wise Fee Structures</div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addStructureModal')">+ Add Course Fee</button>
+        </div>
+        <div id="feeStructureList"></div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Fee Comparison</div><div class="card-sub">Annual fee across courses</div></div>
+        <canvas id="structureChart" height="260"></canvas>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ TAB: ANALYTICS ═══ -->
+  <div id="tab-analytics" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Monthly Collection Trend</div><div class="card-sub">2024</div></div>
+        <canvas id="monthlyChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Collection by Mode</div></div>
+        <canvas id="modeChart" height="220"></canvas>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Course-wise Collection</div></div>
+        <canvas id="courseChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Payment Mode Summary</div></div>
+        <div id="modeSummaryTable"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════════
+     MODAL: COLLECT FEE
+══════════════════════════════════ -->
+<div class="modal-overlay" id="collectModal">
+  <div class="modal glass modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Collect Fee</div>
+        <div class="modal-sub">Record payment and generate receipt</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('collectModal')">✕</button>
+    </div>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="field">
+        <label>Student *</label>
+        <select id="colStudent" onchange="onStudentSelect()">
+          <option value="">— Select Student —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Academic Year</label>
+        <input type="text" id="colYear" value="2024-25">
+      </div>
+    </div>
+
+    <!-- student quick info (shown after select) -->
+    <div id="studentQuickInfo" style="display:none;padding:12px 16px;background:rgba(14,165,233,0.06);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:16px;font-size:13px">
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <span id="sqCourse" style="color:var(--text-2)">—</span>
+        <span id="sqFeeStatus" style="color:var(--text-2)">—</span>
+        <span id="sqTotalPaid" style="color:var(--success-dark)">Paid: ₹0</span>
+        <span id="sqBalance" style="color:var(--danger-dark)">Balance: ₹0</span>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-bottom:6px">
+      <div class="field">
+        <label>Amount (₹) *</label>
+        <div class="input-group">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="colAmount" placeholder="0" min="1" oninput="updateCollectSummary()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Payment Date *</label>
+        <input type="date" id="colDate">
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label>Payment Mode</label>
+      <div class="mode-grid">
+        <div class="mode-tile selected" data-mode="Cash"         onclick="selectMode(this)"><div class="mt-icon">💵</div><div class="mt-name">Cash</div></div>
+        <div class="mode-tile"          data-mode="UPI"          onclick="selectMode(this)"><div class="mt-icon">📱</div><div class="mt-name">UPI</div></div>
+        <div class="mode-tile"          data-mode="Bank Transfer"onclick="selectMode(this)"><div class="mt-icon">🏦</div><div class="mt-name">Bank</div></div>
+        <div class="mode-tile"          data-mode="Cheque"       onclick="selectMode(this)"><div class="mt-icon">📋</div><div class="mt-name">Cheque</div></div>
+        <div class="mode-tile"          data-mode="Card"         onclick="selectMode(this)"><div class="mt-icon">💳</div><div class="mt-name">Card</div></div>
+        <div class="mode-tile"          data-mode="DD"           onclick="selectMode(this)"><div class="mt-icon">📄</div><div class="mt-name">DD</div></div>
+        <div class="mode-tile"          data-mode="NEFT"         onclick="selectMode(this)"><div class="mt-icon">🔁</div><div class="mt-name">NEFT</div></div>
+        <div class="mode-tile"          data-mode="Other"        onclick="selectMode(this)"><div class="mt-icon">💼</div><div class="mt-name">Other</div></div>
+      </div>
+    </div>
+
+    <!-- UPI/Cheque ref -->
+    <div id="refRow" style="display:none" class="form-row">
+      <div class="field">
+        <label id="refLabel">Transaction / Cheque Reference No.</label>
+        <input type="text" id="colRef" placeholder="UTR / Cheque no.">
+      </div>
+      <div class="field">
+        <label>Bank Name (if applicable)</label>
+        <input type="text" id="colBank" placeholder="SBI / HDFC...">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:14px">
+      <div class="field">
+        <label>Fee Head / Remarks</label>
+        <input type="text" id="colRemarks" placeholder="Tuition Fee / Term 1 / Full Year...">
+      </div>
+      <div class="field">
+        <label>Discount (₹)</label>
+        <input type="number" id="colDiscount" placeholder="0" value="0" min="0" oninput="updateCollectSummary()">
+      </div>
+    </div>
+
+    <!-- Summary box -->
+    <div id="collectSummary" style="display:none;padding:14px 18px;background:linear-gradient(135deg,rgba(14,165,233,0.07),rgba(20,184,166,0.07));border-radius:var(--radius-sm);border:1px solid rgba(14,165,233,0.15);margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;color:var(--text-2)">Amount Payable</div>
+        <div style="font-size:22px;font-weight:800;color:var(--primary-dark)" id="colFinalAmount">₹0</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="collectFee()">💳 Collect &amp; Generate Receipt</button>
+      <button class="btn btn-outline" onclick="Modal.close('collectModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: RECEIPT VIEW
+══════════════════════════════════ -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div class="modal-title">Receipt</div>
+      <button class="modal-close" onclick="Modal.close('receiptModal')">✕</button>
+    </div>
+    <div id="receiptDisplay"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="printCurrentReceipt()">🖨 Print Receipt</button>
+      <button class="btn btn-outline" onclick="openReceiptPage()">↗ Open Full Page</button>
+      <button class="btn btn-ghost"   onclick="Modal.close('receiptModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: EDIT TRANSACTION
+══════════════════════════════════ -->
+<div class="modal-overlay" id="editTxnModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Edit Transaction</div>
+      <button class="modal-close" onclick="Modal.close('editTxnModal')">✕</button>
+    </div>
+    <input type="hidden" id="editTxnId">
+    <div class="field" style="margin-bottom:14px">
+      <label>Remarks</label>
+      <input type="text" id="editTxnRemarks">
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Status</label>
+      <select id="editTxnStatus">
+        <option>Paid</option><option>Partial</option><option>Refunded</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveEditTxn()">Save</button>
+      <button class="btn btn-outline" onclick="Modal.close('editTxnModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: ADD COURSE FEE STRUCTURE
+══════════════════════════════════ -->
+<div class="modal-overlay" id="addStructureModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Update Course Fee</div>
+      <button class="modal-close" onclick="Modal.close('addStructureModal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Course</label>
+      <select id="structCourse"></select>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Annual Fee (₹)</label>
+        <input type="number" id="structFee" placeholder="25000">
+      </div>
+      <div class="field">
+        <label>Registration Fee (₹)</label>
+        <input type="number" id="structRegFee" placeholder="500">
+      </div>
+    </div>
+    <div class="field" style="margin:14px 0">
+      <label>Exam Fee (₹)</label>
+      <input type="number" id="structExamFee" placeholder="800">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveStructure()">Save</button>
+      <button class="btn btn-outline" onclick="Modal.close('addStructureModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+let allTxns     = [];
+let filteredTxns= [];
+let txnPage     = 1;
+const TXN_PER_PAGE = 12;
+let lastReceiptId  = null;
+let selectedPayMode = 'Cash';
+
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('fees');
+  loadAll();
+
+  // set today's date as default
+  document.getElementById('colDate').value = Utils.today();
+
+  // populate selects
+  populateStudentSelect('colStudent');
+  populateCourseSelect('calcCourse');
+  populateCourseSelect('dueFilterCourse', true);
+  populateCourseSelect('structCourse', false);
+
+  // open collect modal if URL param
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('collect') === '1') {
+    const sid = params.get('student');
+    openCollectModal(sid);
+  }
+});
+
+function loadAll() {
+  allTxns = DB.get('feeTransactions') || [];
+  updateStats();
+  renderTransactions();
+  renderDueList();
+  renderFeeStructures();
+  renderAnalytics();
+}
+
+/* ════════════════════════════════════════════
+   STATS
+════════════════════════════════════════════ */
+function updateStats() {
+  const students = DB.get('students') || [];
+  const courses  = DB.get('courses')  || [];
+
+  const totalCollected = allTxns.filter(t => t.status !== 'Refunded').reduce((a,t) => a + Number(t.amount), 0);
+  const pendingStudents = students.filter(s => s.feesStatus !== 'Paid');
+  const totalExpected   = students.reduce((a, s) => {
+    const c = DB.find('courses', s.course);
+    return a + Number(c?.fee || 0);
+  }, 0);
+  const rate = totalExpected ? Math.round((totalCollected / totalExpected) * 100) : 0;
+
+  // this month
+  const now = new Date();
+  const thisMonthTxns = allTxns.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const thisMonth = thisMonthTxns.reduce((a,t) => a + Number(t.amount), 0);
+
+  document.getElementById('statCollected').textContent    = Utils.formatCurrency(totalCollected);
+  document.getElementById('statReceipts').textContent     = allTxns.length;
+  document.getElementById('statRate').textContent         = rate + '%';
+  document.getElementById('statMonth').textContent        = Utils.formatCurrency(thisMonth);
+  document.getElementById('statOverdue').textContent      = pendingStudents.filter(s => s.feesStatus === 'Pending').length;
+
+  // pending amount estimation
+  const pendingAmt = pendingStudents.reduce((a, s) => {
+    const c = DB.find('courses', s.course);
+    const paid = allTxns.filter(t => t.studentId === s.id).reduce((x,t) => x + Number(t.amount), 0);
+    return a + Math.max(0, Number(c?.fee || 0) - paid);
+  }, 0);
+  document.getElementById('statPending').textContent      = Utils.formatCurrency(pendingAmt);
+  document.getElementById('statPendingCount').textContent = pendingStudents.length + ' students';
+}
+
+/* ════════════════════════════════════════════
+   TRANSACTIONS TABLE
+════════════════════════════════════════════ */
+function renderTransactions() {
+  const q      = (document.getElementById('txnSearch')?.value || '').toLowerCase();
+  const mode   = document.getElementById('txnFilterMode')?.value  || '';
+  const status = document.getElementById('txnFilterStatus')?.value|| '';
+  const from   = document.getElementById('txnDateFrom')?.value    || '';
+  const to     = document.getElementById('txnDateTo')?.value      || '';
+
+  filteredTxns = allTxns.filter(t => {
+    const matchQ = !q || t.receiptNo.toLowerCase().includes(q) || t.studentName.toLowerCase().includes(q) || String(t.amount).includes(q);
+    const matchMode   = !mode   || t.mode === mode;
+    const matchStatus = !status || t.status === status;
+    const matchFrom   = !from   || t.date >= from;
+    const matchTo     = !to     || t.date <= to;
+    return matchQ && matchMode && matchStatus && matchFrom && matchTo;
+  }).sort((a, b) => b.date.localeCompare(a.date));
+
+  document.getElementById('txnCount').textContent = filteredTxns.length + ' record' + (filteredTxns.length !== 1 ? 's' : '');
+  txnPage = 1;
+  renderTxnPage();
+}
+
+function renderTxnPage() {
+  const total = filteredTxns.length;
+  const start = (txnPage - 1) * TXN_PER_PAGE;
+  const end   = Math.min(start + TXN_PER_PAGE, total);
+  const page  = filteredTxns.slice(start, end);
+
+  document.getElementById('txnPageInfo').textContent =
+    total === 0 ? 'No results' : `Showing ${start+1}–${end} of ${total}`;
+
+  const modeIcons = { Cash:'💵', UPI:'📱', 'Bank Transfer':'🏦', Cheque:'📋', Card:'💳', DD:'📄', NEFT:'🔁', Other:'💼' };
+  const tbody = document.getElementById('txnTableBody');
+
+  if (!total) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="table-empty">
+      <div class="empty-icon">🧾</div>
+      <div class="empty-msg">No transactions found</div>
+      <div class="empty-sub">Try adjusting your filters</div>
+    </div></td></tr>`;
+    document.getElementById('txnPageBtns').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = page.map(t => {
+    const student = DB.find('students', t.studentId);
+    const course  = student ? DB.find('courses', student.course) : null;
+    const color   = AVATAR_COLORS[parseInt((t.studentId||'S0').replace(/\D/g,'')) % AVATAR_COLORS.length];
+    const initial = (t.studentName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    return `<tr>
+      <td><span class="badge badge-blue" style="font-family:monospace;letter-spacing:0.5px">${t.receiptNo}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:30px;height:30px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">${initial}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px">${t.studentName}</div>
+            <div style="font-size:11px;color:var(--text-3)">${student?.rollNo || t.studentId}</div>
+          </div>
+        </div>
+      </td>
+      <td class="td-muted">${course?.name || '—'}</td>
+      <td><strong style="font-size:14px;color:var(--success-dark)">${Utils.formatCurrency(t.amount)}</strong></td>
+      <td><span style="display:flex;align-items:center;gap:5px;font-size:13px">${modeIcons[t.mode]||'💼'} ${t.mode}</span></td>
+      <td class="td-muted">${Utils.formatDate(t.date)}</td>
+      <td style="font-size:12.5px;color:var(--text-2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.remarks||'—'}</td>
+      <td>${Utils.statusBadge(t.status)}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn-icon" onclick="viewReceipt('${t.id}')" data-tip="View Receipt" style="font-size:13px">🧾</button>
+          <button class="btn-icon" onclick="openEditTxn('${t.id}')" data-tip="Edit" style="font-size:13px">✏️</button>
+          <button class="btn-icon" onclick="deleteTxn('${t.id}')" data-tip="Delete" style="font-size:13px;background:rgba(239,68,68,0.08)">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderTxnPagination(total);
+}
+
+function renderTxnPagination(total) {
+  const pages = Math.ceil(total / TXN_PER_PAGE);
+  const container = document.getElementById('txnPageBtns');
+  if (pages <= 1) { container.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goTxnPage(${txnPage-1})" ${txnPage===1?'disabled':''}>‹</button>`;
+  for (let i=1; i<=pages; i++) {
+    html += `<button class="page-btn${i===txnPage?' active':''}" onclick="goTxnPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goTxnPage(${txnPage+1})" ${txnPage===pages?'disabled':''}>›</button>`;
+  container.innerHTML = html;
+}
+
+function goTxnPage(n) {
+  const pages = Math.ceil(filteredTxns.length / TXN_PER_PAGE);
+  if (n < 1 || n > pages) return;
+  txnPage = n;
+  renderTxnPage();
+}
+
+function clearTxnFilters() {
+  document.getElementById('txnSearch').value      = '';
+  document.getElementById('txnFilterMode').value  = '';
+  document.getElementById('txnFilterStatus').value= '';
+  document.getElementById('txnDateFrom').value    = '';
+  document.getElementById('txnDateTo').value      = '';
+  renderTransactions();
+}
+
+/* ════════════════════════════════════════════
+   COLLECT FEE
+════════════════════════════════════════════ */
+function openCollectModal(preSelectStudentId = null) {
+  populateStudentSelect('colStudent');
+  document.getElementById('colDate').value    = Utils.today();
+  document.getElementById('colAmount').value  = '';
+  document.getElementById('colRemarks').value = '';
+  document.getElementById('colDiscount').value= '0';
+  document.getElementById('colRef').value     = '';
+  document.getElementById('colBank').value    = '';
+  document.getElementById('colYear').value    = '2024-25';
+  document.getElementById('studentQuickInfo').style.display = 'none';
+  document.getElementById('collectSummary').style.display   = 'none';
+  document.getElementById('refRow').style.display = 'none';
+  selectMode(document.querySelector('.mode-tile[data-mode="Cash"]'));
+
+  if (preSelectStudentId) {
+    document.getElementById('colStudent').value = preSelectStudentId;
+    onStudentSelect();
+  }
+  Modal.open('collectModal');
+}
+
+function selectMode(el) {
+  document.querySelectorAll('.mode-tile').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPayMode = el.dataset.mode;
+  const showRef = ['UPI','Bank Transfer','Cheque','NEFT','DD'].includes(selectedPayMode);
+  document.getElementById('refRow').style.display = showRef ? 'grid' : 'none';
+  if (selectedPayMode === 'UPI')    document.getElementById('refLabel').textContent = 'UPI Transaction ID';
+  if (selectedPayMode === 'Cheque') document.getElementById('refLabel').textContent = 'Cheque Number';
+  if (['Bank Transfer','NEFT'].includes(selectedPayMode)) document.getElementById('refLabel').textContent = 'UTR / Reference Number';
+  if (selectedPayMode === 'DD')     document.getElementById('refLabel').textContent = 'DD Number';
+}
+
+function onStudentSelect() {
+  const sid = document.getElementById('colStudent').value;
+  if (!sid) { document.getElementById('studentQuickInfo').style.display = 'none'; return; }
+  const s      = DB.find('students', sid);
+  const course = DB.find('courses', s?.course);
+  const paid   = (DB.get('feeTransactions')||[]).filter(t=>t.studentId===sid).reduce((a,t)=>a+Number(t.amount),0);
+  const balance= course ? Math.max(0, Number(course.fee) - paid) : 0;
+
+  document.getElementById('sqCourse').textContent    = '📚 ' + (course?.name || '—');
+  document.getElementById('sqFeeStatus').textContent = '🏷 ' + (s?.feesStatus || '—');
+  document.getElementById('sqTotalPaid').textContent = '✅ Paid: ' + Utils.formatCurrency(paid);
+  document.getElementById('sqBalance').textContent   = '⚠️ Balance: ' + Utils.formatCurrency(balance);
+  document.getElementById('studentQuickInfo').style.display = 'block';
+
+  // auto-fill amount with balance
+  if (balance > 0) {
+    document.getElementById('colAmount').value = balance;
+    updateCollectSummary();
+  }
+}
+
+function updateCollectSummary() {
+  const amt  = Number(document.getElementById('colAmount').value)   || 0;
+  const disc = Number(document.getElementById('colDiscount').value) || 0;
+  const net  = Math.max(0, amt - disc);
+  document.getElementById('colFinalAmount').textContent = Utils.formatCurrency(net);
+  document.getElementById('collectSummary').style.display = amt > 0 ? 'block' : 'none';
+}
+
+function collectFee() {
+  const sid = document.getElementById('colStudent').value;
+  if (!sid) { Toast.error('Please select a student'); return; }
+  const amt = Number(document.getElementById('colAmount').value);
+  if (!amt || amt <= 0) { Toast.error('Please enter a valid amount'); return; }
+
+  const student = DB.find('students', sid);
+  const course  = DB.find('courses', student?.course);
+  const disc    = Number(document.getElementById('colDiscount').value) || 0;
+  const net     = Math.max(0, amt - disc);
+  const receiptNo = Utils.nextReceipt();
+
+  const txn = {
+    id:          DB.nextId('feeTransactions', 'T'),
+    receiptNo,
+    studentId:   sid,
+    studentName: student ? student.firstName + ' ' + student.lastName : '—',
+    courseId:    student?.course || '',
+    amount:      net,
+    discount:    disc,
+    date:        document.getElementById('colDate').value || Utils.today(),
+    mode:        selectedPayMode,
+    reference:   document.getElementById('colRef').value.trim(),
+    bankName:    document.getElementById('colBank').value.trim(),
+    remarks:     document.getElementById('colRemarks').value.trim() || 'Fee Payment',
+    year:        document.getElementById('colYear').value.trim() || '2024-25',
+    status:      'Paid',
+    createdAt:   new Date().toISOString(),
+  };
+
+  DB.push('feeTransactions', txn);
+  lastReceiptId = txn.id;
+
+  // update student feesStatus
+  if (student && course) {
+    const totalPaid = (DB.get('feeTransactions')||[])
+      .filter(t => t.studentId === sid && t.status !== 'Refunded')
+      .reduce((a,t) => a + Number(t.amount), 0);
+    const newStatus = totalPaid >= Number(course.fee) ? 'Paid'
+                    : totalPaid > 0                   ? 'Partial'
+                    : 'Pending';
+    DB.update('students', sid, { feesStatus: newStatus });
+  }
+
+  Modal.close('collectModal');
+  allTxns = DB.get('feeTransactions') || [];
+  updateStats();
+  renderTransactions();
+  renderDueList();
+  renderAnalytics();
+
+  Toast.success(`Receipt ${receiptNo} generated! Amount: ${Utils.formatCurrency(net)}`);
+
+  // auto-show receipt
+  setTimeout(() => viewReceipt(txn.id), 400);
+}
+
+/* ════════════════════════════════════════════
+   RECEIPT VIEW & PRINT
+════════════════════════════════════════════ */
+function viewReceipt(txnId) {
+  const t = DB.find('feeTransactions', txnId);
+  if (!t) return;
+  lastReceiptId = txnId;
+  const student = DB.find('students', t.studentId);
+  const course  = DB.find('courses', student?.course || t.courseId);
+
+  document.getElementById('receiptDisplay').innerHTML = buildReceiptHTML(t, student, course);
+  Modal.open('receiptModal');
+}
+
+function buildReceiptHTML(t, student, course) {
+  const modeIcons = { Cash:'💵', UPI:'📱', 'Bank Transfer':'🏦', Cheque:'📋', Card:'💳', DD:'📄', NEFT:'🔁', Other:'💼' };
+  return `
+    <div id="printableReceipt">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+        <div class="receipt-brand">
+          <div class="rname">EduSoft</div>
+          <div class="rsub">by Uniitechs</div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-3)">Ahmedabad, Gujarat</div>
+        </div>
+        <div style="text-align:right">
+          <div class="receipt-label">Receipt No.</div>
+          <div class="receipt-no">${t.receiptNo}</div>
+          <div style="margin-top:6px">${Utils.statusBadge('Paid')}</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(14,165,233,0.05);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:8px">Student Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px">
+          <div><span style="color:var(--text-3)">Name:</span> <strong>${t.studentName}</strong></div>
+          <div><span style="color:var(--text-3)">Roll No:</span> <strong>${student?.rollNo || t.studentId}</strong></div>
+          <div><span style="color:var(--text-3)">Course:</span> ${course?.name || '—'}</div>
+          <div><span style="color:var(--text-3)">Batch:</span> ${student?.batch || '—'}</div>
+        </div>
+      </div>
+
+      <div class="rrow"><span class="rlabel">Fee Head</span><span class="rval">${t.remarks || 'Fee Payment'}</span></div>
+      <div class="rrow"><span class="rlabel">Academic Year</span><span class="rval">${t.year || '2024-25'}</span></div>
+      <div class="rrow"><span class="rlabel">Payment Date</span><span class="rval">${Utils.formatDate(t.date)}</span></div>
+      <div class="rrow"><span class="rlabel">Payment Mode</span><span class="rval">${modeIcons[t.mode]||''} ${t.mode}</span></div>
+      ${t.reference ? `<div class="rrow"><span class="rlabel">Ref. No.</span><span class="rval" style="font-family:monospace">${t.reference}</span></div>` : ''}
+      ${t.bankName  ? `<div class="rrow"><span class="rlabel">Bank</span><span class="rval">${t.bankName}</span></div>` : ''}
+      ${t.discount  ? `<div class="rrow"><span class="rlabel">Discount</span><span class="rval" style="color:var(--success-dark)">− ${Utils.formatCurrency(t.discount)}</span></div>` : ''}
+
+      <div class="receipt-total-row">
+        <div class="rt-label">Amount Paid</div>
+        <div class="rt-amount">${Utils.formatCurrency(t.amount)}</div>
+      </div>
+
+      <div style="text-align:center;margin-top:18px;padding-top:14px;border-top:1px dashed rgba(14,165,233,0.2)">
+        <div style="font-size:11px;color:var(--text-3);line-height:1.7">
+          This is a computer-generated receipt. No signature required.<br>
+          For queries contact: info@edusoft.in | +91 98765 00000
+        </div>
+      </div>
+    </div>`;
+}
+
+function printCurrentReceipt() {
+  if (!lastReceiptId) return;
+  const t       = DB.find('feeTransactions', lastReceiptId);
+  const student = DB.find('students', t?.studentId);
+  const course  = DB.find('courses',  student?.course || t?.courseId);
+  if (!t) return;
+
+  const w = window.open('', '_blank', 'width=700,height=600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${t.receiptNo}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus+Jakarta+Sans',sans-serif;padding:32px;color:#0f172a;font-size:13px;max-width:560px;margin:0 auto}
+    .brand{font-family:'DM Serif Display',serif;font-size:28px;color:#0284c7}
+    .brand-sub{font-size:10px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase}
+    .rcpt-no{font-size:22px;font-weight:800;color:#0369a1}
+    .head{display:flex;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #e2e8f0;margin-bottom:14px}
+    .student-box{background:#f0f9ff;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+    .sb-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;margin-bottom:6px}
+    .sb-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px}
+    .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .row:last-of-type{border-bottom:none}
+    .row .lbl{color:#64748b}
+    .total-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;border-top:2px solid #bae6fd;margin-top:8px}
+    .t-lbl{font-size:16px;font-weight:700}
+    .t-amt{font-size:28px;font-weight:800;color:#0f766e}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;background:#dcfce7;color:#15803d}
+    .footer{text-align:center;margin-top:20px;padding-top:14px;border-top:1px dashed #bae6fd;font-size:11px;color:#94a3b8;line-height:1.8}
+    @media print{body{padding:0}}
+  </style></head><body>
+  <div class="head">
+    <div><div class="brand">EduSoft</div><div class="brand-sub">by Uniitechs</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Ahmedabad, Gujarat</div></div>
+    <div style="text-align:right"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8">Receipt No.</div><div class="rcpt-no">${t.receiptNo}</div><div style="margin-top:5px"><span class="badge">Paid</span></div></div>
+  </div>
+  <div class="student-box">
+    <div class="sb-title">Student Details</div>
+    <div class="sb-grid">
+      <div><span style="color:#64748b">Name: </span><strong>${t.studentName}</strong></div>
+      <div><span style="color:#64748b">Roll: </span><strong>${student?.rollNo || t.studentId}</strong></div>
+      <div><span style="color:#64748b">Course: </span>${course?.name || '—'}</div>
+      <div><span style="color:#64748b">Batch: </span>${student?.batch || '—'}</div>
+    </div>
+  </div>
+  <div class="row"><span class="lbl">Fee Head</span><span>${t.remarks||'Fee Payment'}</span></div>
+  <div class="row"><span class="lbl">Academic Year</span><span>${t.year||'2024-25'}</span></div>
+  <div class="row"><span class="lbl">Payment Date</span><span>${Utils.formatDate(t.date)}</span></div>
+  <div class="row"><span class="lbl">Payment Mode</span><span>${t.mode}</span></div>
+  ${t.reference ? `<div class="row"><span class="lbl">Reference No.</span><span style="font-family:monospace">${t.reference}</span></div>` : ''}
+  ${t.bankName  ? `<div class="row"><span class="lbl">Bank</span><span>${t.bankName}</span></div>` : ''}
+  ${t.discount  ? `<div class="row"><span class="lbl">Discount</span><span style="color:#15803d">− ₹${Number(t.discount).toLocaleString('en-IN')}</span></div>` : ''}
+  <div class="total-row"><span class="t-lbl">Amount Paid</span><span class="t-amt">₹${Number(t.amount).toLocaleString('en-IN')}</span></div>
+  <div class="footer">Computer-generated receipt. No signature required.<br>EduSoft Institute · info@edusoft.in · +91 98765 00000</div>
+  <script>window.onload=()=>{window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function openReceiptPage() {
+  if (lastReceiptId) {
+    window.open(`fee-receipt.html?id=${lastReceiptId}`, '_blank');
+  }
+}
+
+/* ════════════════════════════════════════════
+   EDIT / DELETE TRANSACTION
+════════════════════════════════════════════ */
+function openEditTxn(id) {
+  const t = DB.find('feeTransactions', id);
+  if (!t) return;
+  document.getElementById('editTxnId').value      = id;
+  document.getElementById('editTxnRemarks').value = t.remarks || '';
+  document.getElementById('editTxnStatus').value  = t.status  || 'Paid';
+  Modal.open('editTxnModal');
+}
+
+function saveEditTxn() {
+  const id = document.getElementById('editTxnId').value;
+  DB.update('feeTransactions', id, {
+    remarks: document.getElementById('editTxnRemarks').value.trim(),
+    status:  document.getElementById('editTxnStatus').value,
+  });
+  Modal.close('editTxnModal');
+  allTxns = DB.get('feeTransactions') || [];
+  renderTransactions();
+  Toast.success('Transaction updated');
+}
+
+function deleteTxn(id) {
+  const t = DB.find('feeTransactions', id);
+  if (!t) return;
+  if (!Utils.confirmDelete(`Delete receipt ${t.receiptNo} for ${t.studentName}?`)) return;
+  DB.delete('feeTransactions', id);
+  allTxns = DB.get('feeTransactions') || [];
+  updateStats();
+  renderTransactions();
+  Toast.error('Transaction deleted');
+}
+
+/* ════════════════════════════════════════════
+   DUE ALERTS
+════════════════════════════════════════════ */
+function renderDueList() {
+  const students    = DB.get('students') || [];
+  const filterCourse= document.getElementById('dueFilterCourse')?.value || '';
+  const dueStudents = students.filter(s =>
+    s.feesStatus !== 'Paid' && (!filterCourse || s.course === filterCourse)
+  );
+
+  document.getElementById('dueSubtitle').textContent =
+    dueStudents.length + ' student' + (dueStudents.length !== 1 ? 's' : '') + ' with outstanding fees';
+
+  if (!dueStudents.length) {
+    document.getElementById('dueList').innerHTML =
+      `<div class="table-empty"><div class="empty-icon">🎉</div><div class="empty-msg">All fees collected!</div><div class="empty-sub">No pending dues right now</div></div>`;
+    return;
+  }
+
+  document.getElementById('dueList').innerHTML = dueStudents.map(s => {
+    const course  = DB.find('courses', s.course);
+    const paid    = allTxns.filter(t => t.studentId === s.id && t.status !== 'Refunded').reduce((a,t) => a + Number(t.amount), 0);
+    const balance = Math.max(0, Number(course?.fee || 0) - paid);
+    const color   = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+    const initial = (s.firstName[0] + s.lastName[0]).toUpperCase();
+    return `
+      <div class="due-card">
+        <div class="due-avatar" style="background:${color}">${initial}</div>
+        <div class="due-info">
+          <div class="due-name">${s.firstName} ${s.lastName}</div>
+          <div class="due-meta">${course?.name||'—'} · ${s.rollNo||s.id} · ${Utils.statusBadge(s.feesStatus)}</div>
+        </div>
+        <div class="due-right">
+          <div class="due-amount">${Utils.formatCurrency(balance)}</div>
+          <div class="due-days">Balance due</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCollectModal('${s.id}')">Collect</button>
+      </div>`;
+  }).join('');
+
+  renderDueChart(students);
+}
+
+function renderDueChart(students) {
+  const paid    = students.filter(s => s.feesStatus === 'Paid').length;
+  const partial = students.filter(s => s.feesStatus === 'Partial').length;
+  const pending = students.filter(s => s.feesStatus === 'Pending').length;
+
+  const ctx = document.getElementById('dueChart');
+  if (!ctx) return;
+  if (window._dueChart) window._dueChart.destroy();
+  window._dueChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Paid', 'Partial', 'Pending'],
+      datasets: [{
+        data: [paid, partial, pending],
+        backgroundColor: ['rgba(34,197,94,0.75)', 'rgba(245,158,11,0.75)', 'rgba(239,68,68,0.75)'],
+        borderWidth: 0, hoverOffset: 6,
+      }]
+    },
+    options: { responsive:true, cutout:'65%', plugins: { legend:{ display:false } } }
+  });
+
+  document.getElementById('dueChartLegend').innerHTML = [
+    { label:'Paid',    count:paid,    cls:'badge-green' },
+    { label:'Partial', count:partial, cls:'badge-yellow' },
+    { label:'Pending', count:pending, cls:'badge-red' },
+  ].map(i => `
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0">
+      <span class="badge ${i.cls}">${i.label}</span>
+      <span style="font-weight:600;color:var(--text)">${i.count} student${i.count!==1?'s':''}</span>
+    </div>`).join('');
+}
+
+function sendDueReminders() { Toast.info('Reminder alerts queued for ' + (DB.get('students')||[]).filter(s=>s.feesStatus!=='Paid').length + ' students'); }
+function exportDueList() {
+  const students = (DB.get('students')||[]).filter(s=>s.feesStatus!=='Paid');
+  const headers  = ['ID','Name','Course','Batch','Fees Status','Balance'];
+  const rows     = students.map(s => {
+    const course = DB.find('courses', s.course);
+    const paid   = allTxns.filter(t=>t.studentId===s.id).reduce((a,t)=>a+Number(t.amount),0);
+    const bal    = Math.max(0, Number(course?.fee||0) - paid);
+    return [`"${s.id}"`,`"${s.firstName} ${s.lastName}"`,`"${course?.name||'—'}"`,`"${s.batch}"`,`"${s.feesStatus}"`,`"${bal}"`].join(',');
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `due_students_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Due list exported!');
+}
+function printDueList() { window.print(); }
+
+/* ════════════════════════════════════════════
+   CALCULATOR
+════════════════════════════════════════════ */
+function calculateFee() {
+  const courseId   = document.getElementById('calcCourse').value;
+  const plan       = Number(document.getElementById('calcPlan').value);
+  const discType   = document.getElementById('calcDiscType').value;
+  const discVal    = Number(document.getElementById('calcDiscValue').value) || 0;
+  const finePerDay = Number(document.getElementById('calcFine').value)      || 0;
+  const overdueDays= Number(document.getElementById('calcOverdueDays').value)|| 0;
+
+  if (!courseId) { document.getElementById('calcResult').classList.remove('show'); return; }
+
+  const course = DB.find('courses', courseId);
+  if (!course)  { document.getElementById('calcResult').classList.remove('show'); return; }
+
+  const baseFee = Number(course.fee);
+  const surchargeRates = { 1:0, 2:2, 4:4, 12:6 };
+  const surcharge      = surchargeRates[plan] || 0;
+  let afterSurcharge   = Math.round(baseFee * (1 + surcharge / 100));
+
+  let discount = 0;
+  if (discType === 'percent') discount = Math.round(afterSurcharge * discVal / 100);
+  if (discType === 'flat')    discount = discVal;
+  discount = Math.min(discount, afterSurcharge);
+
+  const fine    = finePerDay * overdueDays;
+  const total   = Math.max(0, afterSurcharge - discount) + fine;
+  const perInst = Math.round(total / plan);
+
+  document.getElementById('calcResult').classList.add('show');
+  document.getElementById('calcTotalAmt').textContent = Utils.formatCurrency(total);
+  document.getElementById('calcPerInst').textContent  = plan > 1
+    ? `${plan} × ${Utils.formatCurrency(perInst)} per installment`
+    : 'Full payment';
+
+  const breakdown = [
+    { l: 'Base Fee',         v: Utils.formatCurrency(baseFee) },
+    surcharge ? { l: `Installment charge (+${surcharge}%)`, v: Utils.formatCurrency(Math.round(baseFee * surcharge / 100)) } : null,
+    discount  ? { l: `Discount (${discType === 'percent' ? discVal + '%' : 'flat'})`, v: '− ' + Utils.formatCurrency(discount) } : null,
+    fine      ? { l: `Late fine (${overdueDays} days × ₹${finePerDay})`, v: Utils.formatCurrency(fine) } : null,
+    { l: '<strong>Net Payable</strong>', v: `<strong>${Utils.formatCurrency(total)}</strong>` },
+  ].filter(Boolean);
+
+  document.getElementById('calcBreakdown').innerHTML = breakdown.map(b =>
+    `<div class="calc-breakdown-row"><span style="color:var(--text-2)">${b.l}</span><span>${b.v}</span></div>`).join('');
+
+  // render installment schedule
+  renderInstallmentSchedule(total, plan, perInst, course);
+}
+
+function renderInstallmentSchedule(total, plan, perInst, course) {
+  if (plan === 1) {
+    document.getElementById('scheduleSubtitle').textContent = 'Full payment — no installments';
+    document.getElementById('installmentSchedule').innerHTML = `
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:32px;margin-bottom:10px">💰</div>
+        <div style="font-size:20px;font-weight:800;color:var(--primary-dark)">${Utils.formatCurrency(total)}</div>
+        <div style="font-size:13px;color:var(--text-3);margin-top:4px">One-time payment</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('scheduleSubtitle').textContent = plan + ' installments for ' + course.name;
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const startMonth = 5; // June
+  const rows = Array.from({length: plan}, (_, i) => {
+    const m = (startMonth + Math.floor((i * 12) / plan)) % 12;
+    const y = 2024 + Math.floor((startMonth + Math.floor((i * 12) / plan)) / 12);
+    return { no: i+1, due: `${monthNames[m]} ${y}`, amount: perInst };
+  });
+
+  document.getElementById('installmentSchedule').innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Due Date</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td><span class="badge badge-blue">${r.no}</span></td>
+        <td>${r.due}</td>
+        <td><strong>${Utils.formatCurrency(r.amount)}</strong></td>
+        <td>${r.no === 1 ? Utils.statusBadge('Paid') : Utils.statusBadge('Pending')}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="padding:12px 0 0;font-size:13px;color:var(--text-3);text-align:right">
+      Total: <strong style="color:var(--primary-dark)">${Utils.formatCurrency(total)}</strong>
+    </div>`;
+}
+
+function useCalculatorResult() {
+  const amt = document.getElementById('calcTotalAmt').textContent.replace(/[₹,]/g,'');
+  const sid = new URLSearchParams(window.location.search).get('student');
+  openCollectModal(sid || '');
+  setTimeout(() => {
+    document.getElementById('colAmount').value = amt;
+    updateCollectSummary();
+    const cid = document.getElementById('calcCourse').value;
+    if (cid) {
+      const students = (DB.get('students')||[]).filter(s=>s.course===cid);
+      // If only one student in that course we can auto-select
+    }
+    Toast.info('Amount pre-filled from calculator');
+  }, 300);
+}
+
+/* ════════════════════════════════════════════
+   FEE STRUCTURES
+════════════════════════════════════════════ */
+function renderFeeStructures() {
+  const courses = DB.get('courses') || [];
+  document.getElementById('feeStructureList').innerHTML = courses.map(c => {
+    const enrolled = (DB.get('students')||[]).filter(s=>s.course===c.id).length;
+    const collected= allTxns.filter(t=>(DB.find('students',t.studentId)?.course===c.id) && t.status!=='Refunded').reduce((a,t)=>a+Number(t.amount),0);
+    const expected = enrolled * Number(c.fee);
+    const pct      = expected ? Math.min(100, Math.round((collected/expected)*100)) : 0;
+    return `
+    <div class="structure-card">
+      <div class="structure-head" onclick="toggleStructure('sc-${c.id}')">
+        <div>
+          <div class="sh-name">${c.name}</div>
+          <div class="sh-code">${c.code} · ${c.duration} · ${enrolled} students enrolled</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:800;color:var(--primary-dark)">${Utils.formatCurrency(c.fee)}</div>
+            <div style="font-size:11px;color:var(--text-3)">per year</div>
+          </div>
+          ${Utils.statusBadge(c.status)}
+          <span style="color:var(--text-3);font-size:14px;transition:transform .2s" id="arrow-${c.id}">▼</span>
+        </div>
+      </div>
+      <div class="structure-body" id="sc-${c.id}">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+          <div style="text-align:center;padding:12px;background:rgba(14,165,233,0.05);border-radius:10px">
+            <div style="font-size:18px;font-weight:800;color:var(--primary-dark)">${Utils.formatCurrency(c.fee)}</div>
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Annual Fee</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:rgba(34,197,94,0.06);border-radius:10px">
+            <div style="font-size:18px;font-weight:800;color:var(--success-dark)">${Utils.formatCurrency(collected)}</div>
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Collected</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:rgba(239,68,68,0.05);border-radius:10px">
+            <div style="font-size:18px;font-weight:800;color:var(--danger-dark)">${Utils.formatCurrency(Math.max(0,expected-collected))}</div>
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Pending</div>
+          </div>
+        </div>
+        <div style="margin-bottom:6px;font-size:12px;color:var(--text-3)">${pct}% collected</div>
+        <div class="progress" style="margin-bottom:16px"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <div class="struct-row"><span class="sr-label">Monthly Installment</span><span class="sr-val">${Utils.formatCurrency(Math.round(c.fee/12))}</span></div>
+        <div class="struct-row"><span class="sr-label">Quarterly</span><span class="sr-val">${Utils.formatCurrency(Math.round(c.fee*1.04/4))}</span></div>
+        <div class="struct-row"><span class="sr-label">Half-yearly</span><span class="sr-val">${Utils.formatCurrency(Math.round(c.fee*1.02/2))}</span></div>
+        <div class="struct-row"><span class="sr-label">Subjects</span><span class="sr-val">${(c.subjects||[]).join(', ')||'—'}</span></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="prefillCalc('${c.id}')">🧮 Open Calculator</button>
+          <button class="btn btn-primary btn-sm" onclick="openCollectModal()">💳 Collect Fee</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderStructureChart(courses);
+}
+
+function toggleStructure(id) {
+  const body = document.getElementById(id);
+  const cId  = id.replace('sc-','');
+  const arrow= document.getElementById('arrow-' + cId);
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function prefillCalc(courseId) {
+  switchTab('calculator', document.querySelector('.main-tab:nth-child(3)'));
+  setTimeout(() => {
+    document.getElementById('calcCourse').value = courseId;
+    calculateFee();
+  }, 100);
+}
+
+function saveStructure() {
+  const cId    = document.getElementById('structCourse').value;
+  const fee    = Number(document.getElementById('structFee').value);
+  if (!cId || !fee) { Toast.error('Course and fee required'); return; }
+  DB.update('courses', cId, {
+    fee,
+    regFee:  Number(document.getElementById('structRegFee').value)  || 0,
+    examFee: Number(document.getElementById('structExamFee').value) || 0,
+  });
+  Modal.close('addStructureModal');
+  renderFeeStructures();
+  Toast.success('Fee structure updated!');
+}
+
+function renderStructureChart(courses) {
+  const ctx = document.getElementById('structureChart');
+  if (!ctx) return;
+  if (window._structChart) window._structChart.destroy();
+  window._structChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: courses.map(c => c.code),
+      datasets: [{
+        label: 'Annual Fee (₹)',
+        data:  courses.map(c => c.fee),
+        backgroundColor: ['rgba(14,165,233,0.65)','rgba(20,184,166,0.65)','rgba(99,102,241,0.65)','rgba(245,158,11,0.65)','rgba(239,68,68,0.65)'],
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color:'rgba(14,165,233,0.06)' }, ticks: { callback: v => '₹'+v.toLocaleString('en-IN'), font:{size:10} } },
+        y: { grid: { display: false }, ticks: { font:{size:11} } }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════════════
+   ANALYTICS CHARTS
+════════════════════════════════════════════ */
+function renderAnalytics() {
+  renderMonthlyChart();
+  renderModeChart();
+  renderCourseChart();
+  renderModeSummary();
+}
+
+function renderMonthlyChart() {
+  const ctx = document.getElementById('monthlyChart');
+  if (!ctx) return;
+  if (window._monthlyChart) window._monthlyChart.destroy();
+  const monthlyData = Array(12).fill(0);
+  allTxns.forEach(t => {
+    if (t.status === 'Refunded') return;
+    const m = new Date(t.date).getMonth();
+    if (!isNaN(m)) monthlyData[m] += Number(t.amount);
+  });
+  window._monthlyChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [{
+        label: 'Collected (₹)',
+        data: monthlyData,
+        backgroundColor: 'rgba(14,165,233,0.22)',
+        borderColor: '#0ea5e9', borderWidth: 2,
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero:true, grid:{color:'rgba(14,165,233,0.06)'}, ticks:{ callback: v=>'₹'+v.toLocaleString('en-IN'), font:{size:10} } },
+        x: { grid:{ display:false }, ticks:{ font:{size:11} } }
+      }
+    }
+  });
+}
+
+function renderModeChart() {
+  const ctx = document.getElementById('modeChart');
+  if (!ctx) return;
+  if (window._modeChart) window._modeChart.destroy();
+  const modeData = {};
+  allTxns.filter(t=>t.status!=='Refunded').forEach(t => {
+    modeData[t.mode] = (modeData[t.mode]||0) + Number(t.amount);
+  });
+  const colors = ['rgba(14,165,233,0.75)','rgba(20,184,166,0.75)','rgba(99,102,241,0.75)','rgba(245,158,11,0.75)','rgba(239,68,68,0.75)','rgba(34,197,94,0.75)','rgba(236,72,153,0.75)'];
+  window._modeChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(modeData),
+      datasets: [{ data: Object.values(modeData), backgroundColor: colors, borderWidth:0, hoverOffset:8 }]
+    },
+    options: { responsive:true, cutout:'55%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } } }
+  });
+}
+
+function renderCourseChart() {
+  const ctx = document.getElementById('courseChart');
+  if (!ctx) return;
+  if (window._courseChart) window._courseChart.destroy();
+  const courses = DB.get('courses') || [];
+  const data    = courses.map(c => {
+    return allTxns.filter(t => {
+      const s = DB.find('students', t.studentId);
+      return s?.course === c.id && t.status !== 'Refunded';
+    }).reduce((a,t) => a+Number(t.amount), 0);
+  });
+  window._courseChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: courses.map(c => c.code),
+      datasets: [{
+        label: 'Collected (₹)',
+        data,
+        backgroundColor: ['rgba(14,165,233,0.65)','rgba(20,184,166,0.65)','rgba(99,102,241,0.65)','rgba(245,158,11,0.65)','rgba(239,68,68,0.65)'],
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        y:{ beginAtZero:true, grid:{color:'rgba(14,165,233,0.06)'}, ticks:{ callback: v=>'₹'+v.toLocaleString('en-IN'), font:{size:10} } },
+        x:{ grid:{display:false}, ticks:{font:{size:11}} }
+      }
+    }
+  });
+}
+
+function renderModeSummary() {
+  const modeData = {};
+  allTxns.filter(t=>t.status!=='Refunded').forEach(t => {
+    if (!modeData[t.mode]) modeData[t.mode] = { count:0, total:0 };
+    modeData[t.mode].count++;
+    modeData[t.mode].total += Number(t.amount);
+  });
+  const modeIcons = { Cash:'💵', UPI:'📱', 'Bank Transfer':'🏦', Cheque:'📋', Card:'💳', DD:'📄', NEFT:'🔁', Other:'💼' };
+  const rows = Object.entries(modeData).sort((a,b) => b[1].total - a[1].total);
+  const grandTotal = rows.reduce((a,[,v]) => a+v.total, 0);
+
+  document.getElementById('modeSummaryTable').innerHTML = rows.length
+    ? `<table class="data-table">
+        <thead><tr><th>Mode</th><th>Txns</th><th>Total</th><th>Share</th></tr></thead>
+        <tbody>${rows.map(([mode, v]) => {
+          const share = grandTotal ? Math.round((v.total/grandTotal)*100) : 0;
+          return `<tr>
+            <td><span style="display:flex;align-items:center;gap:6px">${modeIcons[mode]||'💼'} ${mode}</span></td>
+            <td>${v.count}</td>
+            <td><strong>${Utils.formatCurrency(v.total)}</strong></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress" style="flex:1;height:5px"><div class="progress-bar" style="width:${share}%"></div></div>
+                <span style="font-size:12px;color:var(--text-3);min-width:28px">${share}%</span>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+       </table>`
+    : `<div class="table-empty"><div class="empty-icon">📊</div><div class="empty-msg">No data yet</div></div>`;
+}
+
+/* ════════════════════════════════════════════
+   TAB SWITCH
+════════════════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else document.querySelector(`.main-tab[onclick*="${name}"]`)?.classList.add('active');
+
+  // lazy-render charts only when tab is visible
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'structures') renderFeeStructures();
+  if (name === 'due')        renderDueList();
+}
+
+/* ════════════════════════════════════════════
+   EXPORT CSV
+════════════════════════════════════════════ */
+function exportCSV() {
+  const headers = ['Receipt No','Student','Roll No','Course','Amount','Discount','Mode','Reference','Date','Remarks','Status'];
+  const rows = filteredTxns.map(t => {
+    const s = DB.find('students', t.studentId);
+    const c = DB.find('courses', s?.course);
+    return [t.receiptNo, t.studentName, s?.rollNo||t.studentId, c?.name||'', t.amount, t.discount||0, t.mode, t.reference||'', t.date, t.remarks||'', t.status]
+      .map(v => `"${v}"`).join(',');
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `fee_transactions_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Transactions exported!');
+}
+</script>
+</body>
+</html>

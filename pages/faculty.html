@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+
+    /* ══ MAIN TABS ══ */
+    .main-tabs { display:flex; gap:4px; padding:4px; background:rgba(14,165,233,0.07); border-radius:var(--radius-sm); margin-bottom:24px; width:fit-content; flex-wrap:wrap; }
+    .main-tab  { padding:9px 20px; border-radius:7px; font-size:13px; font-weight:500; color:var(--text-3); cursor:pointer; transition:all .18s; border:none; background:none; }
+    .main-tab.active { background:white; color:var(--primary-dark); font-weight:700; box-shadow:0 2px 8px rgba(14,165,233,0.14); }
+    .tab-pane  { display:none; }
+    .tab-pane.active { display:block; animation:pageEnter .25s var(--ease) both; }
+
+    /* ══ FACULTY CARD GRID ══ */
+    .faculty-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:16px; }
+
+    .faculty-card {
+      border-radius:var(--radius-lg); padding:22px;
+      border:1.5px solid var(--border); background:rgba(255,255,255,0.55);
+      transition:all .2s var(--ease); position:relative; overflow:hidden;
+      cursor:pointer;
+    }
+    .faculty-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(14,165,233,0.13); border-color:var(--border-strong); }
+    .faculty-card:active { transform:scale(0.98); }
+
+    .faculty-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:4px;
+      background:linear-gradient(90deg,var(--primary),var(--teal));
+    }
+
+    .fc-top { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+    .fc-avatar {
+      width:52px; height:52px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; font-weight:800; color:white; flex-shrink:0;
+      box-shadow:0 4px 14px rgba(0,0,0,0.15);
+    }
+    .fc-name   { font-size:15px; font-weight:700; color:var(--text); line-height:1.2; }
+    .fc-desig  { font-size:12px; color:var(--text-3); margin-top:2px; }
+
+    .fc-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+
+    .fc-info-row {
+      display:flex; align-items:center; gap:8px; font-size:12.5px;
+      color:var(--text-2); margin-bottom:6px;
+    }
+    .fc-info-row:last-child { margin-bottom:0; }
+    .fc-info-row .fi-icon { font-size:13px; width:18px; flex-shrink:0; }
+
+    .fc-footer {
+      display:flex; gap:6px; margin-top:14px; padding-top:12px;
+      border-top:1px solid var(--border);
+    }
+
+    /* ══ STATUS INDICATOR ══ */
+    .status-dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+      display:inline-block;
+    }
+    .dot-active   { background:var(--success); }
+    .dot-leave    { background:var(--warning); }
+    .dot-inactive { background:var(--text-4); }
+
+    /* ══ PROFILE LAYOUT ══ */
+    .profile-hero {
+      border-radius:var(--radius-xl); padding:28px 32px;
+      margin-bottom:20px; position:relative; overflow:hidden;
+    }
+    .profile-hero::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(135deg,rgba(14,165,233,0.07),rgba(20,184,166,0.05));
+      border-radius:inherit;
+    }
+    .ph-inner { display:flex; align-items:flex-start; gap:24px; position:relative; }
+    .ph-avatar {
+      width:88px; height:88px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:30px; font-weight:800; color:white; flex-shrink:0;
+      box-shadow:0 8px 28px rgba(14,165,233,0.3);
+      border:4px solid rgba(255,255,255,0.8);
+    }
+    .ph-name { font-size:24px; font-weight:800; color:var(--text); letter-spacing:-.4px; }
+    .ph-sub  { font-size:13px; color:var(--text-3); margin-top:4px; }
+    .ph-stats {
+      display:flex; gap:24px; flex-wrap:wrap;
+      margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+    }
+    .phs-item .phs-val { font-size:22px; font-weight:800; color:var(--primary-dark); }
+    .phs-item .phs-lbl { font-size:10.5px; color:var(--text-3); text-transform:uppercase; letter-spacing:.5px; }
+
+    .ph-actions { margin-left:auto; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+
+    /* ══ INFO SECTION ══ */
+    .info-section { padding:18px 20px; border-radius:var(--radius); border:1px solid var(--border); background:rgba(255,255,255,0.42); }
+    .info-section-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--text-3); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .info-row { display:flex; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid rgba(14,165,233,0.04); font-size:13px; }
+    .info-row:last-child { border-bottom:none; }
+    .ir-label { color:var(--text-3); min-width:130px; flex-shrink:0; font-size:12px; }
+    .ir-val   { color:var(--text); font-weight:500; flex:1; }
+
+    /* ══ SALARY SLIP ══ */
+    .salary-slip {
+      border:1.5px dashed rgba(14,165,233,0.25);
+      border-radius:var(--radius-lg); padding:24px;
+      background:rgba(255,255,255,0.5);
+    }
+    .ss-head { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+    .ss-row  { display:flex; justify-content:space-between; padding:7px 0; font-size:13.5px; border-bottom:1px solid rgba(14,165,233,0.06); }
+    .ss-row:last-of-type { border-bottom:none; }
+    .ss-row .sl { color:var(--text-3); }
+    .ss-row .sv { font-weight:600; color:var(--text); }
+    .ss-total { display:flex; justify-content:space-between; padding:14px 0 0; border-top:2px solid rgba(14,165,233,0.2); margin-top:6px; }
+    .ss-total .st-l { font-size:15px; font-weight:700; }
+    .ss-total .st-v { font-size:22px; font-weight:800; color:var(--teal-dark); }
+
+    /* ══ ATTENDANCE MARK ══ */
+    .att-grid-f { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
+    .att-fac-card { border-radius:var(--radius-sm); padding:14px; border:1.5px solid var(--border); background:rgba(255,255,255,0.52); }
+    .att-fac-card.present { border-color:rgba(34,197,94,.35); background:rgba(34,197,94,.04); }
+    .att-fac-card.absent  { border-color:rgba(239,68,68,.3);  background:rgba(239,68,68,.04); }
+    .att-fac-card.leave   { border-color:rgba(245,158,11,.3); background:rgba(245,158,11,.04); }
+    .afc-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
+    .afc-sub  { font-size:11px; color:var(--text-3); margin-bottom:10px; }
+    .afc-btns { display:flex; gap:5px; }
+    .afc-btn  { flex:1; padding:6px 4px; border-radius:7px; border:1.5px solid var(--border); background:rgba(255,255,255,.5); font-family:var(--font); font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; text-align:center; color:var(--text-2); }
+    .afc-btn.p { border-color:rgba(34,197,94,.4); color:var(--success-dark); }
+    .afc-btn.p.active { background:var(--success); border-color:var(--success); color:white; }
+    .afc-btn.a { border-color:rgba(239,68,68,.4); color:var(--danger-dark); }
+    .afc-btn.a.active { background:var(--danger); border-color:var(--danger); color:white; }
+    .afc-btn.l { border-color:rgba(245,158,11,.4); color:var(--warning-dark); }
+    .afc-btn.l.active { background:var(--warning); border-color:var(--warning); color:white; }
+
+    /* ══ LEAVE ROW ══ */
+    .leave-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
+    .leave-row:last-child { border-bottom:none; }
+
+    /* ══ DOCUMENT ROW ══ */
+    .doc-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .doc-row:last-child { border-bottom:none; }
+    .doc-icon { width:34px; height:34px; border-radius:8px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+
+    /* ══ FILTER BAR ══ */
+    .filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+    .filter-bar select, .filter-bar input[type="text"] { padding:8px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:rgba(255,255,255,.6); font-family:var(--font); font-size:13px; color:var(--text); outline:none; transition:border .2s; }
+    .filter-bar select:focus, .filter-bar input:focus { border-color:var(--primary); }
+
+    /* ══ TOPBAR ══ */
+    .topbar { display:none; position:fixed; top:0; left:0; right:0; height:60px; z-index:150; align-items:center; justify-content:space-between; padding:0 18px; border-radius:0 0 16px 16px; }
+    @media (max-width:900px) { .topbar { display:flex; } }
+    @media (max-width:700px) { .ph-inner { flex-direction:column; } .ph-actions { flex-direction:row; margin-left:0; } .faculty-grid { grid-template-columns:1fr; } }
+
+    @media print {
+      .sidebar,.topbar,.main-tabs,.page-actions,.btn,.filter-bar,.fc-footer { display:none !important; }
+      .main-content { margin-left:0 !important; padding:0 !important; }
+      .glass { background:white !important; backdrop-filter:none !important; box-shadow:none !important; border:1px solid #e2e8f0 !important; }
+      body::before, body::after { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Faculty</span></div>
+      <div class="page-title">Faculty & Staff</div>
+      <div class="page-sub">Manage teaching staff, attendance, salary and leave</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportFacultyCSV()">⬇ Export CSV</button>
+      <button class="btn btn-primary" onclick="openAddFacultyModal()">+ Add Faculty</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue">
+      <div class="stat-icon">👩‍🏫</div>
+      <div class="stat-label">Total Faculty</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-delta delta-flat">all staff</div>
+    </div>
+    <div class="stat-card glass success">
+      <div class="stat-icon">✓</div>
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="statActive">0</div>
+      <div class="stat-delta delta-up">currently teaching</div>
+    </div>
+    <div class="stat-card glass warn">
+      <div class="stat-icon">🏖️</div>
+      <div class="stat-label">On Leave</div>
+      <div class="stat-value" id="statLeave">0</div>
+      <div class="stat-delta delta-flat">today</div>
+    </div>
+    <div class="stat-card glass teal">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-label">Avg Experience</div>
+      <div class="stat-value" id="statExp">0 yrs</div>
+      <div class="stat-delta delta-flat">across all faculty</div>
+    </div>
+    <div class="stat-card glass accent">
+      <div class="stat-icon">💰</div>
+      <div class="stat-label">Monthly Payroll</div>
+      <div class="stat-value" id="statPayroll">₹0</div>
+      <div class="stat-delta delta-flat">total salary</div>
+    </div>
+    <div class="stat-card glass danger">
+      <div class="stat-icon">📋</div>
+      <div class="stat-label">Pending Leaves</div>
+      <div class="stat-value" id="statPendingLeaves">0</div>
+      <div class="stat-delta delta-down">awaiting approval</div>
+    </div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('directory',this)">👩‍🏫 Directory</button>
+    <button class="main-tab" onclick="switchTab('profile',this)">👤 Profile View</button>
+    <button class="main-tab" onclick="switchTab('attendance',this)">📅 Attendance</button>
+    <button class="main-tab" onclick="switchTab('salary',this)">💰 Salary & Payroll</button>
+    <button class="main-tab" onclick="switchTab('leaves',this)">🏖️ Leave Management</button>
+    <button class="main-tab" onclick="switchTab('performance',this)">📊 Performance</button>
+  </div>
+
+  <!-- ══════════ TAB: DIRECTORY ══════════ -->
+  <div id="tab-directory" class="tab-pane active">
+    <div class="filter-bar">
+      <div class="search-wrap" style="flex:1;min-width:200px;max-width:280px">
+        <span class="search-icon">🔍</span>
+        <input class="form-input" type="text" id="dirSearch" placeholder="Search name, subject..." oninput="renderDirectory()">
+      </div>
+      <select id="dirStatus" onchange="renderDirectory()">
+        <option value="">All Status</option>
+        <option>Active</option><option>On Leave</option><option>Inactive</option>
+      </select>
+      <select id="dirDept" onchange="renderDirectory()">
+        <option value="">All Departments</option>
+      </select>
+      <div style="display:flex;gap:6px;margin-left:auto">
+        <button class="btn-icon" id="viewGrid" onclick="setView('grid')" style="font-size:15px;background:var(--primary-light)" data-tip="Grid view">⊞</button>
+        <button class="btn-icon" id="viewList" onclick="setView('list')" style="font-size:15px" data-tip="List view">☰</button>
+      </div>
+    </div>
+    <div id="facultyGrid" class="faculty-grid"></div>
+    <div id="facultyList" style="display:none">
+      <div class="card glass">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Faculty</th><th>Subject / Dept</th><th>Qualification</th><th>Experience</th><th>Phone</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="facultyListBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: PROFILE ══════════ -->
+  <div id="tab-profile" class="tab-pane">
+    <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+      <div class="field" style="min-width:240px;flex:1;max-width:360px">
+        <label>Select Faculty Member</label>
+        <select id="profileSelect" onchange="renderProfile()">
+          <option value="">— Choose Faculty —</option>
+        </select>
+      </div>
+      <div id="profileNavBtns" style="display:flex;gap:6px;margin-top:18px">
+        <button class="btn btn-icon" onclick="navProfile(-1)" data-tip="Previous">‹</button>
+        <button class="btn btn-icon" onclick="navProfile(1)"  data-tip="Next">›</button>
+      </div>
+    </div>
+    <div id="profilePanel">
+      <div class="card glass" style="text-align:center;padding:48px">
+        <div style="font-size:40px;margin-bottom:12px">👩‍🏫</div>
+        <div style="font-size:14px;color:var(--text-3)">Select a faculty member to view their profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: ATTENDANCE ══════════ -->
+  <div id="tab-attendance" class="tab-pane">
+    <div class="card glass" style="margin-bottom:20px">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
+        <div class="card-title">Mark Faculty Attendance</div>
+        <input type="date" id="facAttDate" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none" onchange="renderFacultyAttGrid()">
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-sm btn-outline" onclick="facMarkAll('present')">✓ All Present</button>
+          <button class="btn btn-sm btn-outline" onclick="facMarkAll('absent')">✗ All Absent</button>
+          <button class="btn btn-primary btn-sm" onclick="saveFacultyAttendance()">💾 Save</button>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div style="display:flex;gap:16px;align-items:center;padding:12px 16px;background:rgba(14,165,233,0.06);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><div class="status-dot dot-active"></div><span id="facAttPCnt">0 Present</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><div class="status-dot dot-inactive" style="background:var(--danger)"></div><span id="facAttACnt">0 Absent</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><div class="status-dot" style="background:var(--warning)"></div><span id="facAttLCnt">0 Leave</span></div>
+        <div style="margin-left:auto;font-size:13px;font-weight:600;color:var(--text-2)" id="facAttPct">—</div>
+      </div>
+
+      <div class="att-grid-f" id="facAttGrid"></div>
+    </div>
+
+    <!-- Faculty Attendance Report -->
+    <div class="card glass">
+      <div class="card-header">
+        <div class="card-title">Monthly Attendance Summary</div>
+        <select id="facAttMonth" onchange="renderFacAttReport()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+          <option value="5">June</option><option value="6">July</option>
+          <option value="7">August</option><option value="8">September</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Faculty</th><th>Subject</th><th>Present</th><th>Absent</th><th>Leave</th><th>%</th><th>Status</th></tr></thead>
+          <tbody id="facAttReportBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: SALARY ══════════ -->
+  <div id="tab-salary" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div>
+        <!-- Payroll table -->
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header">
+            <div><div class="card-title">Monthly Payroll</div><div class="card-sub" id="payrollMonth">Loading...</div></div>
+            <div style="display:flex;gap:8px">
+              <select id="salaryMonth" onchange="renderPayroll()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+                <option value="5">June 2024</option><option value="6">July 2024</option>
+                <option value="7">August 2024</option><option value="8">September 2024</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="processPayroll()">⚙️ Process</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Faculty</th><th>Basic Salary</th><th>Days Present</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="payrollBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
+            <div style="font-size:13px;color:var(--text-2)">Total Payroll: <strong id="totalPayroll" style="color:var(--teal-dark)">₹0</strong></div>
+            <button class="btn btn-outline btn-sm" onclick="exportPayrollCSV()">⬇ Export Payroll</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <!-- Salary slip generator -->
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Generate Salary Slip</div></div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Select Faculty</label>
+            <select id="slipFaculty" onchange="previewSalarySlip()"></select>
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <label>Month</label>
+            <select id="slipMonth" onchange="previewSalarySlip()">
+              <option value="5">June 2024</option><option value="6">July 2024</option>
+              <option value="7">August 2024</option><option value="8">September 2024</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="printSalarySlip()">🖨 Print Salary Slip</button>
+        </div>
+
+        <!-- Slip preview -->
+        <div id="salarySlipPreview">
+          <div class="card glass" style="text-align:center;padding:24px">
+            <div style="font-size:32px;margin-bottom:8px">💰</div>
+            <div style="font-size:13px;color:var(--text-3)">Select faculty to preview slip</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: LEAVES ══════════ -->
+  <div id="tab-leaves" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div class="card-title">Faculty Leave Applications</div>
+          <div style="display:flex;gap:8px">
+            <select id="leaveStatusF" onchange="renderFacultyLeaves()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+              <option value="">All</option><option>Pending</option><option>Approved</option><option>Rejected</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="Modal.open('addFacLeaveModal')">+ Apply Leave</button>
+          </div>
+        </div>
+        <div id="facultyLeaveList"></div>
+      </div>
+
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Leave Balance</div></div>
+          <div id="leaveBalanceList"></div>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Leave Summary</div></div>
+          <canvas id="leaveChartF" height="200"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: PERFORMANCE ══════════ -->
+  <div id="tab-performance" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Attendance Performance</div><div class="card-sub">Monthly attendance %</div></div>
+        <canvas id="perfAttChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Experience Distribution</div></div>
+        <canvas id="perfExpChart" height="220"></canvas>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Salary Range</div></div>
+        <canvas id="perfSalaryChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Department Strength</div></div>
+        <canvas id="perfDeptChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════
+     MODAL: ADD / EDIT FACULTY
+══════════════════════════════ -->
+<div class="modal-overlay" id="facultyModal">
+  <div class="modal glass modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="facModalTitle">Add New Faculty</div>
+        <div class="modal-sub">Fill in all staff details</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('facultyModal')">✕</button>
+    </div>
+
+    <div class="tabs" style="margin-bottom:20px">
+      <button class="tab active" id="ftab-personal" onclick="switchFTab('personal')">Personal Info</button>
+      <button class="tab" id="ftab-professional" onclick="switchFTab('professional')">Professional</button>
+      <button class="tab" id="ftab-salary" onclick="switchFTab('salary')">Salary & Docs</button>
+    </div>
+
+    <input type="hidden" id="editFacultyId">
+
+    <!-- TAB 1: Personal -->
+    <div id="ftabPane-personal">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Full Name *</label><input type="text" id="fName" placeholder="Prof. Meera Shah"><span class="field-error">Name required</span></div>
+        <div class="field"><label>Gender</label><select id="fGender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Email *</label><input type="email" id="fEmail" placeholder="meera@edusoft.in"><span class="field-error">Valid email required</span></div>
+        <div class="field"><label>Mobile *</label><input type="text" id="fPhone" placeholder="9876543210" maxlength="10"><span class="field-error">Valid 10-digit number required</span></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Date of Birth</label><input type="date" id="fDob"></div>
+        <div class="field"><label>Blood Group</label><select id="fBlood"><option value="">— Select —</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></div>
+      </div>
+      <div class="field" style="margin-bottom:0"><label>Residential Address</label><input type="text" id="fAddress" placeholder="123 MG Road, Ahmedabad..."></div>
+    </div>
+
+    <!-- TAB 2: Professional -->
+    <div id="ftabPane-professional" style="display:none">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Subject / Specialisation *</label><input type="text" id="fSubject" placeholder="Mathematics"><span class="field-error">Subject required</span></div>
+        <div class="field"><label>Department</label><input type="text" id="fDept" placeholder="Science / Commerce / Arts..."></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Qualification *</label><input type="text" id="fQual" placeholder="M.Sc., B.Ed."><span class="field-error">Qualification required</span></div>
+        <div class="field"><label>Experience (years)</label><input type="number" id="fExp" placeholder="5" min="0"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Designation</label><input type="text" id="fDesig" placeholder="Lecturer / Senior Lecturer / HOD"></div>
+        <div class="field"><label>Join Date</label><input type="date" id="fJoinDate"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="field"><label>Status</label><select id="fStatus"><option>Active</option><option>On Leave</option><option>Inactive</option></select></div>
+        <div class="field"><label>Employee ID</label><input type="text" id="fEmpId" placeholder="Auto-generated if blank"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Salary & Docs -->
+    <div id="ftabPane-salary" style="display:none">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Basic Salary (₹/month)</label><input type="number" id="fSalary" placeholder="35000" min="0"></div>
+        <div class="field"><label>HRA (₹)</label><input type="number" id="fHra" placeholder="5000" min="0"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>DA (₹)</label><input type="number" id="fDa" placeholder="3000" min="0"></div>
+        <div class="field"><label>PF Deduction (₹)</label><input type="number" id="fPf" placeholder="2500" min="0"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field"><label>Bank Account No.</label><input type="text" id="fBankAcc" placeholder="XXXX XXXX XXXX"></div>
+        <div class="field"><label>IFSC Code</label><input type="text" id="fIfsc" placeholder="SBIN0001234"></div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Notes / Remarks</label>
+        <textarea id="fNotes" rows="2" placeholder="Any additional notes..."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveFaculty()">Save Faculty</button>
+      <button class="btn btn-outline" onclick="Modal.close('facultyModal')">Cancel</button>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-3)">* Required fields</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: FACULTY LEAVE
+══════════════════════════════ -->
+<div class="modal-overlay" id="addFacLeaveModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div class="modal-title">Apply Faculty Leave</div>
+      <button class="modal-close" onclick="Modal.close('addFacLeaveModal')">✕</button>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Faculty Member *</label><select id="leaveWho"></select></div>
+      <div class="field"><label>Leave Type</label><select id="leaveTypeF"><option>Sick Leave</option><option>Casual Leave</option><option>Earned Leave</option><option>Maternity / Paternity</option><option>Emergency Leave</option><option>Other</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>From *</label><input type="date" id="leaveFFrom"></div>
+      <div class="field"><label>To *</label><input type="date" id="leaveFTo"></div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Reason</label>
+      <textarea id="leaveFReason" rows="2" placeholder="Brief reason..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveFacultyLeave()">Submit</button>
+      <button class="btn btn-outline" onclick="Modal.close('addFacLeaveModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+/* ════════════════════════════════
+   CONSTANTS
+════════════════════════════════ */
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+let facAttState = {};   // { facId: 'present'|'absent'|'leave' }
+let viewMode    = 'grid';
+let currentProfileIdx = 0;
+
+/* ════════════════════════════════
+   SEED FACULTY DATA
+════════════════════════════════ */
+function seedFacultyData() {
+  if (DB.get('facSeeded')) return;
+
+  DB.set('faculty', [
+    { id:'F001', name:'Prof. Meera Shah',    gender:'Female', email:'meera@edusoft.in',    phone:'9800100200', dob:'1982-03-14', blood:'B+',  address:'Satellite, Ahmedabad',   subject:'Mathematics',    dept:'Science',   qualification:'M.Sc., B.Ed.',  experience:12, designation:'Senior Lecturer', joinDate:'2019-07-01', status:'Active',    empId:'EMP001', salary:38000, hra:6000,  da:4000, pf:3000, bankAcc:'SBI 1234 5678', ifsc:'SBIN0001234', notes:'HOD – Mathematics Dept.' },
+    { id:'F002', name:'Mr. Vivek Sharma',    gender:'Male',   email:'vivek@edusoft.in',    phone:'9800100201', dob:'1988-07-22', blood:'O+',  address:'Bopal, Ahmedabad',       subject:'Physics',        dept:'Science',   qualification:'M.Sc., B.Ed.',  experience:7,  designation:'Lecturer',        joinDate:'2021-06-15', status:'Active',    empId:'EMP002', salary:30000, hra:5000,  da:3000, pf:2500, bankAcc:'HDFC 4321 8765', ifsc:'HDFC0001234', notes:'' },
+    { id:'F003', name:'Ms. Pooja Desai',     gender:'Female', email:'pooja@edusoft.in',    phone:'9800100202', dob:'1990-11-05', blood:'A+',  address:'Maninagar, Ahmedabad',   subject:'CS & Web Dev',   dept:'Technology',qualification:'MCA, B.Ed.',    experience:8,  designation:'Lecturer',        joinDate:'2020-06-01', status:'Active',    empId:'EMP003', salary:32000, hra:5500,  da:3200, pf:2700, bankAcc:'ICICI 9876 5432', ifsc:'ICIC0001234', notes:'Manages computer lab.' },
+    { id:'F004', name:'Mr. Ajay Verma',      gender:'Male',   email:'ajay@edusoft.in',     phone:'9800100203', dob:'1978-05-30', blood:'AB+', address:'Paldi, Ahmedabad',       subject:'Accounts',       dept:'Commerce',  qualification:'M.Com, B.Ed.',  experience:16, designation:'Senior Lecturer', joinDate:'2015-07-01', status:'Active',    empId:'EMP004', salary:42000, hra:7000,  da:4500, pf:3500, bankAcc:'SBI 2468 1357', ifsc:'SBIN0002345', notes:'HOD – Commerce Dept.' },
+    { id:'F005', name:'Ms. Reena Pandey',    gender:'Female', email:'reena@edusoft.in',    phone:'9800100204', dob:'1985-09-18', blood:'O-',  address:'Navrangpura, Ahmedabad', subject:'English',        dept:'Arts',      qualification:'M.A., B.Ed.',   experience:9,  designation:'Lecturer',        joinDate:'2018-06-20', status:'On Leave',  empId:'EMP005', salary:29000, hra:4500,  da:2900, pf:2300, bankAcc:'Axis 1111 2222', ifsc:'UTIB0001234', notes:'Currently on medical leave.' },
+    { id:'F006', name:'Mr. Harshit Modi',    gender:'Male',   email:'harshit@edusoft.in',  phone:'9800100205', dob:'1993-01-12', blood:'B-',  address:'Gota, Ahmedabad',        subject:'Chemistry',      dept:'Science',   qualification:'M.Sc.',         experience:4,  designation:'Junior Lecturer', joinDate:'2023-06-01', status:'Active',    empId:'EMP006', salary:25000, hra:4000,  da:2500, pf:2000, bankAcc:'PNB 3333 4444', ifsc:'PUNB0001234', notes:'' },
+    { id:'F007', name:'Ms. Dimple Rathod',   gender:'Female', email:'dimple@edusoft.in',   phone:'9800100206', dob:'1987-06-28', blood:'A-',  address:'Thaltej, Ahmedabad',     subject:'History',        dept:'Arts',      qualification:'M.A., B.Ed.',   experience:10, designation:'Senior Lecturer', joinDate:'2017-07-01', status:'Active',    empId:'EMP007', salary:31000, hra:5000,  da:3100, pf:2600, bankAcc:'BOB 5555 6666', ifsc:'BARB0001234', notes:'' },
+  ]);
+
+  // Faculty attendance log
+  if (!DB.get('facAttLog')) {
+    const faculty  = DB.get('faculty') || [];
+    const facAttLog= [];
+    const months   = [{ y:2024,m:5 },{ y:2024,m:6 },{ y:2024,m:7 }];
+    months.forEach(({ y, m }) => {
+      const daysInM = new Date(y, m+1, 0).getDate();
+      for (let d = 1; d <= daysInM; d++) {
+        const dateObj = new Date(y, m, d);
+        const dateStr = dateObj.toISOString().split('T')[0];
+        if (dateObj.getDay() === 0 || dateStr > Utils.today()) continue;
+        faculty.forEach(f => {
+          const r = Math.random();
+          const baseP = f.status === 'On Leave' ? 0.5 : 0.88;
+          const status = r < baseP ? 'present' : r < baseP + 0.06 ? 'leave' : 'absent';
+          facAttLog.push({ date: dateStr, facultyId: f.id, status, savedAt: new Date().toISOString() });
+        });
+      }
+    });
+    DB.set('facAttLog', facAttLog);
+  }
+
+  // Faculty leaves
+  if (!DB.get('facLeaves')) {
+    DB.set('facLeaves', [
+      { id:'FL001', facultyId:'F005', facultyName:'Ms. Reena Pandey', type:'Sick Leave',       from:'2024-07-15', to:'2024-07-25', reason:'Medical procedure recovery', status:'Approved' },
+      { id:'FL002', facultyId:'F002', facultyName:'Mr. Vivek Sharma', type:'Casual Leave',     from:'2024-08-02', to:'2024-08-03', reason:'Personal work',              status:'Approved' },
+      { id:'FL003', facultyId:'F006', facultyName:'Mr. Harshit Modi', type:'Emergency Leave',  from:'2024-08-10', to:'2024-08-11', reason:'Family emergency',           status:'Pending'  },
+      { id:'FL004', facultyId:'F001', facultyName:'Prof. Meera Shah', type:'Earned Leave',     from:'2024-09-05', to:'2024-09-07', reason:'Personal trip',              status:'Pending'  },
+    ]);
+  }
+
+  DB.set('facSeeded', true);
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('faculty');
+  seedFacultyData();
+  updateStats();
+  populateDeptFilter();
+  renderDirectory();
+
+  document.getElementById('facAttDate').value = Utils.today();
+  document.getElementById('leaveFFrom').value = Utils.today();
+  document.getElementById('leaveFTo').value   = Utils.today();
+
+  // populate faculty selects
+  populateFacultySelect('profileSelect');
+  populateFacultySelect('slipFaculty');
+  populateFacultySelect('leaveWho');
+});
+
+function populateFacultySelect(id, includeBlank = true) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const faculty = DB.get('faculty') || [];
+  el.innerHTML = (includeBlank ? '<option value="">— Select Faculty —</option>' : '') +
+    faculty.map(f => `<option value="${f.id}">${f.name} — ${f.subject}</option>`).join('');
+}
+
+function populateDeptFilter() {
+  const faculty = DB.get('faculty') || [];
+  const depts   = [...new Set(faculty.map(f => f.dept).filter(Boolean))].sort();
+  const sel     = document.getElementById('dirDept');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Departments</option>' +
+    depts.map(d => `<option value="${d}">${d}</option>`).join('');
+}
+
+/* ════════════════════════════════
+   STATS
+════════════════════════════════ */
+function updateStats() {
+  const faculty = DB.get('faculty') || [];
+  const leaves  = DB.get('facLeaves') || [];
+  const active  = faculty.filter(f => f.status === 'Active').length;
+  const onLeave = faculty.filter(f => f.status === 'On Leave').length;
+  const avgExp  = faculty.length ? Math.round(faculty.reduce((a,f) => a + Number(f.experience||0), 0) / faculty.length) : 0;
+  const payroll = faculty.reduce((a,f) => a + Number(f.salary||0), 0);
+  const pending = leaves.filter(l => l.status === 'Pending').length;
+
+  document.getElementById('statTotal').textContent        = faculty.length;
+  document.getElementById('statActive').textContent       = active;
+  document.getElementById('statLeave').textContent        = onLeave;
+  document.getElementById('statExp').textContent          = avgExp + ' yrs';
+  document.getElementById('statPayroll').textContent      = Utils.formatCurrency(payroll);
+  document.getElementById('statPendingLeaves').textContent= pending;
+}
+
+/* ════════════════════════════════
+   DIRECTORY
+════════════════════════════════ */
+function renderDirectory() {
+  const faculty = DB.get('faculty') || [];
+  const search  = document.getElementById('dirSearch')?.value.toLowerCase() || '';
+  const statusF = document.getElementById('dirStatus')?.value  || '';
+  const deptF   = document.getElementById('dirDept')?.value    || '';
+
+  const filtered = faculty.filter(f =>
+    (!search  || f.name.toLowerCase().includes(search) || (f.subject||'').toLowerCase().includes(search) || (f.dept||'').toLowerCase().includes(search)) &&
+    (!statusF || f.status === statusF) &&
+    (!deptF   || f.dept === deptF)
+  );
+
+  if (viewMode === 'grid') renderGrid(filtered);
+  else                     renderList(filtered);
+}
+
+function renderGrid(faculty) {
+  const statusDot = { Active:'dot-active', 'On Leave':'dot-leave', Inactive:'dot-inactive' };
+  document.getElementById('facultyGrid').innerHTML = faculty.length
+    ? faculty.map(f => {
+        const color = AVATAR_COLORS[parseInt(f.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init  = f.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const yrs   = f.joinDate ? Math.floor((new Date() - new Date(f.joinDate)) / (365.25*86400000)) : f.experience;
+        return `
+          <div class="faculty-card glass" onclick="openProfile('${f.id}')">
+            <div class="fc-top">
+              <div class="fc-avatar" style="background:${color}">${init}</div>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="status-dot ${statusDot[f.status]||'dot-inactive'}"></div>
+                  <div class="fc-name">${f.name}</div>
+                </div>
+                <div class="fc-desig">${f.designation||'Faculty'} · ${f.dept||f.subject}</div>
+              </div>
+            </div>
+            <div class="fc-tags">
+              <span class="badge badge-blue">${f.subject}</span>
+              ${Utils.statusBadge(f.status)}
+              ${f.experience ? `<span class="badge badge-gray">${f.experience} yrs</span>` : ''}
+            </div>
+            <div class="fc-info-row"><span class="fi-icon">📧</span><span>${f.email}</span></div>
+            <div class="fc-info-row"><span class="fi-icon">📞</span><span>${f.phone}</span></div>
+            <div class="fc-info-row"><span class="fi-icon">🎓</span><span>${f.qualification}</span></div>
+            <div class="fc-info-row"><span class="fi-icon">📅</span><span>Joined ${Utils.formatDate(f.joinDate)}</span></div>
+            <div class="fc-footer">
+              <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProfile('${f.id}')">👤 Profile</button>
+              <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEditFaculty('${f.id}')">✏️ Edit</button>
+              <button class="btn btn-danger-soft btn-sm" onclick="event.stopPropagation();deleteFaculty('${f.id}')">🗑</button>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-3)"><div style="font-size:40px;margin-bottom:10px">🔍</div><div style="font-size:14px;font-weight:500">No faculty found</div></div>`;
+}
+
+function renderList(faculty) {
+  const tbody = document.getElementById('facultyListBody');
+  if (!tbody) return;
+  tbody.innerHTML = faculty.map(f => {
+    const color = AVATAR_COLORS[parseInt(f.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+    const init  = f.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:9px">
+        <div style="width:32px;height:32px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+        <div><div style="font-weight:600;font-size:13px">${f.name}</div><div style="font-size:11px;color:var(--text-3)">${f.empId||f.id}</div></div>
+      </div></td>
+      <td>${f.subject}<br><span style="font-size:11px;color:var(--text-3)">${f.dept||''}</span></td>
+      <td class="td-muted">${f.qualification}</td>
+      <td>${f.experience} yrs</td>
+      <td class="td-muted">${f.phone}</td>
+      <td><strong style="color:var(--teal-dark)">${Utils.formatCurrency(f.salary||0)}</strong></td>
+      <td>${Utils.statusBadge(f.status)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn-icon" onclick="openProfile('${f.id}')" style="font-size:12px">👤</button>
+        <button class="btn-icon" onclick="openEditFaculty('${f.id}')" style="font-size:12px">✏️</button>
+        <button class="btn-icon" onclick="deleteFaculty('${f.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function setView(v) {
+  viewMode = v;
+  document.getElementById('facultyGrid').style.display = v === 'grid' ? 'grid' : 'none';
+  document.getElementById('facultyList').style.display = v === 'list' ? 'block' : 'none';
+  document.getElementById('viewGrid').style.background = v === 'grid' ? 'var(--primary-light)' : '';
+  document.getElementById('viewList').style.background = v === 'list' ? 'var(--primary-light)' : '';
+  renderDirectory();
+}
+
+/* ════════════════════════════════
+   ADD / EDIT FACULTY MODAL
+════════════════════════════════ */
+function openAddFacultyModal() {
+  document.getElementById('facModalTitle').textContent = 'Add New Faculty';
+  document.getElementById('editFacultyId').value = '';
+  clearFacultyModal();
+  document.getElementById('fJoinDate').value = Utils.today();
+  switchFTab('personal');
+  Modal.open('facultyModal');
+}
+
+function openEditFaculty(id) {
+  const f = DB.find('faculty', id);
+  if (!f) return;
+  document.getElementById('facModalTitle').textContent = 'Edit — ' + f.name;
+  document.getElementById('editFacultyId').value = id;
+  document.getElementById('fName').value     = f.name||'';
+  document.getElementById('fGender').value   = f.gender||'Female';
+  document.getElementById('fEmail').value    = f.email||'';
+  document.getElementById('fPhone').value    = f.phone||'';
+  document.getElementById('fDob').value      = f.dob||'';
+  document.getElementById('fBlood').value    = f.blood||'';
+  document.getElementById('fAddress').value  = f.address||'';
+  document.getElementById('fSubject').value  = f.subject||'';
+  document.getElementById('fDept').value     = f.dept||'';
+  document.getElementById('fQual').value     = f.qualification||'';
+  document.getElementById('fExp').value      = f.experience||'';
+  document.getElementById('fDesig').value    = f.designation||'';
+  document.getElementById('fJoinDate').value = f.joinDate||'';
+  document.getElementById('fStatus').value   = f.status||'Active';
+  document.getElementById('fEmpId').value    = f.empId||'';
+  document.getElementById('fSalary').value   = f.salary||'';
+  document.getElementById('fHra').value      = f.hra||'';
+  document.getElementById('fDa').value       = f.da||'';
+  document.getElementById('fPf').value       = f.pf||'';
+  document.getElementById('fBankAcc').value  = f.bankAcc||'';
+  document.getElementById('fIfsc').value     = f.ifsc||'';
+  document.getElementById('fNotes').value    = f.notes||'';
+  switchFTab('personal');
+  Modal.open('facultyModal');
+}
+
+function clearFacultyModal() {
+  ['fName','fEmail','fPhone','fDob','fBlood','fAddress','fSubject','fDept','fQual','fExp','fDesig','fJoinDate','fEmpId','fSalary','fHra','fDa','fPf','fBankAcc','fIfsc','fNotes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('fGender').value = 'Male';
+  document.getElementById('fStatus').value = 'Active';
+}
+
+function switchFTab(tab) {
+  ['personal','professional','salary'].forEach(t => {
+    document.getElementById('ftabPane-'+t).style.display = t===tab?'block':'none';
+    document.getElementById('ftab-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+function saveFaculty() {
+  const v = Utils.validate([
+    ['fName',    'Name',           'text'],
+    ['fEmail',   'Email',          'email'],
+    ['fPhone',   'Mobile',         'phone'],
+    ['fSubject', 'Subject',        'text'],
+    ['fQual',    'Qualification',  'text'],
+  ]);
+  if (!v.valid) {
+    Toast.error('Please fix highlighted fields');
+    const personal = document.querySelector('#ftabPane-personal .field.has-error');
+    const prof     = document.querySelector('#ftabPane-professional .field.has-error');
+    if (personal) switchFTab('personal');
+    else if (prof) switchFTab('professional');
+    return;
+  }
+
+  const editId = document.getElementById('editFacultyId').value;
+  const data = {
+    name:          document.getElementById('fName').value.trim(),
+    gender:        document.getElementById('fGender').value,
+    email:         document.getElementById('fEmail').value.trim(),
+    phone:         document.getElementById('fPhone').value.trim(),
+    dob:           document.getElementById('fDob').value,
+    blood:         document.getElementById('fBlood').value,
+    address:       document.getElementById('fAddress').value.trim(),
+    subject:       document.getElementById('fSubject').value.trim(),
+    dept:          document.getElementById('fDept').value.trim(),
+    qualification: document.getElementById('fQual').value.trim(),
+    experience:    Number(document.getElementById('fExp').value)||0,
+    designation:   document.getElementById('fDesig').value.trim(),
+    joinDate:      document.getElementById('fJoinDate').value,
+    status:        document.getElementById('fStatus').value,
+    empId:         document.getElementById('fEmpId').value.trim() || (editId || DB.nextId('faculty','EMP')),
+    salary:        Number(document.getElementById('fSalary').value)||0,
+    hra:           Number(document.getElementById('fHra').value)||0,
+    da:            Number(document.getElementById('fDa').value)||0,
+    pf:            Number(document.getElementById('fPf').value)||0,
+    bankAcc:       document.getElementById('fBankAcc').value.trim(),
+    ifsc:          document.getElementById('fIfsc').value.trim(),
+    notes:         document.getElementById('fNotes').value.trim(),
+  };
+
+  if (editId) {
+    DB.update('faculty', editId, data);
+    Toast.success('Faculty updated: ' + data.name);
+  } else {
+    data.id = DB.nextId('faculty','F');
+    DB.push('faculty', data);
+    Toast.success('Faculty added: ' + data.name);
+  }
+
+  Modal.close('facultyModal');
+  updateStats();
+  populateDeptFilter();
+  populateFacultySelect('profileSelect');
+  populateFacultySelect('slipFaculty');
+  populateFacultySelect('leaveWho');
+  renderDirectory();
+}
+
+function deleteFaculty(id) {
+  const f = DB.find('faculty', id);
+  if (!Utils.confirmDelete(`Delete ${f?.name}? All their attendance and leave records will also be removed.`)) return;
+  DB.delete('faculty', id);
+  updateStats(); renderDirectory();
+  Toast.error('Faculty removed');
+}
+
+/* ════════════════════════════════
+   PROFILE VIEW
+════════════════════════════════ */
+function openProfile(id) {
+  const faculty = DB.get('faculty') || [];
+  currentProfileIdx = faculty.findIndex(f => f.id === id);
+  switchTab('profile', null);
+  document.getElementById('profileSelect').value = id;
+  renderProfile();
+}
+
+function renderProfile() {
+  const id = document.getElementById('profileSelect').value;
+  if (!id) return;
+  const f = DB.find('faculty', id);
+  if (!f) return;
+
+  const faculty = DB.get('faculty') || [];
+  currentProfileIdx = faculty.findIndex(x => x.id === id);
+
+  const color   = AVATAR_COLORS[parseInt(f.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+  const init    = f.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const facAttLog= DB.get('facAttLog')||[];
+  const myLog   = facAttLog.filter(r => r.facultyId === f.id);
+  const present = myLog.filter(r => r.status==='present').length;
+  const attPct  = myLog.length ? Math.round((present/myLog.length)*100) : 0;
+  const myLeaves= (DB.get('facLeaves')||[]).filter(l => l.facultyId===f.id);
+  const examsInv= (DB.get('exams')||[]).filter(e => e.invigilator===f.id).length;
+  const yrsService= f.joinDate ? Math.floor((new Date()-new Date(f.joinDate))/(365.25*86400000)) : f.experience;
+
+  document.getElementById('profilePanel').innerHTML = `
+
+    <!-- Hero -->
+    <div class="profile-hero glass stagger">
+      <div class="ph-inner">
+        <div class="ph-avatar" style="background:${color}">${init}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="ph-name">${f.name}</div>
+            ${Utils.statusBadge(f.status)}
+          </div>
+          <div class="ph-sub">${f.designation||'Faculty'} · ${f.dept||f.subject} · ${f.empId||f.id}</div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge badge-blue">${f.subject}</span>
+            ${f.qualification ? `<span class="badge badge-gray">${f.qualification}</span>` : ''}
+            ${f.blood ? `<span class="badge badge-accent">${f.blood}</span>` : ''}
+          </div>
+          <div class="ph-stats">
+            <div class="phs-item"><div class="phs-val">${attPct}%</div><div class="phs-lbl">Attendance</div></div>
+            <div class="phs-item"><div class="phs-val">${yrsService}</div><div class="phs-lbl">Years at Institute</div></div>
+            <div class="phs-item"><div class="phs-val">${f.experience}</div><div class="phs-lbl">Total Exp.</div></div>
+            <div class="phs-item"><div class="phs-val">${examsInv}</div><div class="phs-lbl">Exams Invigilated</div></div>
+            <div class="phs-item"><div class="phs-val">${myLeaves.length}</div><div class="phs-lbl">Leave Applications</div></div>
+          </div>
+        </div>
+        <div class="ph-actions">
+          <button class="btn btn-primary btn-sm" onclick="openEditFaculty('${f.id}')">✏️ Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="previewSlipFromProfile('${f.id}')">💰 Salary Slip</button>
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
+          <a href="#" class="btn btn-ghost btn-sm" onclick="switchTab('directory',null);return false">← Back</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="info-section glass">
+        <div class="info-section-label">📋 Personal Info</div>
+        ${iRow('Email', f.email)} ${iRow('Mobile', f.phone)}
+        ${iRow('Date of Birth', Utils.formatDate(f.dob))} ${iRow('Gender', f.gender)}
+        ${iRow('Blood Group', f.blood||'—')} ${iRow('Address', f.address||'—')}
+      </div>
+      <div class="info-section glass">
+        <div class="info-section-label">🎓 Professional Info</div>
+        ${iRow('Employee ID', f.empId||f.id)} ${iRow('Designation', f.designation||'—')}
+        ${iRow('Department', f.dept||'—')} ${iRow('Subject', f.subject)}
+        ${iRow('Qualification', f.qualification)} ${iRow('Experience', f.experience+' years')}
+        ${iRow('Join Date', Utils.formatDate(f.joinDate))}
+      </div>
+    </div>
+
+    <!-- Salary & Attendance row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="info-section glass">
+        <div class="info-section-label">💰 Salary Details</div>
+        ${iRow('Basic Salary', Utils.formatCurrency(f.salary||0))}
+        ${iRow('HRA', Utils.formatCurrency(f.hra||0))}
+        ${iRow('DA', Utils.formatCurrency(f.da||0))}
+        ${iRow('PF Deduction', Utils.formatCurrency(f.pf||0))}
+        ${iRow('Net Salary', `<strong style="color:var(--teal-dark);font-size:15px">${Utils.formatCurrency((f.salary||0)+(f.hra||0)+(f.da||0)-(f.pf||0))}</strong>`)}
+        ${iRow('Bank / IFSC', (f.bankAcc||'—') + (f.ifsc?' / '+f.ifsc:''))}
+      </div>
+      <div class="info-section glass">
+        <div class="info-section-label">📅 Attendance This Month</div>
+        <div style="text-align:center;padding:12px 0">
+          <div style="font-size:40px;font-weight:800;color:${attPct>=75?'var(--success-dark)':attPct>=50?'var(--warning-dark)':'var(--danger-dark)'}">${attPct}%</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:4px">${present} present of ${myLog.length} working days</div>
+          <div class="progress" style="margin:10px 0">
+            <div class="progress-bar" style="width:${attPct}%;background:${attPct>=75?'var(--success)':attPct>=50?'var(--warning)':'var(--danger)'}"></div>
+          </div>
+        </div>
+        ${iRow('Present Days', present)} ${iRow('Absent Days', myLog.filter(r=>r.status==='absent').length)}
+        ${iRow('Leave Days', myLog.filter(r=>r.status==='leave').length)}
+      </div>
+    </div>
+
+    <!-- Leave history -->
+    <div class="info-section glass" style="margin-bottom:16px">
+      <div class="info-section-label">🏖️ Leave History</div>
+      ${myLeaves.length
+        ? myLeaves.map(l => `<div class="leave-row">
+            <div style="flex:1">
+              <div style="font-size:13.5px;font-weight:600">${l.type}</div>
+              <div style="font-size:11.5px;color:var(--text-3)">${Utils.formatDate(l.from)} → ${Utils.formatDate(l.to)} · ${l.reason||'—'}</div>
+            </div>
+            ${Utils.statusBadge(l.status)}
+          </div>`).join('')
+        : '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:14px">No leave applications</div>'}
+    </div>
+
+    ${f.notes ? `<div class="alert alert-info"><span>📝</span><div><strong>Notes:</strong> ${f.notes}</div></div>` : ''}
+  `;
+}
+
+function iRow(label, val) {
+  return `<div class="info-row"><span class="ir-label">${label}</span><span class="ir-val">${val||'—'}</span></div>`;
+}
+
+function navProfile(dir) {
+  const faculty = DB.get('faculty') || [];
+  if (!faculty.length) return;
+  currentProfileIdx = (currentProfileIdx + dir + faculty.length) % faculty.length;
+  const f = faculty[currentProfileIdx];
+  document.getElementById('profileSelect').value = f.id;
+  renderProfile();
+}
+
+function previewSlipFromProfile(id) {
+  switchTab('salary', null);
+  setTimeout(() => {
+    document.getElementById('slipFaculty').value = id;
+    previewSalarySlip();
+  }, 100);
+}
+
+/* ════════════════════════════════
+   FACULTY ATTENDANCE
+════════════════════════════════ */
+function renderFacultyAttGrid() {
+  const faculty = DB.get('faculty') || [];
+  const date    = document.getElementById('facAttDate').value;
+  const log     = DB.get('facAttLog') || [];
+  const dayLog  = log.filter(r => r.date === date);
+  const hasSaved= dayLog.length > 0;
+
+  facAttState = {};
+  dayLog.forEach(r => { facAttState[r.facultyId] = r.status; });
+
+  document.getElementById('facAttGrid').innerHTML = faculty.map(f => {
+    const color  = AVATAR_COLORS[parseInt(f.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+    const status = facAttState[f.id] || null;
+    const cardCls= status || '';
+    return `
+      <div class="att-fac-card ${cardCls}" id="afc-${f.id}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">
+            ${f.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+          </div>
+          <div>
+            <div class="afc-name">${f.name.replace(/^(Prof\.|Mr\.|Ms\.) /,'')}</div>
+            <div class="afc-sub">${f.subject}</div>
+          </div>
+        </div>
+        <div class="afc-btns">
+          <button class="afc-btn p${status==='present'?' active':''}" onclick="setFacMark('${f.id}','present')">✓ P</button>
+          <button class="afc-btn a${status==='absent' ?' active':''}" onclick="setFacMark('${f.id}','absent')">✗ A</button>
+          <button class="afc-btn l${status==='leave'  ?' active':''}" onclick="setFacMark('${f.id}','leave')">L</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  updateFacAttSummary();
+}
+
+function setFacMark(id, status) {
+  facAttState[id] = status;
+  const card = document.getElementById('afc-'+id);
+  if (!card) return;
+  card.className = 'att-fac-card ' + status;
+  card.querySelectorAll('.afc-btn').forEach(b => b.classList.remove('active'));
+  const map = { present:'p', absent:'a', leave:'l' };
+  card.querySelector('.'+map[status])?.classList.add('active');
+  updateFacAttSummary();
+}
+
+function facMarkAll(status) {
+  const faculty = DB.get('faculty') || [];
+  faculty.forEach(f => setFacMark(f.id, status));
+}
+
+function updateFacAttSummary() {
+  const vals    = Object.values(facAttState);
+  const present = vals.filter(v=>v==='present').length;
+  const absent  = vals.filter(v=>v==='absent').length;
+  const leave   = vals.filter(v=>v==='leave').length;
+  const total   = (DB.get('faculty')||[]).length;
+  const pct     = total ? Math.round((present/total)*100) : 0;
+  document.getElementById('facAttPCnt').textContent = present + ' Present';
+  document.getElementById('facAttACnt').textContent = absent  + ' Absent';
+  document.getElementById('facAttLCnt').textContent = leave   + ' Leave';
+  document.getElementById('facAttPct').textContent  = pct + '% present rate';
+}
+
+function saveFacultyAttendance() {
+  const date    = document.getElementById('facAttDate').value;
+  const marked  = Object.entries(facAttState).filter(([,s])=>s);
+  if (!marked.length) { Toast.error('Mark attendance first'); return; }
+  let log = (DB.get('facAttLog')||[]).filter(r => r.date !== date);
+  const now = new Date().toISOString();
+  marked.forEach(([id, status]) => { log.push({ date, facultyId:id, status, savedAt:now }); });
+  DB.set('facAttLog', log);
+  Toast.success(`Faculty attendance saved! ${marked.length} records`);
+  updateStats();
+}
+
+function renderFacAttReport() {
+  const faculty  = DB.get('faculty') || [];
+  const log      = DB.get('facAttLog') || [];
+  const monthIdx = Number(document.getElementById('facAttMonth')?.value ?? 5);
+  const tbody    = document.getElementById('facAttReportBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = faculty.map(f => {
+    const myLog  = log.filter(r => r.facultyId===f.id && new Date(r.date).getMonth()===monthIdx);
+    const p      = myLog.filter(r=>r.status==='present').length;
+    const a      = myLog.filter(r=>r.status==='absent').length;
+    const l      = myLog.filter(r=>r.status==='leave').length;
+    const pct    = myLog.length ? Math.round((p/myLog.length)*100) : 0;
+    const pctClr = pct>=75?'var(--success-dark)':pct>=50?'var(--warning-dark)':'var(--danger-dark)';
+    return `<tr>
+      <td><strong>${f.name}</strong></td>
+      <td class="td-muted">${f.subject}</td>
+      <td><strong style="color:var(--success-dark)">${p}</strong></td>
+      <td><strong style="color:var(--danger-dark)">${a}</strong></td>
+      <td><strong style="color:var(--warning-dark)">${l}</strong></td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="progress" style="flex:1;height:6px"><div class="progress-bar" style="width:${pct}%;background:${pctClr}"></div></div>
+        <span style="font-weight:700;color:${pctClr};font-size:13px;min-width:36px">${pct}%</span>
+      </div></td>
+      <td>${Utils.statusBadge(f.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ════════════════════════════════
+   SALARY & PAYROLL
+════════════════════════════════ */
+function renderPayroll() {
+  const faculty  = DB.get('faculty') || [];
+  const monthIdx = Number(document.getElementById('salaryMonth')?.value ?? 5);
+  const log      = DB.get('facAttLog') || [];
+  const months   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  document.getElementById('payrollMonth').textContent = months[monthIdx] + ' 2024 Payroll';
+
+  let totalPayroll = 0;
+
+  document.getElementById('payrollBody').innerHTML = faculty.map(f => {
+    const myLog   = log.filter(r => r.facultyId===f.id && new Date(r.date).getMonth()===monthIdx);
+    const working = myLog.length || 26;
+    const present = myLog.filter(r=>r.status==='present').length || Math.round(working*0.9);
+    const basic   = f.salary || 0;
+    const gross   = basic + (f.hra||0) + (f.da||0);
+    const perDay  = gross / working;
+    const absent  = working - present - myLog.filter(r=>r.status==='leave').length;
+    const deduct  = (f.pf||0) + (absent>0 ? Math.round(perDay*absent) : 0);
+    const net     = gross - deduct;
+    totalPayroll += net;
+
+    return `<tr>
+      <td><strong>${f.name}</strong><br><span style="font-size:11px;color:var(--text-3)">${f.empId||f.id}</span></td>
+      <td>${Utils.formatCurrency(basic)}</td>
+      <td>${present}/${working}</td>
+      <td style="color:var(--danger-dark)">${Utils.formatCurrency(deduct)}</td>
+      <td><strong style="color:var(--teal-dark);font-size:14px">${Utils.formatCurrency(net)}</strong></td>
+      <td><span class="badge badge-green">Processed</span></td>
+      <td><button class="btn-icon" onclick="quickSlip('${f.id}','${monthIdx}')" style="font-size:12px">🖨</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('totalPayroll').textContent = Utils.formatCurrency(totalPayroll);
+}
+
+function processPayroll() { Toast.success('Payroll processed and salary slips ready!'); }
+
+function exportPayrollCSV() {
+  const faculty = DB.get('faculty') || [];
+  const headers = ['Employee ID','Name','Subject','Basic Salary','HRA','DA','PF','Net Salary','Status'];
+  const rows = faculty.map(f => {
+    const net = (f.salary||0)+(f.hra||0)+(f.da||0)-(f.pf||0);
+    return [f.empId||f.id, f.name, f.subject, f.salary||0, f.hra||0, f.da||0, f.pf||0, net, f.status].map(v=>`"${v}"`).join(',');
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `payroll_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Payroll exported!');
+}
+
+function previewSalarySlip() {
+  const id = document.getElementById('slipFaculty').value;
+  if (!id) return;
+  const f        = DB.find('faculty', id);
+  const monthIdx = Number(document.getElementById('slipMonth').value ?? 5);
+  const log      = DB.get('facAttLog') || [];
+  const myLog    = log.filter(r => r.facultyId===id && new Date(r.date).getMonth()===monthIdx);
+  const working  = myLog.length || 26;
+  const present  = myLog.filter(r=>r.status==='present').length || Math.round(working*0.9);
+  const gross    = (f.salary||0) + (f.hra||0) + (f.da||0);
+  const perDay   = gross/working;
+  const absent   = Math.max(0, working - present - myLog.filter(r=>r.status==='leave').length);
+  const absDeduct= Math.round(perDay * absent);
+  const net      = gross - (f.pf||0) - absDeduct;
+  const color    = AVATAR_COLORS[parseInt(f.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+  const init     = f.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('salarySlipPreview').innerHTML = `
+    <div id="slipPrintArea">
+      <div class="salary-slip">
+        <div class="ss-head">
+          <div>
+            <div style="font-family:var(--font-display);font-size:22px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</div>
+            <div style="font-size:10px;color:var(--text-3);letter-spacing:1.5px;text-transform:uppercase">Salary Slip — ${MONTHS[monthIdx]} 2024</div>
+          </div>
+          <div style="text-align:right">
+            <span class="badge badge-green">Paid</span>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">${f.empId||f.id}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:14px">
+          <div style="width:40px;height:40px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white">${init}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px">${f.name}</div>
+            <div style="font-size:12px;color:var(--text-3)">${f.designation||'Faculty'} · ${f.subject}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3)">Earnings</div>
+        <div class="ss-row"><span class="sl">Basic Salary</span><span class="sv">${Utils.formatCurrency(f.salary||0)}</span></div>
+        <div class="ss-row"><span class="sl">House Rent Allowance</span><span class="sv">${Utils.formatCurrency(f.hra||0)}</span></div>
+        <div class="ss-row"><span class="sl">Dearness Allowance</span><span class="sv">${Utils.formatCurrency(f.da||0)}</span></div>
+        <div class="ss-row" style="font-weight:700"><span class="sl">Gross Earnings</span><span class="sv">${Utils.formatCurrency(gross)}</span></div>
+        <div style="margin:12px 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3)">Deductions</div>
+        <div class="ss-row"><span class="sl">Provident Fund</span><span class="sv" style="color:var(--danger-dark)">− ${Utils.formatCurrency(f.pf||0)}</span></div>
+        ${absent>0?`<div class="ss-row"><span class="sl">Absent Deduction (${absent} days)</span><span class="sv" style="color:var(--danger-dark)">− ${Utils.formatCurrency(absDeduct)}</span></div>`:''}
+        <div style="margin-top:6px;padding:10px;background:rgba(14,165,233,0.05);border-radius:8px;font-size:12.5px;color:var(--text-2)">
+          Days: Working <strong>${working}</strong> · Present <strong>${present}</strong> · Absent <strong>${absent}</strong>
+        </div>
+        <div class="ss-total">
+          <span class="st-l">Net Salary</span>
+          <span class="st-v">${Utils.formatCurrency(net)}</span>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--text-3);text-align:center">
+          Bank: ${f.bankAcc||'—'} · IFSC: ${f.ifsc||'—'}<br>
+          Computer-generated salary slip · EduSoft Institute
+        </div>
+      </div>
+    </div>`;
+}
+
+function quickSlip(fId, monthIdx) {
+  document.getElementById('slipFaculty').value = fId;
+  document.getElementById('slipMonth').value   = monthIdx;
+  previewSalarySlip();
+  Toast.info('Salary slip preview updated below');
+}
+
+function printSalarySlip() {
+  const area = document.getElementById('slipPrintArea');
+  if (!area) { Toast.error('Preview a salary slip first'); return; }
+  const w = window.open('', '_blank', 'width=680,height:600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Salary Slip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Plus Jakarta Sans',sans-serif;color:#0f172a;padding:28px;font-size:13px;max-width:520px;margin:0 auto}
+      .salary-slip{border:1.5px dashed #93c5fd;border-radius:14px;padding:22px;background:white}
+      .ss-head{display:flex;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #e2e8f0;margin-bottom:12px}
+      .brand{font-family:'DM Serif Display',serif;font-size:22px;color:#0284c7}
+      .brand-sub{font-size:10px;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase}
+      .ss-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px}
+      .ss-row:last-of-type{border-bottom:none}
+      .sl{color:#64748b}.sv{font-weight:600;color:#0f172a}
+      .ss-total{display:flex;justify-content:space-between;padding:12px 0 0;border-top:2px solid #bae6fd;margin-top:8px}
+      .st-l{font-size:15px;font-weight:700}.st-v{font-size:22px;font-weight:800;color:#0f766e}
+      .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#dcfce7;color:#15803d}
+      @media print{body{padding:0}}
+    </style></head><body>${area.innerHTML}
+    <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+/* ════════════════════════════════
+   FACULTY LEAVES
+════════════════════════════════ */
+function renderFacultyLeaves() {
+  const leaves = DB.get('facLeaves') || [];
+  const filter = document.getElementById('leaveStatusF')?.value || '';
+  const stCls  = { Pending:'badge-yellow', Approved:'badge-green', Rejected:'badge-red' };
+
+  const filtered = leaves.filter(l => !filter || l.status===filter)
+                         .sort((a,b) => b.from.localeCompare(a.from));
+
+  document.getElementById('facultyLeaveList').innerHTML = filtered.length
+    ? filtered.map(l => {
+        const f    = DB.find('faculty', l.facultyId);
+        const color= AVATAR_COLORS[parseInt(l.facultyId.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init = (l.facultyName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const days = Math.max(1,Math.round((new Date(l.to)-new Date(l.from))/86400000)+1);
+        return `
+          <div class="leave-row">
+            <div style="width:34px;height:34px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13.5px">${l.facultyName}</div>
+              <div style="font-size:12px;color:var(--text-3)">${l.type} · ${Utils.formatDate(l.from)} → ${Utils.formatDate(l.to)} · ${days} day${days>1?'s':''}</div>
+              ${l.reason?`<div style="font-size:12px;color:var(--text-2);font-style:italic;margin-top:2px">"${l.reason}"</div>`:''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+              <span class="badge ${stCls[l.status]||'badge-gray'}">${l.status}</span>
+              <div style="display:flex;gap:4px">
+                ${l.status==='Pending'?`
+                  <button class="btn-icon" onclick="updateFacLeave('${l.id}','Approved')" style="font-size:11px;background:rgba(34,197,94,.1);color:var(--success-dark)">✓</button>
+                  <button class="btn-icon" onclick="updateFacLeave('${l.id}','Rejected')" style="font-size:11px;background:rgba(239,68,68,.08);color:var(--danger)">✗</button>`:''}
+                <button class="btn-icon" onclick="deleteFacLeave('${l.id}')" style="font-size:11px;background:rgba(239,68,68,.07)">🗑</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:24px">No leave applications</div>';
+
+  renderLeaveBalances();
+  renderLeaveChartF(leaves);
+}
+
+function renderLeaveBalances() {
+  const faculty = DB.get('faculty') || [];
+  const leaves  = DB.get('facLeaves') || [];
+  const ANNUAL  = { 'Sick Leave':10, 'Casual Leave':12, 'Earned Leave':15 };
+
+  document.getElementById('leaveBalanceList').innerHTML = faculty.map(f => {
+    const mine  = leaves.filter(l => l.facultyId===f.id && l.status==='Approved');
+    const taken = mine.reduce((a,l) => a + Math.max(1,Math.round((new Date(l.to)-new Date(l.from))/86400000)+1), 0);
+    const total = 37;
+    const bal   = total - taken;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div style="flex:1"><div style="font-weight:600">${f.name.replace(/^(Prof\.|Mr\.|Ms\.) /,'')}</div><div style="font-size:11px;color:var(--text-3)">Taken: ${taken} · Balance: <strong style="color:var(--primary-dark)">${bal}</strong></div></div>
+      <div class="progress" style="width:70px;height:5px"><div class="progress-bar" style="width:${Math.round((bal/total)*100)}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderLeaveChartF(leaves) {
+  const counts = { Pending:0, Approved:0, Rejected:0 };
+  leaves.forEach(l => { if(counts[l.status]!==undefined) counts[l.status]++; });
+  const ctx = document.getElementById('leaveChartF');
+  if (!ctx) return;
+  if (window._leaveChartF) window._leaveChartF.destroy();
+  window._leaveChartF = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Approved','Rejected'],
+      datasets: [{ data:[counts.Pending,counts.Approved,counts.Rejected],
+        backgroundColor:['rgba(245,158,11,.75)','rgba(34,197,94,.75)','rgba(239,68,68,.75)'],
+        borderWidth:0, hoverOffset:6 }]
+    },
+    options:{ responsive:true, cutout:'62%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } } }
+  });
+}
+
+function updateFacLeave(id, status) {
+  DB.update('facLeaves', id, { status });
+  updateStats(); renderFacultyLeaves();
+  Toast.success('Leave ' + status.toLowerCase());
+}
+
+function deleteFacLeave(id) {
+  if (!Utils.confirmDelete('Delete this leave record?')) return;
+  DB.delete('facLeaves', id);
+  updateStats(); renderFacultyLeaves();
+  Toast.error('Leave deleted');
+}
+
+function saveFacultyLeave() {
+  const fId  = document.getElementById('leaveWho').value;
+  const from = document.getElementById('leaveFFrom').value;
+  const to   = document.getElementById('leaveFTo').value;
+  if (!fId||!from||!to) { Toast.error('All fields required'); return; }
+  const f = DB.find('faculty', fId);
+  DB.push('facLeaves', {
+    id:          DB.nextId('facLeaves','FL'),
+    facultyId:   fId,
+    facultyName: f?.name || '—',
+    type:        document.getElementById('leaveTypeF').value,
+    from, to,
+    reason:      document.getElementById('leaveFReason').value.trim(),
+    status:      'Pending',
+  });
+  Modal.close('addFacLeaveModal');
+  updateStats(); renderFacultyLeaves();
+  Toast.success('Leave submitted for approval');
+}
+
+/* ════════════════════════════════
+   PERFORMANCE CHARTS
+════════════════════════════════ */
+function renderPerformance() {
+  const faculty = DB.get('faculty') || [];
+  const log     = DB.get('facAttLog') || [];
+
+  // Attendance %
+  const attData = faculty.map(f => {
+    const myLog  = log.filter(r=>r.facultyId===f.id);
+    const p      = myLog.filter(r=>r.status==='present').length;
+    return myLog.length ? Math.round((p/myLog.length)*100) : 0;
+  });
+  const ctx1 = document.getElementById('perfAttChart');
+  if (ctx1) {
+    if (window._pAtt) window._pAtt.destroy();
+    window._pAtt = new Chart(ctx1.getContext('2d'), {
+      type:'bar',
+      data:{ labels:faculty.map(f=>f.name.split(' ').slice(-1)[0]), datasets:[{ label:'Attendance %', data:attData, backgroundColor:attData.map(v=>v>=75?'rgba(34,197,94,.65)':v>=50?'rgba(245,158,11,.65)':'rgba(239,68,68,.65)'), borderRadius:8, borderSkipped:false }] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{min:0,max:100,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}}, x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}} } }
+    });
+  }
+
+  // Experience distribution
+  const expBuckets = { '0–3 yrs':0,'4–7 yrs':0,'8–12 yrs':0,'13+ yrs':0 };
+  faculty.forEach(f => {
+    const e = f.experience||0;
+    if(e<=3) expBuckets['0–3 yrs']++;
+    else if(e<=7) expBuckets['4–7 yrs']++;
+    else if(e<=12) expBuckets['8–12 yrs']++;
+    else expBuckets['13+ yrs']++;
+  });
+  const ctx2 = document.getElementById('perfExpChart');
+  if (ctx2) {
+    if (window._pExp) window._pExp.destroy();
+    window._pExp = new Chart(ctx2.getContext('2d'), {
+      type:'doughnut',
+      data:{ labels:Object.keys(expBuckets), datasets:[{ data:Object.values(expBuckets), backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.7)','rgba(99,102,241,.7)','rgba(245,158,11,.7)'], borderWidth:0, hoverOffset:6 }] },
+      options:{ responsive:true, cutout:'55%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11},boxWidth:12 } } } }
+    });
+  }
+
+  // Salary range
+  const salRanges = { '<₹28K':0,'₹28K–35K':0,'₹35K–42K':0,'>₹42K':0 };
+  faculty.forEach(f => {
+    const s = f.salary||0;
+    if(s<28000) salRanges['<₹28K']++;
+    else if(s<35000) salRanges['₹28K–35K']++;
+    else if(s<42000) salRanges['₹35K–42K']++;
+    else salRanges['>₹42K']++;
+  });
+  const ctx3 = document.getElementById('perfSalaryChart');
+  if (ctx3) {
+    if (window._pSal) window._pSal.destroy();
+    window._pSal = new Chart(ctx3.getContext('2d'), {
+      type:'bar',
+      data:{ labels:Object.keys(salRanges), datasets:[{ label:'Faculty', data:Object.values(salRanges), backgroundColor:['rgba(14,165,233,.55)','rgba(20,184,166,.65)','rgba(99,102,241,.65)','rgba(245,158,11,.7)'], borderRadius:8, borderSkipped:false }] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{font:{size:11}}}, x:{grid:{display:false},ticks:{font:{size:11}}} } }
+    });
+  }
+
+  // Department strength
+  const deptMap = {};
+  faculty.forEach(f => { const d = f.dept||f.subject; deptMap[d]=(deptMap[d]||0)+1; });
+  const ctx4 = document.getElementById('perfDeptChart');
+  if (ctx4) {
+    if (window._pDept) window._pDept.destroy();
+    window._pDept = new Chart(ctx4.getContext('2d'), {
+      type:'pie',
+      data:{ labels:Object.keys(deptMap), datasets:[{ data:Object.values(deptMap), backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.7)','rgba(99,102,241,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.65)','rgba(236,72,153,.65)'], borderWidth:0, hoverOffset:6 }] },
+      options:{ responsive:true, plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12 } } } }
+    });
+  }
+}
+
+/* ════════════════════════════════
+   TAB SWITCH
+════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    const m = document.querySelector(`.main-tab[onclick*="'${name}'"]`);
+    if (m) m.classList.add('active');
+  }
+  if (name==='attendance')  { renderFacultyAttGrid(); renderFacAttReport(); }
+  if (name==='salary')      renderPayroll();
+  if (name==='leaves')      renderFacultyLeaves();
+  if (name==='performance') renderPerformance();
+  if (name==='directory')   renderDirectory();
+}
+
+/* ════════════════════════════════
+   EXPORT CSV
+════════════════════════════════ */
+function exportFacultyCSV() {
+  const faculty = DB.get('faculty') || [];
+  const headers = ['ID','Name','Email','Phone','Subject','Department','Qualification','Experience','Designation','Join Date','Salary','Status'];
+  const rows = faculty.map(f => [f.id,f.name,f.email,f.phone,f.subject,f.dept||'',f.qualification,f.experience,f.designation||'',f.joinDate,f.salary||0,f.status].map(v=>`"${v}"`).join(','));
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `faculty_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Faculty data exported!');
+}
+</script>
+</body>
+</html>

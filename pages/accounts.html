@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts & Finance — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .main-tabs{display:flex;gap:4px;padding:4px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);margin-bottom:24px;width:fit-content;flex-wrap:wrap}
+    .main-tab{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .18s;border:none;background:none}
+    .main-tab.active{background:white;color:var(--primary-dark);font-weight:700;box-shadow:0 2px 8px rgba(14,165,233,0.14)}
+    .tab-pane{display:none}.tab-pane.active{display:block;animation:pageEnter .25s var(--ease) both}
+
+    /* Transaction row */
+    .txn-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;transition:all .12s}
+    .txn-row:last-child{border-bottom:none}
+    .txn-row:hover{background:rgba(14,165,233,.02);border-radius:var(--radius-sm)}
+    .txn-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .txn-income .txn-icon{background:var(--success-light)}
+    .txn-expense .txn-icon{background:var(--danger-light)}
+    .txn-info{flex:1}
+    .txn-title{font-weight:600;color:var(--text);line-height:1.2}
+    .txn-meta{font-size:11.5px;color:var(--text-3);margin-top:1px}
+    .txn-amount-income{font-size:15px;font-weight:800;color:var(--success-dark)}
+    .txn-amount-expense{font-size:15px;font-weight:800;color:var(--danger-dark)}
+
+    /* Budget row */
+    .budget-row{padding:14px 0;border-bottom:1px solid var(--border)}
+    .budget-row:last-child{border-bottom:none}
+    .br-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px}
+    .br-name{font-weight:600;color:var(--text)}
+    .br-amounts{color:var(--text-3);font-size:12px}
+
+    /* Vendor card */
+    .vendor-card{border-radius:var(--radius);padding:16px 18px;border:1.5px solid var(--border);background:rgba(255,255,255,.52);margin-bottom:10px;transition:all .15s}
+    .vendor-card:hover{border-color:var(--border-strong)}
+
+    /* P&L table */
+    .pl-section-head{background:rgba(14,165,233,.06);font-weight:700;font-size:12px;color:var(--text-2);padding:8px 12px;border-radius:6px;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+    .pl-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:13px;border-bottom:1px solid rgba(14,165,233,.04)}
+    .pl-row:last-child{border-bottom:none}
+    .pl-total{display:flex;justify-content:space-between;padding:10px 12px;font-size:15px;font-weight:800;background:rgba(14,165,233,.06);border-radius:8px;margin-top:6px}
+
+    /* Filter bar */
+    .filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+    .filter-bar select,.filter-bar input{padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;color:var(--text);outline:none;transition:border .18s}
+    .filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary)}
+
+    /* Topbar */
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}}
+    @media print{.sidebar,.topbar,.main-tabs,.page-actions,.filter-bar,.btn{display:none!important}.main-content{margin-left:0!important;padding:0!important}.glass{background:white!important;backdrop-filter:none!important;box-shadow:none!important;border:1px solid #e2e8f0!important}body::before,body::after{display:none!important}}
+  </style>
+</head>
+<body>
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand"><div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div><div class="brand-tagline">by Uniitechs</div></div>
+    <div class="nav-section"><div class="nav-label">Main</div><a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a></div>
+    <div class="nav-section"><div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card"><div class="avatar" data-user-avatar>A</div><div class="user-info"><div class="u-name" data-user-name>Admin</div><div class="u-role" data-user-role>Administrator</div></div></div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Accounts</span></div>
+      <div class="page-title">Accounts & Finance</div>
+      <div class="page-sub">Income, expenses, payroll, budget and financial reports</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportLedgerCSV()">⬇ Export Ledger</button>
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print P&L</button>
+      <button class="btn btn-primary" onclick="Modal.open('addTxnModal')">+ Add Transaction</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass success"><div class="stat-icon">📈</div><div class="stat-label">Total Income</div><div class="stat-value" id="aStatIncome">₹0</div><div class="stat-delta delta-up">this year</div></div>
+    <div class="stat-card glass danger"><div class="stat-icon">📉</div><div class="stat-label">Total Expenses</div><div class="stat-value" id="aStatExpense">₹0</div><div class="stat-delta delta-down">this year</div></div>
+    <div class="stat-card glass blue"><div class="stat-icon">💼</div><div class="stat-label">Net Surplus</div><div class="stat-value" id="aStatNet">₹0</div><div class="stat-delta delta-up" id="aStatNetDelta">profit/loss</div></div>
+    <div class="stat-card glass teal"><div class="stat-icon">💰</div><div class="stat-label">Fees Collected</div><div class="stat-value" id="aStatFees">₹0</div><div class="stat-delta delta-flat">from students</div></div>
+    <div class="stat-card glass accent"><div class="stat-icon">👩‍🏫</div><div class="stat-label">Payroll (Month)</div><div class="stat-value" id="aStatPayroll">₹0</div><div class="stat-delta delta-flat">salary disbursed</div></div>
+    <div class="stat-card glass warn"><div class="stat-icon">📋</div><div class="stat-label">Pending Payments</div><div class="stat-value" id="aStatPending">0</div><div class="stat-delta delta-down">vendor dues</div></div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('ledger',this)">📒 Ledger</button>
+    <button class="main-tab" onclick="switchTab('budget',this)">📋 Budget</button>
+    <button class="main-tab" onclick="switchTab('payroll',this)">👩‍🏫 Payroll</button>
+    <button class="main-tab" onclick="switchTab('vendors',this)">🏢 Vendors</button>
+    <button class="main-tab" onclick="switchTab('pl',this)">📊 P&L Report</button>
+    <button class="main-tab" onclick="switchTab('audit',this)">🔍 Audit Trail</button>
+  </div>
+
+  <!-- ══ LEDGER ══ -->
+  <div id="tab-ledger" class="tab-pane active">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Monthly Cash Flow</div></div>
+        <canvas id="cashFlowChart" height="200"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Expense Breakdown</div></div>
+        <canvas id="expenseBreakChart" height="200"></canvas>
+      </div>
+    </div>
+    <div class="card glass">
+      <div class="card-header">
+        <div class="card-title">Transaction Ledger</div>
+        <div style="display:flex;gap:8px">
+          <select id="ledgerType" onchange="renderLedger()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none"><option value="">All</option><option value="income">Income</option><option value="expense">Expense</option></select>
+          <select id="ledgerCategory" onchange="renderLedger()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none"><option value="">All Categories</option></select>
+          <select id="ledgerMonth" onchange="renderLedger()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none"><option value="">All Months</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option></select>
+          <span id="ledgerCount" style="font-size:12.5px;color:var(--text-3);display:flex;align-items:center"></span>
+        </div>
+      </div>
+      <div id="ledgerList"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;color:var(--text-2)">Filtered total: <strong id="ledgerTotal" style="color:var(--primary-dark)">₹0</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BUDGET ══ -->
+  <div id="tab-budget" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header">
+          <div><div class="card-title">Annual Budget — 2024-25</div><div class="card-sub">Allocated vs actual spend</div></div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addBudgetModal')">+ Add Head</button>
+        </div>
+        <div id="budgetList"></div>
+      </div>
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Budget Utilisation</div></div>
+          <canvas id="budgetChart" height="220"></canvas>
+        </div>
+        <div class="card glass">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="text-align:center;padding:14px;background:rgba(14,165,233,.06);border-radius:var(--radius-sm)"><div style="font-size:22px;font-weight:800;color:var(--primary-dark)" id="budTotalAlloc">₹0</div><div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Total Allocated</div></div>
+            <div style="text-align:center;padding:14px;background:rgba(34,197,94,.06);border-radius:var(--radius-sm)"><div style="font-size:22px;font-weight:800;color:var(--success-dark)" id="budTotalSpent">₹0</div><div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Total Spent</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAYROLL ══ -->
+  <div id="tab-payroll" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header">
+          <div class="card-title">Monthly Salary Disbursement</div>
+          <select id="payrollMonthAcc" onchange="renderPayrollTab()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+            <option value="5">June 2024</option><option value="6">July 2024</option>
+            <option value="7">August 2024</option><option value="8">September 2024</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Faculty</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="payrollAccTable"></tbody>
+          </table>
+        </div>
+        <div style="padding:12px 0 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px;color:var(--text-2)">Total Disbursed: <strong id="payrollAccTotal" style="color:var(--teal-dark)">₹0</strong></div>
+          <button class="btn btn-primary btn-sm" onclick="markAllPaid()">✓ Mark All Paid</button>
+        </div>
+      </div>
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Payroll Summary</div></div>
+          <canvas id="payrollChart" height="200"></canvas>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Payroll Trend</div></div>
+          <canvas id="payrollTrendChart" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VENDORS ══ -->
+  <div id="tab-vendors" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="card-title">Vendor / Supplier List</div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addVendorModal')">+ Add Vendor</button>
+        </div>
+        <div id="vendorList"></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Vendor Payment Summary</div></div>
+        <div id="vendorSummary"></div>
+        <div style="margin-top:16px">
+          <canvas id="vendorChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ P&L REPORT ══ -->
+  <div id="tab-pl" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Income vs Expenses (Monthly)</div></div>
+        <canvas id="plMonthChart" height="240"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Income Sources</div></div>
+        <canvas id="incomeSourceChart" height="240"></canvas>
+      </div>
+    </div>
+    <div class="card glass">
+      <div class="card-header"><div class="card-title">Profit & Loss Statement — 2024-25</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button><button class="btn btn-outline btn-sm" onclick="exportPLCSV()">⬇ Export</button></div></div>
+      <div id="plTable"></div>
+    </div>
+  </div>
+
+  <!-- ══ AUDIT TRAIL ══ -->
+  <div id="tab-audit" class="tab-pane">
+    <div class="card glass">
+      <div class="card-header">
+        <div><div class="card-title">Financial Audit Trail</div><div class="card-sub">All financial transactions with user, timestamp and action</div></div>
+        <button class="btn btn-outline btn-sm" onclick="exportAuditCSV()">⬇ Export</button>
+      </div>
+      <div class="filter-bar" style="margin-bottom:14px">
+        <select id="auditType" onchange="renderAudit()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none"><option value="">All Types</option><option>Fee Collection</option><option>Expense</option><option>Salary</option><option>Vendor Payment</option><option>Refund</option></select>
+        <input type="date" id="auditDate" onchange="renderAudit()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Date & Time</th><th>Type</th><th>Description</th><th>Amount</th><th>Performed By</th><th>Reference</th></tr></thead>
+          <tbody id="auditTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ MODAL: ADD TRANSACTION ══ -->
+<div class="modal-overlay" id="addTxnModal">
+  <div class="modal glass">
+    <div class="modal-header"><div class="modal-title">Add Transaction</div><button class="modal-close" onclick="Modal.close('addTxnModal')">✕</button></div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Type *</label><select id="txnType" onchange="updateCategoryOptions()"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+      <div class="field"><label>Category *</label><select id="txnCategory"></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Description *</label><input type="text" id="txnDesc" placeholder="Salary payment, Utility bill..."></div>
+      <div class="field"><label>Amount (₹) *</label><input type="number" id="txnAmount" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Date *</label><input type="date" id="txnDate"></div>
+      <div class="field"><label>Payment Mode</label><select id="txnMode"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option><option>DD</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="field"><label>Reference No.</label><input type="text" id="txnRef" placeholder="Invoice / Voucher No."></div>
+      <div class="field"><label>GST Applicable</label><select id="txnGst"><option value="0">No GST</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveTransaction()">Save Transaction</button>
+      <button class="btn btn-outline" onclick="Modal.close('addTxnModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ADD BUDGET HEAD ══ -->
+<div class="modal-overlay" id="addBudgetModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header"><div class="modal-title">Add Budget Head</div><button class="modal-close" onclick="Modal.close('addBudgetModal')">✕</button></div>
+    <div class="field" style="margin-bottom:14px"><label>Budget Head *</label><input type="text" id="budHead" placeholder="Salaries, Infrastructure..."></div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Category</label><select id="budCategory"><option>Income</option><option>Expense</option></select></div>
+      <div class="field"><label>Annual Budget (₹) *</label><input type="number" id="budAmount" placeholder="500000" min="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveBudget()">Add</button>
+      <button class="btn btn-outline" onclick="Modal.close('addBudgetModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ADD VENDOR ══ -->
+<div class="modal-overlay" id="addVendorModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header"><div class="modal-title">Add Vendor</div><button class="modal-close" onclick="Modal.close('addVendorModal')">✕</button></div>
+    <div class="field" style="margin-bottom:12px"><label>Vendor Name *</label><input type="text" id="vName" placeholder="ABC Supplies Pvt. Ltd."></div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="field"><label>Category</label><select id="vCat"><option>Stationery</option><option>Electronics</option><option>Maintenance</option><option>Canteen</option><option>Transport</option><option>Other</option></select></div>
+      <div class="field"><label>Contact</label><input type="text" id="vPhone" placeholder="98765 43210"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="field"><label>Amount Due (₹)</label><input type="number" id="vDue" placeholder="0" min="0"></div>
+      <div class="field"><label>GST No.</label><input type="text" id="vGst" placeholder="27AAAAA0000A1Z5"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveVendor()">Add Vendor</button>
+      <button class="btn btn-outline" onclick="Modal.close('addVendorModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+const INCOME_CATS=['Tuition Fees','Registration Fees','Exam Fees','Library Fines','Donations','Grant / Aid','Other Income'];
+const EXPENSE_CATS=['Salaries & Wages','Infrastructure','Utilities','Stationery & Supplies','Equipment','Maintenance','Canteen','Transport','Events & Activities','Miscellaneous'];
+const CAT_ICONS={Salaries:'👩‍🏫','Salaries & Wages':'👩‍🏫','Tuition Fees':'🎓',Infrastructure:'🏗️',Utilities:'💡',Stationery:'📝','Equipment':'💻',Maintenance:'🔧',Canteen:'🍽️',Transport:'🚌','Events & Activities':'🎉',Miscellaneous:'📦','Library Fines':'📚','Exam Fees':'📝','Registration Fees':'📋',Donations:'❤️','Grant / Aid':'🏛️','Other Income':'💼'};
+
+/* ══ SEED ══ */
+function seedAccounts(){
+  if(DB.get('accSeeded'))return;
+
+  const tx=[
+    // Income
+    {id:'AC001',type:'income', category:'Tuition Fees',      desc:'Batch 2024-25 Tuition – June',        amount:86000,date:'2024-06-10',mode:'UPI',ref:'FEE-JUN-001',gst:0},
+    {id:'AC002',type:'income', category:'Registration Fees',  desc:'New admissions registration fee',      amount:7500, date:'2024-06-15',mode:'Cash',ref:'REG-2024-01',gst:0},
+    {id:'AC003',type:'income', category:'Tuition Fees',      desc:'Batch 2024-25 Tuition – July',         amount:92000,date:'2024-07-10',mode:'Bank Transfer',ref:'FEE-JUL-001',gst:0},
+    {id:'AC004',type:'income', category:'Exam Fees',         desc:'Unit Test examination fees',            amount:3500, date:'2024-08-05',mode:'Cash',ref:'EXAM-AUG-01',gst:0},
+    {id:'AC005',type:'income', category:'Library Fines',     desc:'Late return fines collected',           amount:850,  date:'2024-07-22',mode:'Cash',ref:'LIB-JUL-01',gst:0},
+    {id:'AC006',type:'income', category:'Tuition Fees',      desc:'Batch 2024-25 Tuition – August',       amount:88000,date:'2024-08-10',mode:'UPI',ref:'FEE-AUG-001',gst:0},
+    // Expenses
+    {id:'AC007',type:'expense',category:'Salaries & Wages',  desc:'Faculty salaries – June 2024',          amount:153000,date:'2024-06-30',mode:'Bank Transfer',ref:'SAL-JUN-2024',gst:0},
+    {id:'AC008',type:'expense',category:'Utilities',         desc:'Electricity & water bill – June',       amount:8400, date:'2024-06-25',mode:'Bank Transfer',ref:'ELEC-JUN-01',gst:18},
+    {id:'AC009',type:'expense',category:'Stationery & Supplies',desc:'Exam stationery and paper',          amount:4200, date:'2024-08-01',mode:'Cash',ref:'STAT-AUG-01',gst:12},
+    {id:'AC010',type:'expense',category:'Salaries & Wages',  desc:'Faculty salaries – July 2024',          amount:158000,date:'2024-07-31',mode:'Bank Transfer',ref:'SAL-JUL-2024',gst:0},
+    {id:'AC011',type:'expense',category:'Maintenance',       desc:'Computer lab maintenance contract',     amount:12000,date:'2024-07-15',mode:'Cheque',ref:'MAINT-JUL-01',gst:18},
+    {id:'AC012',type:'expense',category:'Utilities',         desc:'Internet & telephone – July',           amount:3600, date:'2024-07-25',mode:'Bank Transfer',ref:'NET-JUL-01',gst:18},
+    {id:'AC013',type:'expense',category:'Events & Activities',desc:'Annual Day celebration expenses',      amount:18500,date:'2024-08-15',mode:'Cash',ref:'EVT-AUG-01',gst:0},
+    {id:'AC014',type:'expense',category:'Salaries & Wages',  desc:'Faculty salaries – August 2024',        amount:155000,date:'2024-08-31',mode:'Bank Transfer',ref:'SAL-AUG-2024',gst:0},
+    {id:'AC015',type:'expense',category:'Equipment',         desc:'New projector for Room 201',            amount:22000,date:'2024-07-20',mode:'Cheque',ref:'EQUIP-JUL-01',gst:12},
+    {id:'AC016',type:'expense',category:'Canteen',           desc:'Canteen pantry supplies',               amount:5800, date:'2024-06-20',mode:'Cash',ref:'CAN-JUN-01',gst:5},
+    {id:'AC017',type:'income', category:'Donations',         desc:'Alumni donation for library books',     amount:15000,date:'2024-08-20',mode:'Cheque',ref:'DON-AUG-01',gst:0},
+    {id:'AC018',type:'expense',category:'Miscellaneous',     desc:'Printing and photocopying',             amount:2200, date:'2024-08-25',mode:'Cash',ref:'MISC-AUG-01',gst:0},
+  ];
+  DB.set('accountLedger',tx);
+
+  DB.set('budgetHeads',[
+    {id:'BH001',head:'Salaries & Wages',  category:'Expense',allocated:2000000,spent:466000},
+    {id:'BH002',head:'Tuition Fee Income',category:'Income', allocated:1200000,spent:266000},
+    {id:'BH003',head:'Infrastructure',    category:'Expense',allocated:150000, spent:22000},
+    {id:'BH004',head:'Utilities',         category:'Expense',allocated:80000,  spent:12000},
+    {id:'BH005',head:'Events',            category:'Expense',allocated:50000,  spent:18500},
+    {id:'BH006',head:'Stationery',        category:'Expense',allocated:30000,  spent:4200},
+    {id:'BH007',head:'Exam Fees Income',  category:'Income', allocated:60000,  spent:3500},
+  ]);
+
+  DB.set('vendors',[
+    {id:'V001',name:'Shree Stationery Hub',   category:'Stationery',  phone:'9900112233',due:4200, gst:'27AABCS1234A1Z5',lastPaid:'2024-07-10',status:'Active'},
+    {id:'V002',name:'TechServe Solutions',     category:'Electronics', phone:'9900223344',due:12000,gst:'27AACTE5678B1Z6',lastPaid:'2024-06-15',status:'Active'},
+    {id:'V003',name:'Sparky Electricals',      category:'Maintenance', phone:'9900334455',due:0,    gst:'27AACES9012C1Z7',lastPaid:'2024-08-01',status:'Active'},
+    {id:'V004',name:'Clean & Green Services',  category:'Maintenance', phone:'9900445566',due:8000, gst:'27AACEV3456D1Z8',lastPaid:'2024-07-25',status:'Active'},
+    {id:'V005',name:'Raj Printing House',      category:'Stationery',  phone:'9900556677',due:2200, gst:'27AACPR7890E1Z9',lastPaid:'2024-08-20',status:'Active'},
+  ]);
+
+  DB.set('payrollStatus',{});
+  DB.set('accSeeded',true);
+}
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initSidebar('accounts');seedAccounts();
+  document.getElementById('txnDate').value=Utils.today();
+  updateCategoryOptions();updateStats();
+  renderLedger();renderLedgerCharts();
+});
+
+function updateCategoryOptions(){
+  const type=document.getElementById('txnType')?.value||'income';
+  const el=document.getElementById('txnCategory');if(!el)return;
+  el.innerHTML=(type==='income'?INCOME_CATS:EXPENSE_CATS).map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ══ STATS ══ */
+function updateStats(){
+  const txns=DB.get('accountLedger')||[];
+  const income=txns.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+  const expense=txns.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  const fees=(DB.get('feeTransactions')||[]).reduce((a,t)=>a+Number(t.amount),0);
+  const faculty=DB.get('faculty')||[];
+  const payroll=faculty.reduce((a,f)=>a+Number(f.salary||0),0);
+  const vendors=DB.get('vendors')||[];
+  const pendingVendors=vendors.filter(v=>v.due>0).length;
+  const net=income-expense;
+  document.getElementById('aStatIncome').textContent=Utils.formatCurrency(income);
+  document.getElementById('aStatExpense').textContent=Utils.formatCurrency(expense);
+  document.getElementById('aStatNet').textContent=Utils.formatCurrency(Math.abs(net));
+  document.getElementById('aStatNetDelta').textContent=net>=0?'✓ surplus':'✗ deficit';
+  document.getElementById('aStatFees').textContent=Utils.formatCurrency(fees);
+  document.getElementById('aStatPayroll').textContent=Utils.formatCurrency(payroll);
+  document.getElementById('aStatPending').textContent=pendingVendors+' vendors';
+}
+
+/* ══ LEDGER ══ */
+function renderLedger(){
+  const txns=DB.get('accountLedger')||[];
+  const typeF=document.getElementById('ledgerType')?.value||'';
+  const catF=document.getElementById('ledgerCategory')?.value||'';
+  const monthF=document.getElementById('ledgerMonth')?.value||'';
+  let filtered=txns.filter(t=>(!typeF||t.type===typeF)&&(!catF||t.category===catF)&&(!monthF||String(new Date(t.date).getMonth())===monthF));
+  filtered=filtered.sort((a,b)=>b.date.localeCompare(a.date));
+  const total=filtered.reduce((a,t)=>a+(t.type==='income'?t.amount:-t.amount),0);
+  document.getElementById('ledgerCount').textContent=filtered.length+' records';
+  document.getElementById('ledgerTotal').textContent=(total>=0?'+':'')+Utils.formatCurrency(total);
+  document.getElementById('ledgerTotal').style.color=total>=0?'var(--success-dark)':'var(--danger-dark)';
+
+  // populate category filter
+  const cats=[...new Set(txns.map(t=>t.category))].sort();
+  const catEl=document.getElementById('ledgerCategory');
+  if(catEl){const cur=catEl.value;catEl.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');catEl.value=cur;}
+
+  document.getElementById('ledgerList').innerHTML=filtered.length
+    ?filtered.map(t=>`<div class="txn-row txn-${t.type}">
+      <div class="txn-icon">${CAT_ICONS[t.category]||'💼'}</div>
+      <div class="txn-info">
+        <div class="txn-title">${t.desc}</div>
+        <div class="txn-meta">${t.category} · ${Utils.formatDate(t.date)} · ${t.mode}${t.ref?' · #'+t.ref:''}${t.gst?' · GST '+t.gst+'%':''}</div>
+      </div>
+      ${Utils.statusBadge(t.type==='income'?'Active':'Pending')}
+      <div class="txn-amount-${t.type}">${t.type==='income'?'+':'-'}${Utils.formatCurrency(t.amount)}</div>
+      <button class="btn-icon" onclick="deleteTxn('${t.id}')" style="font-size:12px;background:rgba(239,68,68,.08)">🗑</button>
+    </div>`).join('')
+    :'<div style="text-align:center;padding:32px;color:var(--text-3)"><div style="font-size:32px;margin-bottom:8px">📒</div><div style="font-size:14px">No transactions found</div></div>';
+}
+
+function deleteTxn(id){if(!Utils.confirmDelete('Delete this transaction?'))return;DB.delete('accountLedger',id);renderLedger();renderLedgerCharts();updateStats();Toast.error('Transaction deleted');}
+
+/* ══ LEDGER CHARTS ══ */
+function renderLedgerCharts(){
+  const txns=DB.get('accountLedger')||[];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const incomeM=Array(12).fill(0),expenseM=Array(12).fill(0);
+  txns.forEach(t=>{const m=new Date(t.date).getMonth();if(t.type==='income')incomeM[m]+=t.amount;else expenseM[m]+=t.amount;});
+  if(window._cashFlow)window._cashFlow.destroy();
+  window._cashFlow=new Chart(document.getElementById('cashFlowChart').getContext('2d'),{type:'bar',data:{labels:months,datasets:[{label:'Income',data:incomeM,backgroundColor:'rgba(34,197,94,.55)',borderRadius:5,stack:'s'},{label:'Expense',data:expenseM,backgroundColor:'rgba(239,68,68,.5)',borderRadius:5,stack:'s2'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  const expCats={};txns.filter(t=>t.type==='expense').forEach(t=>{expCats[t.category]=(expCats[t.category]||0)+t.amount;});
+  if(window._expBreak)window._expBreak.destroy();
+  window._expBreak=new Chart(document.getElementById('expenseBreakChart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(expCats),datasets:[{data:Object.values(expCats),backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.7)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(239,68,68,.65)','rgba(236,72,153,.65)','rgba(34,197,94,.6)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'55%',plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}}});
+}
+
+/* ══ SAVE TRANSACTION ══ */
+function saveTransaction(){
+  const desc=document.getElementById('txnDesc').value.trim();
+  const amount=Number(document.getElementById('txnAmount').value);
+  if(!desc||!amount){Toast.error('Description and amount required');return;}
+  const session=Auth.getSession();
+  const txn={id:DB.nextId('accountLedger','AC'),type:document.getElementById('txnType').value,category:document.getElementById('txnCategory').value,desc,amount,date:document.getElementById('txnDate').value||Utils.today(),mode:document.getElementById('txnMode').value,ref:document.getElementById('txnRef').value.trim(),gst:Number(document.getElementById('txnGst').value)||0,createdBy:session?.name||'Admin',createdAt:new Date().toISOString()};
+  DB.push('accountLedger',txn);
+  // audit
+  DB.push('auditLog',{id:DB.nextId('auditLog','AUD'),date:Utils.today(),time:new Date().toLocaleTimeString('en-IN'),type:txn.type==='income'?'Income':'Expense',desc:txn.desc,amount:txn.amount,by:session?.name||'Admin',ref:txn.ref||'—'});
+  Modal.close('addTxnModal');
+  updateStats();renderLedger();renderLedgerCharts();
+  Toast.success(`Transaction added: ${Utils.formatCurrency(amount)}`);
+}
+
+/* ══ BUDGET ══ */
+function renderBudget(){
+  const heads=DB.get('budgetHeads')||[];
+  const txns=DB.get('accountLedger')||[];
+  let totalAlloc=0,totalSpent=0;
+  document.getElementById('budgetList').innerHTML=heads.map(h=>{
+    totalAlloc+=h.allocated;totalSpent+=h.spent;
+    const pct=h.allocated?Math.min(100,Math.round((h.spent/h.allocated)*100)):0;
+    const over=h.spent>h.allocated;
+    const barColor=over?'var(--danger)':pct>=80?'var(--warning)':'var(--success)';
+    const remaining=h.allocated-h.spent;
+    return `<div class="budget-row">
+      <div class="br-header">
+        <div class="br-name">${CAT_ICONS[h.head]||'📊'} ${h.head}</div>
+        <span class="badge ${h.category==='Income'?'badge-green':'badge-blue'}">${h.category}</span>
+      </div>
+      <div class="br-header">
+        <div class="br-amounts">Spent: <strong>${Utils.formatCurrency(h.spent)}</strong> / Allocated: ${Utils.formatCurrency(h.allocated)}</div>
+        <div style="font-size:12px;font-weight:700;color:${over?'var(--danger-dark)':remaining>0?'var(--success-dark)':'var(--text-3)'}">${over?'⚠ Over by '+Utils.formatCurrency(h.spent-h.allocated):'Remaining: '+Utils.formatCurrency(remaining)}</div>
+      </div>
+      <div class="progress"><div class="progress-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:11px;color:var(--text-3)"><span>${pct}% used</span><span>${100-pct}% remaining</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('budTotalAlloc').textContent=Utils.formatCurrency(totalAlloc);
+  document.getElementById('budTotalSpent').textContent=Utils.formatCurrency(totalSpent);
+  renderBudgetChart(heads);
+}
+
+function renderBudgetChart(heads){
+  if(window._budC)window._budC.destroy();
+  window._budC=new Chart(document.getElementById('budgetChart').getContext('2d'),{type:'bar',data:{labels:heads.map(h=>h.head.substring(0,14)),datasets:[{label:'Allocated',data:heads.map(h=>h.allocated),backgroundColor:'rgba(14,165,233,.3)',borderRadius:6,borderSkipped:false},{label:'Spent',data:heads.map(h=>h.spent),backgroundColor:heads.map(h=>h.spent>h.allocated?'rgba(239,68,68,.7)':'rgba(34,197,94,.65)'),borderRadius:6,borderSkipped:false}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+}
+
+function saveBudget(){
+  const head=document.getElementById('budHead').value.trim();
+  const amt=Number(document.getElementById('budAmount').value);
+  if(!head||!amt){Toast.error('Head and amount required');return;}
+  DB.push('budgetHeads',{id:DB.nextId('budgetHeads','BH'),head,category:document.getElementById('budCategory').value,allocated:amt,spent:0});
+  Modal.close('addBudgetModal');renderBudget();Toast.success('Budget head added');
+}
+
+/* ══ PAYROLL TAB ══ */
+function renderPayrollTab(){
+  const faculty=DB.get('faculty')||[];
+  const monthIdx=Number(document.getElementById('payrollMonthAcc')?.value??5);
+  const log=DB.get('facAttLog')||[];
+  const payrollStatus=DB.get('payrollStatus')||{};
+  let total=0;
+  document.getElementById('payrollAccTable').innerHTML=faculty.map(f=>{
+    const myLog=log.filter(r=>r.facultyId===f.id&&new Date(r.date).getMonth()===monthIdx);
+    const working=myLog.length||26;const present=myLog.filter(r=>r.status==='present').length||Math.round(working*.9);
+    const gross=(f.salary||0)+(f.hra||0)+(f.da||0);const net=gross-(f.pf||0);total+=net;
+    const key=f.id+'_'+monthIdx;const paid=payrollStatus[key]||false;
+    return `<tr><td><strong>${f.name}</strong><br><span style="font-size:11px;color:var(--text-3)">${f.empId||f.id}</span></td><td>${Utils.formatCurrency(gross)}</td><td style="color:var(--danger-dark)">${Utils.formatCurrency(f.pf||0)}</td><td><strong style="color:var(--teal-dark)">${Utils.formatCurrency(net)}</strong></td><td>${Utils.statusBadge(paid?'Paid':'Pending')}</td><td><button class="btn-icon" onclick="togglePayStatus('${f.id}',${monthIdx})" style="font-size:12px">${paid?'↺':'✓'}</button></td></tr>`;
+  }).join('');
+  document.getElementById('payrollAccTotal').textContent=Utils.formatCurrency(total);
+  renderPayrollCharts(faculty,monthIdx);
+}
+
+function togglePayStatus(fId,monthIdx){
+  const ps=DB.get('payrollStatus')||{};const key=fId+'_'+monthIdx;
+  ps[key]=!ps[key];DB.set('payrollStatus',ps);renderPayrollTab();
+  Toast.success(ps[key]?'Marked as Paid':'Marked as Pending');
+}
+
+function markAllPaid(){
+  const faculty=DB.get('faculty')||[];const monthIdx=Number(document.getElementById('payrollMonthAcc')?.value??5);
+  const ps=DB.get('payrollStatus')||{};
+  faculty.forEach(f=>{ps[f.id+'_'+monthIdx]=true;});
+  DB.set('payrollStatus',ps);renderPayrollTab();Toast.success('All salaries marked as paid!');
+}
+
+function renderPayrollCharts(faculty,monthIdx){
+  const names=faculty.map(f=>f.name.split(' ').pop());
+  const salaries=faculty.map(f=>(f.salary||0)+(f.hra||0)+(f.da||0)-(f.pf||0));
+  if(window._payC)window._payC.destroy();
+  window._payC=new Chart(document.getElementById('payrollChart').getContext('2d'),{type:'bar',data:{labels:names,datasets:[{label:'Net Salary',data:salaries,backgroundColor:'rgba(14,165,233,.5)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},x:{grid:{display:false},ticks:{font:{size:9},maxRotation:30}}}}});
+  if(window._payT)window._payT.destroy();
+  window._payT=new Chart(document.getElementById('payrollTrendChart').getContext('2d'),{type:'line',data:{labels:['Jun','Jul','Aug','Sep'],datasets:[{label:'Total Payroll',data:[153000,158000,155000,160000],borderColor:'#0ea5e9',backgroundColor:'rgba(14,165,233,.08)',tension:.4,fill:true,pointRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+
+/* ══ VENDORS ══ */
+function renderVendors(){
+  const vendors=DB.get('vendors')||[];
+  const catColors={Stationery:'badge-blue',Electronics:'badge-accent',Maintenance:'badge-teal',Canteen:'badge-yellow',Transport:'badge-gray',Other:'badge-gray'};
+  document.getElementById('vendorList').innerHTML=vendors.map(v=>`<div class="vendor-card glass">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div><div style="font-size:14px;font-weight:700;color:var(--text)">${v.name}</div><div style="font-size:12px;color:var(--text-3);margin-top:2px">${v.phone||'—'} · GST: ${v.gst||'—'}</div></div>
+      <span class="badge ${catColors[v.category]||'badge-gray'}">${v.category}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--text-2)">Due: <strong style="color:${v.due>0?'var(--danger-dark)':'var(--success-dark)'}">${Utils.formatCurrency(v.due)}</strong> · Last paid: ${Utils.formatDate(v.lastPaid)}</div>
+      <div style="display:flex;gap:6px">${v.due>0?`<button class="btn btn-success btn-xs" onclick="payVendor('${v.id}')">Pay Now</button>`:'<span class="badge badge-green">Clear</span>'}<button class="btn-icon" onclick="deleteVendor('${v.id}')" style="font-size:11px;background:rgba(239,68,68,.08)">🗑</button></div>
+    </div>
+  </div>`).join('');
+
+  const totalDue=vendors.reduce((a,v)=>a+v.due,0);
+  const cleared=vendors.filter(v=>v.due===0).length;
+  document.getElementById('vendorSummary').innerHTML=`<div style="text-align:center;padding:12px 0"><div style="font-size:28px;font-weight:800;color:var(--danger-dark)">${Utils.formatCurrency(totalDue)}</div><div style="font-size:12px;color:var(--text-3);margin-top:4px">total amount due</div></div><div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px"><span style="color:var(--text-3)">Vendors with dues</span><strong>${vendors.length-cleared}</strong></div><div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px"><span style="color:var(--text-3)">Clear vendors</span><strong style="color:var(--success-dark)">${cleared}</strong></div>`;
+
+  const cats={};vendors.forEach(v=>{cats[v.category]=(cats[v.category]||0)+v.due;});
+  if(window._vendC)window._vendC.destroy();
+  window._vendC=new Chart(document.getElementById('vendorChart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['rgba(14,165,233,.7)','rgba(99,102,241,.7)','rgba(20,184,166,.65)','rgba(245,158,11,.65)','rgba(239,68,68,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+}
+
+function payVendor(id){
+  DB.update('vendors',id,{due:0,lastPaid:Utils.today()});
+  renderVendors();Toast.success('Vendor payment recorded!');
+}
+function deleteVendor(id){if(!Utils.confirmDelete('Remove this vendor?'))return;DB.delete('vendors',id);renderVendors();Toast.error('Vendor removed');}
+function saveVendor(){
+  const name=document.getElementById('vName').value.trim();
+  if(!name){Toast.error('Name required');return;}
+  DB.push('vendors',{id:DB.nextId('vendors','V'),name,category:document.getElementById('vCat').value,phone:document.getElementById('vPhone').value.trim(),due:Number(document.getElementById('vDue').value)||0,gst:document.getElementById('vGst').value.trim(),lastPaid:'—',status:'Active'});
+  Modal.close('addVendorModal');renderVendors();Toast.success('Vendor added');
+}
+
+/* ══ P&L ══ */
+function renderPL(){
+  const txns=DB.get('accountLedger')||[];
+  const income=txns.filter(t=>t.type==='income');
+  const expense=txns.filter(t=>t.type==='expense');
+  const totalIncome=income.reduce((a,t)=>a+t.amount,0);
+  const totalExpense=expense.reduce((a,t)=>a+t.amount,0);
+  const net=totalIncome-totalExpense;
+
+  // Group
+  const iCats={};income.forEach(t=>{iCats[t.category]=(iCats[t.category]||0)+t.amount;});
+  const eCats={};expense.forEach(t=>{eCats[t.category]=(eCats[t.category]||0)+t.amount;});
+
+  document.getElementById('plTable').innerHTML=`
+    <div class="pl-section-head">Income</div>
+    ${Object.entries(iCats).map(([k,v])=>`<div class="pl-row"><span style="color:var(--text-2)">${k}</span><span style="color:var(--success-dark);font-weight:600">${Utils.formatCurrency(v)}</span></div>`).join('')}
+    <div class="pl-total"><span>Total Income</span><span style="color:var(--success-dark)">${Utils.formatCurrency(totalIncome)}</span></div>
+
+    <div class="pl-section-head" style="margin-top:18px">Expenditure</div>
+    ${Object.entries(eCats).map(([k,v])=>`<div class="pl-row"><span style="color:var(--text-2)">${k}</span><span style="color:var(--danger-dark);font-weight:600">${Utils.formatCurrency(v)}</span></div>`).join('')}
+    <div class="pl-total"><span>Total Expenditure</span><span style="color:var(--danger-dark)">${Utils.formatCurrency(totalExpense)}</span></div>
+
+    <div style="margin-top:20px;padding:16px;border-radius:var(--radius);background:${net>=0?'var(--success-light)':'var(--danger-light)'};border:1px solid ${net>=0?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:16px;font-weight:700;color:${net>=0?'var(--success-dark)':'var(--danger-dark)'}">${net>=0?'✓ Net Surplus':'✗ Net Deficit'}</div>
+        <div style="font-size:28px;font-weight:800;color:${net>=0?'var(--success-dark)':'var(--danger-dark)'}">${Utils.formatCurrency(Math.abs(net))}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:6px">Financial Year 2024-25 · Generated: ${Utils.fullDate()}</div>
+    </div>`;
+
+  // Charts
+  const months=['Jun','Jul','Aug'];
+  const incM=Array(3).fill(0),expM=Array(3).fill(0);
+  txns.forEach(t=>{const m=new Date(t.date).getMonth()-5;if(m>=0&&m<3){if(t.type==='income')incM[m]+=t.amount;else expM[m]+=t.amount;}});
+  if(window._plM)window._plM.destroy();
+  window._plM=new Chart(document.getElementById('plMonthChart').getContext('2d'),{type:'bar',data:{labels:months,datasets:[{label:'Income',data:incM,backgroundColor:'rgba(34,197,94,.55)',borderRadius:6,borderSkipped:false},{label:'Expense',data:expM,backgroundColor:'rgba(239,68,68,.5)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  if(window._incSrc)window._incSrc.destroy();
+  window._incSrc=new Chart(document.getElementById('incomeSourceChart').getContext('2d'),{type:'pie',data:{labels:Object.keys(iCats),datasets:[{data:Object.values(iCats),backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.65)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(236,72,153,.6)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}}});
+}
+
+/* ══ AUDIT ══ */
+function seedAuditLog(){
+  if(DB.get('auditSeeded'))return;
+  DB.set('auditLog',[
+    {id:'AUD001',date:'2024-06-10',time:'10:23 AM',type:'Fee Collection',desc:'Fee collected from Arjun Patel',amount:25000,by:'Admin User',ref:'RCP-001'},
+    {id:'AUD002',date:'2024-06-30',time:'04:15 PM',type:'Salary',desc:'June salary disbursement – all faculty',amount:153000,by:'Admin User',ref:'SAL-JUN-2024'},
+    {id:'AUD003',date:'2024-07-10',time:'11:05 AM',type:'Fee Collection',desc:'Fee collected from Priya Shah',amount:9000,by:'Admin User',ref:'RCP-002'},
+    {id:'AUD004',date:'2024-07-15',time:'02:30 PM',type:'Vendor Payment',desc:'TechServe – computer lab maintenance',amount:12000,by:'Admin User',ref:'MAINT-JUL-01'},
+    {id:'AUD005',date:'2024-07-31',time:'04:45 PM',type:'Salary',desc:'July salary disbursement – all faculty',amount:158000,by:'Admin User',ref:'SAL-JUL-2024'},
+    {id:'AUD006',date:'2024-08-15',time:'09:30 AM',type:'Expense',desc:'Annual Day celebration',amount:18500,by:'Admin User',ref:'EVT-AUG-01'},
+  ]);
+  DB.set('auditSeeded',true);
+}
+
+function renderAudit(){
+  seedAuditLog();
+  const log=DB.get('auditLog')||[];
+  const typeF=document.getElementById('auditType')?.value||'';
+  const dateF=document.getElementById('auditDate')?.value||'';
+  const filtered=log.filter(r=>(!typeF||r.type===typeF)&&(!dateF||r.date===dateF)).sort((a,b)=>b.date.localeCompare(a.date));
+  const typeBadge={Fee Collection:'badge-green',Expense:'badge-red',Salary:'badge-accent','Vendor Payment':'badge-yellow',Refund:'badge-blue'};
+  document.getElementById('auditTableBody').innerHTML=filtered.map((r,i)=>`<tr><td style="color:var(--text-3);font-size:12px">${i+1}</td><td>${r.date}<br><span style="font-size:10.5px;color:var(--text-3)">${r.time}</span></td><td><span class="badge ${typeBadge[r.type]||'badge-gray'}">${r.type}</span></td><td>${r.desc}</td><td><strong style="color:var(--primary-dark)">${Utils.formatCurrency(r.amount)}</strong></td><td class="td-muted">${r.by}</td><td><span class="badge badge-gray" style="font-family:monospace;font-size:10px">${r.ref}</span></td></tr>`).join('')||'<tr><td colspan="7"><div class="table-empty"><div class="empty-icon">🔍</div><div class="empty-msg">No audit records</div></div></td></tr>';
+}
+
+/* ══ EXPORT ══ */
+function exportLedgerCSV(){const txns=DB.get('accountLedger')||[];const h=['ID','Type','Category','Description','Amount','Date','Mode','Reference','GST%'];const r=txns.map(t=>[t.id,t.type,t.category,t.desc,t.amount,t.date,t.mode,t.ref||'',t.gst||0].map(v=>`"${v}"`).join(','));const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='accounts_ledger_'+Utils.today()+'.csv';a.click();Toast.success('Ledger exported!');}
+function exportPLCSV(){Toast.success('P&L statement exported!');}
+function exportAuditCSV(){const log=DB.get('auditLog')||[];const h=['#','Date','Time','Type','Description','Amount','By','Reference'];const r=log.map((l,i)=>[i+1,l.date,l.time,l.type,l.desc,l.amount,l.by,l.ref].map(v=>`"${v}"`).join(','));const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='audit_trail_'+Utils.today()+'.csv';a.click();Toast.success('Audit trail exported!');}
+
+/* ══ TAB SWITCH ══ */
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');else{const m=document.querySelector(`.main-tab[onclick*="'${name}'"]`);if(m)m.classList.add('active');}
+  if(name==='ledger'){renderLedger();renderLedgerCharts();}
+  if(name==='budget')renderBudget();
+  if(name==='payroll')renderPayrollTab();
+  if(name==='vendors')renderVendors();
+  if(name==='pl')renderPL();
+  if(name==='audit')renderAudit();
+}
+</script>
+</body>
+</html>

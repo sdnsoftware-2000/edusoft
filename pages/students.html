@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <style>
+    /* ── Students-specific ── */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .filter-bar .search-wrap { flex: 1; min-width: 220px; max-width: 320px; }
+    .filter-bar select {
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.6);
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+      transition: border .2s;
+    }
+    .filter-bar select:focus { border-color: var(--primary); }
+    .filter-bar .filter-count {
+      margin-left: auto;
+      font-size: 12.5px;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    /* student row avatar */
+    .student-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: white;
+      flex-shrink: 0;
+    }
+
+    .td-student {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .td-student .s-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .td-student .s-email { font-size: 11.5px; color: var(--text-3); }
+
+    /* row actions */
+    .row-actions { display: flex; gap: 5px; }
+
+    /* pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0 0;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pagination .page-info { font-size: 12.5px; color: var(--text-3); }
+    .page-btns { display: flex; gap: 4px; }
+    .page-btn {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.5);
+      font-size: 12.5px; font-weight: 500;
+      cursor: pointer; color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .page-btn:hover { background: var(--primary-light); border-color: var(--border-strong); color: var(--primary); }
+    .page-btn.active { background: var(--primary); border-color: var(--primary); color: white; font-weight: 700; }
+    .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* promote modal */
+    .promote-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+    .promote-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .promote-item:hover { border-color: var(--border-strong); }
+    .promote-item.selected { border-color: var(--primary); background: var(--primary-light); }
+    .promote-item input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+    /* topbar */
+    .topbar { display: none; position: fixed; top: 0; left: 0; right: 0; height: 60px; z-index: 150; align-items: center; justify-content: space-between; padding: 0 18px; border-radius: 0 0 16px 16px; }
+    @media (max-width: 900px) { .topbar { display: flex; } }
+  </style>
+</head>
+<body>
+
+<!-- Topbar (mobile) -->
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+
+<!-- Sidebar overlay -->
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Students</span></div>
+      <div class="page-title">Students</div>
+      <div class="page-sub">Manage admissions, profiles and records</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="Modal.open('promoteModal')">↑ Promote Year</button>
+      <button class="btn btn-outline" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ New Admission</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:20px">
+    <div class="stat-card glass blue">
+      <div class="stat-icon">🎓</div>
+      <div class="stat-label">Total Students</div>
+      <div class="stat-value" id="sTotal">0</div>
+      <div class="stat-delta delta-flat">all enrolled</div>
+    </div>
+    <div class="stat-card glass success">
+      <div class="stat-icon">✓</div>
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="sActive">0</div>
+      <div class="stat-delta delta-up">currently studying</div>
+    </div>
+    <div class="stat-card glass warn">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-label">Pending Admission</div>
+      <div class="stat-value" id="sPending">0</div>
+      <div class="stat-delta delta-flat">awaiting approval</div>
+    </div>
+    <div class="stat-card glass danger">
+      <div class="stat-icon">💰</div>
+      <div class="stat-label">Fees Due</div>
+      <div class="stat-value" id="sFeesDue">0</div>
+      <div class="stat-delta delta-down">students with dues</div>
+    </div>
+  </div>
+
+  <!-- TABLE CARD -->
+  <div class="card glass">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="form-input" type="text" id="searchInput" placeholder="Search name, ID, email..." oninput="applyFilters()">
+      </div>
+
+      <select id="filterCourse" onchange="applyFilters()">
+        <option value="">All Courses</option>
+      </select>
+
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Pending">Pending</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+
+      <select id="filterFees" onchange="applyFilters()">
+        <option value="">All Fees</option>
+        <option value="Paid">Paid</option>
+        <option value="Pending">Pending</option>
+        <option value="Partial">Partial</option>
+      </select>
+
+      <select id="filterBatch" onchange="applyFilters()">
+        <option value="">All Batches</option>
+      </select>
+
+      <span class="filter-count" id="filterCount">Showing 0 students</span>
+
+      <button class="btn btn-ghost btn-sm" onclick="resetFilters()" id="clearFiltersBtn" style="display:none">✕ Clear</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="accent-color:var(--primary);width:15px;height:15px;cursor:pointer"></th>
+            <th>Student</th>
+            <th>Roll No.</th>
+            <th>Course</th>
+            <th>Batch</th>
+            <th>Status</th>
+            <th>Fees</th>
+            <th>Admitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <div class="page-info" id="pageInfo">Showing 1–7 of 7</div>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+
+    <!-- Bulk action bar (shown when rows selected) -->
+    <div id="bulkBar" style="display:none;margin-top:12px;padding:10px 16px;background:var(--primary-light);border-radius:var(--radius-sm);display:none;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--primary-dark)" id="bulkCount">0 selected</span>
+      <button class="btn btn-sm btn-outline" onclick="bulkAction('activate')">✓ Mark Active</button>
+      <button class="btn btn-sm btn-outline" onclick="bulkAction('deactivate')">✕ Mark Inactive</button>
+      <button class="btn btn-sm btn-danger-soft" onclick="bulkAction('delete')">🗑 Delete Selected</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="clearSelection()">✕ Cancel</button>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Add / Edit Student (Pre-Admission + Admission combined) -->
+<div class="modal-overlay" id="studentModal">
+  <div class="modal glass modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">New Student Admission</div>
+        <div class="modal-sub" id="modalSubtitle">Fill all details to register a new student</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('studentModal')">✕</button>
+    </div>
+
+    <!-- Tabs inside modal -->
+    <div class="tabs" style="margin-bottom:22px">
+      <button class="tab active" id="tab-personal" onclick="switchTab('personal')">Personal Info</button>
+      <button class="tab" id="tab-academic" onclick="switchTab('academic')">Academic Info</button>
+      <button class="tab" id="tab-parent" onclick="switchTab('parent')">Parent / Guardian</button>
+    </div>
+
+    <input type="hidden" id="editStudentId">
+
+    <!-- TAB 1: Personal -->
+    <div id="tabPane-personal">
+      <div class="form-row">
+        <div class="field">
+          <label>First Name *</label>
+          <input type="text" id="sFirstName" placeholder="Arjun">
+          <span class="field-error">First name is required</span>
+        </div>
+        <div class="field">
+          <label>Last Name *</label>
+          <input type="text" id="sLastName" placeholder="Patel">
+          <span class="field-error">Last name is required</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Email Address *</label>
+          <input type="email" id="sEmail" placeholder="arjun@email.com">
+          <span class="field-error">Enter a valid email</span>
+        </div>
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="text" id="sPhone" placeholder="9876543210" maxlength="10">
+          <span class="field-error">Enter valid 10-digit number</span>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="field">
+          <label>Gender</label>
+          <select id="sGender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date of Birth</label>
+          <input type="date" id="sDob">
+        </div>
+        <div class="field">
+          <label>Blood Group</label>
+          <select id="sBlood">
+            <option value="">— Select —</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>O+</option><option>O-</option>
+            <option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Residential Address</label>
+        <input type="text" id="sAddress" placeholder="123 MG Road, Ahmedabad, Gujarat - 380001">
+      </div>
+    </div>
+
+    <!-- TAB 2: Academic -->
+    <div id="tabPane-academic" style="display:none">
+      <div class="form-row">
+        <div class="field">
+          <label>Course *</label>
+          <select id="sCourse">
+            <option value="">— Select Course —</option>
+          </select>
+          <span class="field-error">Please select a course</span>
+        </div>
+        <div class="field">
+          <label>Batch / Year *</label>
+          <input type="text" id="sBatch" placeholder="2024-25">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Roll Number</label>
+          <input type="text" id="sRollNo" placeholder="Auto-generated if empty">
+          <span class="field-hint">Leave blank to auto-generate</span>
+        </div>
+        <div class="field">
+          <label>Admission Date</label>
+          <input type="date" id="sAdmDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Admission Status</label>
+          <select id="sStatus">
+            <option value="Active">Active (Confirmed)</option>
+            <option value="Pending">Pending (Pre-Admission)</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fees Status</label>
+          <select id="sFeesStatus">
+            <option value="Pending">Pending</option>
+            <option value="Partial">Partial</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Previous School / Institute</label>
+        <input type="text" id="sPrevSchool" placeholder="St. Xavier's School, Ahmedabad">
+      </div>
+    </div>
+
+    <!-- TAB 3: Parent -->
+    <div id="tabPane-parent" style="display:none">
+      <div class="form-row">
+        <div class="field">
+          <label>Parent / Guardian Name *</label>
+          <input type="text" id="sParentName" placeholder="Rajesh Patel">
+          <span class="field-error">Parent name is required</span>
+        </div>
+        <div class="field">
+          <label>Relation</label>
+          <select id="sRelation">
+            <option>Father</option><option>Mother</option>
+            <option>Guardian</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Parent Mobile *</label>
+          <input type="text" id="sParentPhone" placeholder="9876543211" maxlength="10">
+          <span class="field-error">Enter valid 10-digit number</span>
+        </div>
+        <div class="field">
+          <label>Parent Email</label>
+          <input type="email" id="sParentEmail" placeholder="rajesh@email.com">
+        </div>
+      </div>
+      <div class="field">
+        <label>Parent Occupation</label>
+        <input type="text" id="sParentOcc" placeholder="Business / Service / etc.">
+      </div>
+      <div class="field">
+        <label>Emergency Contact Notes</label>
+        <textarea id="sNotes" placeholder="Any special notes, medical conditions, emergency info..." rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="saveStudentBtn" onclick="saveStudent()">Save Student</button>
+      <button class="btn btn-outline" onclick="Modal.close('studentModal')">Cancel</button>
+      <span style="margin-left:auto;font-size:11.5px;color:var(--text-3)">* Required fields</span>
+    </div>
+  </div>
+</div>
+
+<!-- View Student Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal glass modal-lg" id="profileContent"></div>
+</div>
+
+<!-- Promote Year Modal -->
+<div class="modal-overlay" id="promoteModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Promote Students to Next Year</div>
+        <div class="modal-sub">Select students and update their batch</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('promoteModal')">✕</button>
+    </div>
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="field">
+        <label>Current Batch</label>
+        <select id="promoteFrom"></select>
+      </div>
+      <div class="field">
+        <label>Promote To</label>
+        <input type="text" id="promoteTo" placeholder="2025-26">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Select Students</label>
+    </div>
+    <div class="promote-list" id="promoteList"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="promoteStudents()">↑ Promote Selected</button>
+      <button class="btn btn-outline" onclick="Modal.close('promoteModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+/* ═════════════════════════════════════════════
+   STATE
+   ═════════════════════════════════════════════ */
+let allStudents    = [];
+let filtered       = [];
+let selectedIds    = new Set();
+let currentPage    = 1;
+const PAGE_SIZE    = 10;
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+
+/* ═════════════════════════════════════════════
+   INIT
+   ═════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('students');
+  loadStudents();
+  populateCourseSelect('sCourse');
+  populateCourseSelect('filterCourse');
+  document.getElementById('sAdmDate').value = Utils.today();
+  document.getElementById('sBatch').value   = '2024-25';
+  populateBatchFilter();
+});
+
+function loadStudents() {
+  allStudents = DB.get('students') || [];
+  updateStats();
+  applyFilters();
+}
+
+/* ═════════════════════════════════════════════
+   STATS
+   ═════════════════════════════════════════════ */
+function updateStats() {
+  document.getElementById('sTotal').textContent   = allStudents.length;
+  document.getElementById('sActive').textContent  = allStudents.filter(s => s.status === 'Active').length;
+  document.getElementById('sPending').textContent = allStudents.filter(s => s.status === 'Pending').length;
+  document.getElementById('sFeesDue').textContent = allStudents.filter(s => s.feesStatus !== 'Paid').length;
+}
+
+/* ═════════════════════════════════════════════
+   FILTERS + SEARCH
+   ═════════════════════════════════════════════ */
+function applyFilters() {
+  const q       = document.getElementById('searchInput').value.toLowerCase().trim();
+  const course  = document.getElementById('filterCourse').value;
+  const status  = document.getElementById('filterStatus').value;
+  const fees    = document.getElementById('filterFees').value;
+  const batch   = document.getElementById('filterBatch').value;
+  const hasFilter = q || course || status || fees || batch;
+  document.getElementById('clearFiltersBtn').style.display = hasFilter ? 'inline-flex' : 'none';
+
+  filtered = allStudents.filter(s => {
+    const fullName = (s.firstName + ' ' + s.lastName).toLowerCase();
+    const matchQ      = !q      || fullName.includes(q) || s.id.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.rollNo||'').toLowerCase().includes(q) || s.phone.includes(q);
+    const matchCourse = !course || s.course === course;
+    const matchStatus = !status || s.status === status;
+    const matchFees   = !fees   || s.feesStatus === fees;
+    const matchBatch  = !batch  || s.batch === batch;
+    return matchQ && matchCourse && matchStatus && matchFees && matchBatch;
+  });
+
+  currentPage = 1;
+  renderTable();
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value   = '';
+  document.getElementById('filterCourse').value  = '';
+  document.getElementById('filterStatus').value  = '';
+  document.getElementById('filterFees').value    = '';
+  document.getElementById('filterBatch').value   = '';
+  applyFilters();
+}
+
+function populateBatchFilter() {
+  const batches = [...new Set(allStudents.map(s => s.batch))].sort().reverse();
+  const sel = document.getElementById('filterBatch');
+  sel.innerHTML = '<option value="">All Batches</option>' +
+    batches.map(b => `<option value="${b}">${b}</option>`).join('');
+}
+
+/* ═════════════════════════════════════════════
+   TABLE RENDER
+   ═════════════════════════════════════════════ */
+function renderTable() {
+  const tbody = document.getElementById('studentTableBody');
+  const total = filtered.length;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const page  = filtered.slice(start, end);
+
+  document.getElementById('filterCount').textContent =
+    total === allStudents.length ? `${total} students` : `${total} of ${allStudents.length} students`;
+  document.getElementById('pageInfo').textContent =
+    total === 0 ? 'No results' : `Showing ${start + 1}–${end} of ${total}`;
+
+  if (total === 0) {
+    tbody.innerHTML = `<tr><td colspan="9">
+      <div class="table-empty">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-msg">No students found</div>
+        <div class="empty-sub">Try adjusting your search or filters</div>
+      </div>
+    </td></tr>`;
+    renderPagination(0);
+    return;
+  }
+
+  tbody.innerHTML = page.map(s => {
+    const course  = DB.find('courses', s.course);
+    const color   = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+    const initial = (s.firstName[0] + s.lastName[0]).toUpperCase();
+    const checked = selectedIds.has(s.id) ? 'checked' : '';
+    return `
+      <tr data-id="${s.id}">
+        <td><input type="checkbox" class="row-check" data-id="${s.id}" ${checked} onchange="toggleRowSelect(this)" style="accent-color:var(--primary);width:15px;height:15px;cursor:pointer"></td>
+        <td>
+          <div class="td-student">
+            <div class="student-avatar" style="background:${color}">${initial}</div>
+            <div>
+              <div class="s-name">${s.firstName} ${s.lastName}</div>
+              <div class="s-email">${s.email}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge badge-blue">${s.rollNo || s.id}</span></td>
+        <td>${course ? course.name : '<span class="td-muted">—</span>'}</td>
+        <td>${s.batch || '—'}</td>
+        <td>${Utils.statusBadge(s.status)}</td>
+        <td>${Utils.statusBadge(s.feesStatus)}</td>
+        <td class="td-muted">${Utils.formatDate(s.admissionDate)}</td>
+        <td>
+          <div class="row-actions">
+            <a class="btn-icon" href="student-profile.html?id=${s.id}" data-tip="View Profile" style="font-size:13px;text-decoration:none">👁</a>
+            <button class="btn-icon" onclick="openEditModal('${s.id}')" data-tip="Edit" style="font-size:13px">✏️</button>
+            <button class="btn-icon" onclick="deleteStudent('${s.id}')" data-tip="Delete" style="font-size:13px;background:rgba(239,68,68,0.08)">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  renderPagination(total);
+  updateBulkBar();
+}
+
+/* ═════════════════════════════════════════════
+   PAGINATION
+   ═════════════════════════════════════════════ */
+function renderPagination(total) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const container = document.getElementById('pageBtns');
+  if (pages <= 1) { container.innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (pages > 7 && i > 2 && i < pages - 1 && Math.abs(i - currentPage) > 1) {
+      if (i === 3 || i === pages - 2) html += `<span style="padding:0 4px;color:var(--text-3)">…</span>`;
+      continue;
+    }
+    html += `<button class="page-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===pages?'disabled':''}>›</button>`;
+  container.innerHTML = html;
+}
+
+function goPage(n) {
+  const pages = Math.ceil(filtered.length / PAGE_SIZE);
+  if (n < 1 || n > pages) return;
+  currentPage = n;
+  renderTable();
+}
+
+/* ═════════════════════════════════════════════
+   SELECTION
+   ═════════════════════════════════════════════ */
+function toggleSelectAll(cb) {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filtered.slice(start, start + PAGE_SIZE);
+  page.forEach(s => cb.checked ? selectedIds.add(s.id) : selectedIds.delete(s.id));
+  renderTable();
+}
+
+function toggleRowSelect(cb) {
+  cb.checked ? selectedIds.add(cb.dataset.id) : selectedIds.delete(cb.dataset.id);
+  updateBulkBar();
+  // sync selectAll
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filtered.slice(start, start + PAGE_SIZE);
+  document.getElementById('selectAll').checked = page.every(s => selectedIds.has(s.id));
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  if (selectedIds.size > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulkCount').textContent = selectedIds.size + ' selected';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.getElementById('selectAll').checked = false;
+  renderTable();
+}
+
+function bulkAction(action) {
+  if (selectedIds.size === 0) return;
+  if (action === 'delete') {
+    if (!Utils.confirmDelete(`Delete ${selectedIds.size} selected students?`)) return;
+    selectedIds.forEach(id => DB.delete('students', id));
+    Toast.success(`${selectedIds.size} students deleted`);
+  } else {
+    const newStatus = action === 'activate' ? 'Active' : 'Inactive';
+    selectedIds.forEach(id => DB.update('students', id, { status: newStatus }));
+    Toast.success(`${selectedIds.size} students marked ${newStatus}`);
+  }
+  selectedIds.clear();
+  loadStudents();
+}
+
+/* ═════════════════════════════════════════════
+   ADD / EDIT MODAL
+   ═════════════════════════════════════════════ */
+function openAddModal() {
+  document.getElementById('editStudentId').value = '';
+  document.getElementById('modalTitle').textContent    = 'New Student Admission';
+  document.getElementById('modalSubtitle').textContent = 'Fill all details to register a new student';
+  document.getElementById('saveStudentBtn').textContent = 'Save Student';
+  clearModalForm();
+  document.getElementById('sAdmDate').value = Utils.today();
+  document.getElementById('sBatch').value   = '2024-25';
+  switchTab('personal');
+  Modal.open('studentModal');
+}
+
+function openEditModal(id) {
+  const s = DB.find('students', id);
+  if (!s) return;
+  document.getElementById('editStudentId').value = id;
+  document.getElementById('modalTitle').textContent    = 'Edit Student — ' + s.firstName + ' ' + s.lastName;
+  document.getElementById('modalSubtitle').textContent = 'ID: ' + s.id + ' · Roll: ' + (s.rollNo || s.id);
+  document.getElementById('saveStudentBtn').textContent = 'Update Student';
+
+  // fill all fields
+  document.getElementById('sFirstName').value    = s.firstName     || '';
+  document.getElementById('sLastName').value     = s.lastName      || '';
+  document.getElementById('sEmail').value        = s.email         || '';
+  document.getElementById('sPhone').value        = s.phone         || '';
+  document.getElementById('sGender').value       = s.gender        || 'Male';
+  document.getElementById('sDob').value          = s.dob           || '';
+  document.getElementById('sBlood').value        = s.blood         || '';
+  document.getElementById('sAddress').value      = s.address       || '';
+  document.getElementById('sCourse').value       = s.course        || '';
+  document.getElementById('sBatch').value        = s.batch         || '';
+  document.getElementById('sRollNo').value       = s.rollNo        || '';
+  document.getElementById('sAdmDate').value      = s.admissionDate || '';
+  document.getElementById('sStatus').value       = s.status        || 'Active';
+  document.getElementById('sFeesStatus').value   = s.feesStatus    || 'Pending';
+  document.getElementById('sPrevSchool').value   = s.prevSchool    || '';
+  document.getElementById('sParentName').value   = s.parentName    || '';
+  document.getElementById('sRelation').value     = s.relation      || 'Father';
+  document.getElementById('sParentPhone').value  = s.parentPhone   || '';
+  document.getElementById('sParentEmail').value  = s.parentEmail   || '';
+  document.getElementById('sParentOcc').value    = s.parentOcc     || '';
+  document.getElementById('sNotes').value        = s.notes         || '';
+
+  switchTab('personal');
+  Modal.open('studentModal');
+}
+
+function clearModalForm() {
+  ['sFirstName','sLastName','sEmail','sPhone','sDob','sBlood','sAddress',
+   'sBatch','sRollNo','sAdmDate','sPrevSchool','sParentName','sParentPhone',
+   'sParentEmail','sParentOcc','sNotes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('sGender').value     = 'Male';
+  document.getElementById('sStatus').value     = 'Active';
+  document.getElementById('sFeesStatus').value = 'Pending';
+  document.getElementById('sRelation').value   = 'Father';
+  document.getElementById('sCourse').value     = '';
+  document.querySelectorAll('.field').forEach(f => f.classList.remove('has-error'));
+}
+
+function switchTab(tab) {
+  ['personal','academic','parent'].forEach(t => {
+    document.getElementById('tabPane-' + t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+/* ═════════════════════════════════════════════
+   SAVE STUDENT
+   ═════════════════════════════════════════════ */
+function saveStudent() {
+  // validate across all tabs
+  const v = Utils.validate([
+    ['sFirstName',   'First Name',    'text'],
+    ['sLastName',    'Last Name',     'text'],
+    ['sEmail',       'Email',         'email'],
+    ['sPhone',       'Mobile',        'phone'],
+    ['sParentName',  'Parent Name',   'text'],
+    ['sParentPhone', 'Parent Mobile', 'phone'],
+  ]);
+
+  if (!document.getElementById('sCourse').value) {
+    document.getElementById('sCourse').closest('.field').classList.add('has-error');
+    v.valid = false;
+  }
+
+  if (!v.valid) {
+    Toast.error('Please fix the highlighted fields');
+    // find first error tab and switch to it
+    const personalErr = document.querySelector('#tabPane-personal .field.has-error');
+    const academicErr = document.querySelector('#tabPane-academic .field.has-error');
+    const parentErr   = document.querySelector('#tabPane-parent .field.has-error');
+    if (personalErr) switchTab('personal');
+    else if (academicErr) switchTab('academic');
+    else if (parentErr) switchTab('parent');
+    return;
+  }
+
+  const editId = document.getElementById('editStudentId').value;
+  const courseId = document.getElementById('sCourse').value;
+  const course   = DB.find('courses', courseId);
+
+  // auto roll number
+  let rollNo = document.getElementById('sRollNo').value.trim();
+  if (!rollNo && course) {
+    const existing = (DB.get('students') || []).filter(s => s.course === courseId);
+    rollNo = course.code + '-' + String(existing.length + 1).padStart(3, '0');
+  }
+
+  const data = {
+    firstName:     document.getElementById('sFirstName').value.trim(),
+    lastName:      document.getElementById('sLastName').value.trim(),
+    email:         document.getElementById('sEmail').value.trim(),
+    phone:         document.getElementById('sPhone').value.trim(),
+    gender:        document.getElementById('sGender').value,
+    dob:           document.getElementById('sDob').value,
+    blood:         document.getElementById('sBlood').value,
+    address:       document.getElementById('sAddress').value.trim(),
+    course:        courseId,
+    batch:         document.getElementById('sBatch').value.trim() || '2024-25',
+    rollNo,
+    admissionDate: document.getElementById('sAdmDate').value || Utils.today(),
+    status:        document.getElementById('sStatus').value,
+    feesStatus:    document.getElementById('sFeesStatus').value,
+    prevSchool:    document.getElementById('sPrevSchool').value.trim(),
+    parentName:    document.getElementById('sParentName').value.trim(),
+    relation:      document.getElementById('sRelation').value,
+    parentPhone:   document.getElementById('sParentPhone').value.trim(),
+    parentEmail:   document.getElementById('sParentEmail').value.trim(),
+    parentOcc:     document.getElementById('sParentOcc').value.trim(),
+    notes:         document.getElementById('sNotes').value.trim(),
+  };
+
+  if (editId) {
+    DB.update('students', editId, data);
+    Toast.success('Student updated successfully!');
+  } else {
+    data.id = DB.nextId('students', 'S');
+    DB.push('students', data);
+    Toast.success(`Student added! ID: ${data.id} · Roll: ${rollNo}`);
+  }
+
+  Modal.close('studentModal');
+  loadStudents();
+  populateBatchFilter();
+}
+
+/* ═════════════════════════════════════════════
+   DELETE
+   ═════════════════════════════════════════════ */
+function deleteStudent(id) {
+  const s = DB.find('students', id);
+  if (!s) return;
+  if (!Utils.confirmDelete(`Delete ${s.firstName} ${s.lastName}? This will also remove their attendance and result records.`)) return;
+  DB.delete('students', id);
+  Toast.error('Student deleted');
+  loadStudents();
+}
+
+/* ═════════════════════════════════════════════
+   VIEW PROFILE
+   ═════════════════════════════════════════════ */
+function viewProfile(id) {
+  const s = DB.find('students', id);
+  if (!s) return;
+  const course  = DB.find('courses', s.course);
+  const color   = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+  const initial = (s.firstName[0] + s.lastName[0]).toUpperCase();
+
+  // fee transactions for this student
+  const txns = (DB.get('feeTransactions') || []).filter(t => t.studentId === id);
+  const totalPaid = txns.reduce((a,t) => a + Number(t.amount), 0);
+
+  // results
+  const results = (DB.get('results') || []).filter(r => r.studentId === id);
+
+  document.getElementById('profileContent').innerHTML = `
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar avatar-lg" style="background:${color};width:52px;height:52px;font-size:18px">${initial}</div>
+        <div>
+          <div class="modal-title">${s.firstName} ${s.lastName}</div>
+          <div class="modal-sub">${s.rollNo || s.id} · ${course?.name || '—'} · Batch ${s.batch}</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('profileModal')">✕</button>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      ${Utils.statusBadge(s.status)}
+      ${Utils.statusBadge(s.feesStatus)}
+      ${s.gender ? `<span class="badge badge-blue">${s.gender}</span>` : ''}
+      ${s.blood ? `<span class="badge badge-accent">${s.blood}</span>` : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+
+      <div style="padding:16px;background:rgba(14,165,233,0.05);border-radius:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:12px">Personal</div>
+        ${row('📧 Email', s.email)}
+        ${row('📞 Phone', s.phone)}
+        ${row('🎂 DOB', Utils.formatDate(s.dob))}
+        ${row('🏠 Address', s.address || '—')}
+      </div>
+
+      <div style="padding:16px;background:rgba(20,184,166,0.05);border-radius:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:12px">Academic</div>
+        ${row('📚 Course', course?.name || '—')}
+        ${row('📅 Admitted', Utils.formatDate(s.admissionDate))}
+        ${row('🏫 Prev. School', s.prevSchool || '—')}
+        ${row('💰 Fees Paid', Utils.formatCurrency(totalPaid))}
+      </div>
+
+    </div>
+
+    <div style="padding:16px;background:rgba(99,102,241,0.05);border-radius:12px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:12px">Parent / Guardian</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${row('👤 Name', s.parentName || '—')}
+        ${row('🔗 Relation', s.relation || '—')}
+        ${row('📞 Mobile', s.parentPhone || '—')}
+        ${row('💼 Occupation', s.parentOcc || '—')}
+      </div>
+    </div>
+
+    ${results.length ? `
+    <div style="padding:16px;background:rgba(34,197,94,0.05);border-radius:12px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:12px">Exam Results</div>
+      ${results.map(r => {
+        const exam = DB.find('exams', r.examId);
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span>${exam?.name || r.examId}</span>
+          <span style="display:flex;gap:8px;align-items:center">${r.marksObtained}/${exam?.maxMarks||100} ${Utils.statusBadge(r.grade)} ${Utils.statusBadge(r.result)}</span>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    ${s.notes ? `<div class="alert alert-info" style="margin-bottom:16px"><span>📝</span>${s.notes}</div>` : ''}
+
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" onclick="Modal.close('profileModal');openEditModal('${id}')">✏️ Edit Profile</button>
+      <button class="btn btn-outline btn-sm" onclick="printStudentCard('${id}')">🖨 Print Card</button>
+      <button class="btn btn-outline btn-sm" onclick="Modal.close('profileModal')">Close</button>
+    </div>
+  `;
+
+  Modal.open('profileModal');
+}
+
+function row(label, val) {
+  return `<div style="font-size:13px;padding:4px 0;display:flex;gap:8px;align-items:baseline">
+    <span style="color:var(--text-3);min-width:110px;font-size:12px">${label}</span>
+    <span style="font-weight:500;color:var(--text)">${val || '—'}</span>
+  </div>`;
+}
+
+/* ═════════════════════════════════════════════
+   PRINT STUDENT ID CARD
+   ═════════════════════════════════════════════ */
+function printStudentCard(id) {
+  const s = DB.find('students', id);
+  if (!s) return;
+  const course = DB.find('courses', s.course);
+  const color  = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+  const initial= (s.firstName[0] + s.lastName[0]).toUpperCase();
+  const w = window.open('', '_blank', 'width=600,height=400');
+  w.document.write(`<!DOCTYPE html><html><head><title>ID Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f0f9ff}
+    .card{width:340px;border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(14,165,233,0.2);background:white}
+    .card-top{background:linear-gradient(135deg,#0ea5e9,#14b8a6);padding:22px 20px 32px;position:relative}
+    .institute{font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:2px}
+    .inst-sub{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:1.5px;text-transform:uppercase}
+    .card-type{position:absolute;top:14px;right:16px;background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:1px}
+    .avatar-wrap{position:absolute;bottom:-28px;left:20px;width:56px;height:56px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+    .card-body{padding:36px 20px 20px}
+    .s-name{font-size:17px;font-weight:800;color:#0f172a;margin-bottom:2px}
+    .s-meta{font-size:12px;color:#64748b;margin-bottom:14px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+    .info-cell{background:#f8fafc;border-radius:8px;padding:8px 10px}
+    .info-cell .ic-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;margin-bottom:2px}
+    .info-cell .ic-val{font-size:12.5px;font-weight:600;color:#0f172a}
+    .barcode{text-align:center;padding:10px 0;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;letter-spacing:3px;font-family:monospace}
+    @media print{body{background:white}.card{box-shadow:none}}
+  </style></head><body>
+  <div class="card">
+    <div class="card-top">
+      <div class="institute">EduSoft Institute</div>
+      <div class="inst-sub">by Uniitechs</div>
+      <div class="card-type">STUDENT</div>
+      <div class="avatar-wrap">${initial}</div>
+    </div>
+    <div class="card-body">
+      <div class="s-name">${s.firstName} ${s.lastName}</div>
+      <div class="s-meta">${course?.name || '—'} · Batch ${s.batch}</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="ic-label">Roll No.</div><div class="ic-val">${s.rollNo || s.id}</div></div>
+        <div class="info-cell"><div class="ic-label">Student ID</div><div class="ic-val">${s.id}</div></div>
+        <div class="info-cell"><div class="ic-label">Mobile</div><div class="ic-val">${s.phone}</div></div>
+        <div class="info-cell"><div class="ic-label">Blood Group</div><div class="ic-val">${s.blood || 'N/A'}</div></div>
+        <div class="info-cell"><div class="ic-label">Parent</div><div class="ic-val">${s.parentName||'—'}</div></div>
+        <div class="info-cell"><div class="ic-label">Parent Mob.</div><div class="ic-val">${s.parentPhone||'—'}</div></div>
+      </div>
+      <div class="barcode">||||| ${s.id} - ${s.rollNo || 'EDU'} |||||</div>
+    </div>
+  </div>
+  <script>window.onload=()=>{window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+/* ═════════════════════════════════════════════
+   PROMOTE YEAR
+   ═════════════════════════════════════════════ */
+function setupPromoteModal() {
+  const batches = [...new Set(allStudents.map(s => s.batch))].sort().reverse();
+  const fromSel = document.getElementById('promoteFrom');
+  fromSel.innerHTML = batches.map(b => `<option value="${b}">${b}</option>`).join('');
+  renderPromoteList();
+  fromSel.onchange = renderPromoteList;
+}
+
+function renderPromoteList() {
+  const batch = document.getElementById('promoteFrom').value;
+  const students = allStudents.filter(s => s.batch === batch && s.status === 'Active');
+  document.getElementById('promoteList').innerHTML = students.length
+    ? students.map(s => `
+        <label class="promote-item">
+          <input type="checkbox" class="promote-check" data-id="${s.id}" checked style="accent-color:var(--primary);width:16px;height:16px;cursor:pointer">
+          <div class="student-avatar" style="background:${AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length]};width:30px;height:30px;font-size:11px">
+            ${(s.firstName[0]+s.lastName[0]).toUpperCase()}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${s.firstName} ${s.lastName}</div>
+            <div style="font-size:11px;color:var(--text-3)">${s.rollNo||s.id}</div>
+          </div>
+          ${Utils.statusBadge(s.feesStatus)}
+        </label>`).join('')
+    : '<p style="color:var(--text-3);font-size:13px;text-align:center;padding:16px">No active students in this batch</p>';
+}
+
+function promoteStudents() {
+  const newBatch = document.getElementById('promoteTo').value.trim();
+  if (!newBatch) { Toast.error('Please enter the new batch year'); return; }
+  const checked = [...document.querySelectorAll('.promote-check:checked')].map(cb => cb.dataset.id);
+  if (!checked.length) { Toast.warning('No students selected'); return; }
+  checked.forEach(id => DB.update('students', id, { batch: newBatch }));
+  Toast.success(`${checked.length} students promoted to batch ${newBatch}`);
+  Modal.close('promoteModal');
+  loadStudents();
+  populateBatchFilter();
+}
+
+// open promote with setup
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('[onclick="Modal.open(\'promoteModal\')"]')?.addEventListener('click', setupPromoteModal, { once: false });
+});
+const origOpen = Modal.open.bind(Modal);
+Modal.open = function(id) {
+  if (id === 'promoteModal') setupPromoteModal();
+  origOpen(id);
+};
+
+/* ═════════════════════════════════════════════
+   EXPORT CSV
+   ═════════════════════════════════════════════ */
+function exportCSV() {
+  const headers = ['ID','First Name','Last Name','Email','Phone','Course','Batch','Roll No','Status','Fees Status','Admission Date','Parent Name','Parent Phone'];
+  const rows = (filtered.length ? filtered : allStudents).map(s => {
+    const course = DB.find('courses', s.course);
+    return [s.id, s.firstName, s.lastName, s.email, s.phone, course?.name||'', s.batch, s.rollNo||'', s.status, s.feesStatus, s.admissionDate||'', s.parentName||'', s.parentPhone||''].map(v => `"${v}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `students_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('CSV exported successfully!');
+}
+</script>
+</body>
+</html>

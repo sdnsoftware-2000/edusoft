@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Communication — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <style>
+    /* ══ TABS ══ */
+    .main-tabs{display:flex;gap:4px;padding:4px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);margin-bottom:24px;width:fit-content;flex-wrap:wrap}
+    .main-tab{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .18s;border:none;background:none}
+    .main-tab.active{background:white;color:var(--primary-dark);font-weight:700;box-shadow:0 2px 8px rgba(14,165,233,0.14)}
+    .tab-pane{display:none}.tab-pane.active{display:block;animation:pageEnter .25s var(--ease) both}
+
+    /* ══ NOTICE CARD ══ */
+    .notice-card{
+      border-radius:var(--radius);padding:18px 20px;
+      border:1.5px solid var(--border);background:rgba(255,255,255,0.52);
+      margin-bottom:10px;transition:all .18s;position:relative;overflow:hidden;
+    }
+    .notice-card:hover{border-color:var(--border-strong);transform:translateX(4px)}
+    .notice-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:2px 0 0 2px}
+    .nc-urgent::before  {background:var(--danger)}
+    .nc-important::before{background:var(--warning)}
+    .nc-normal::before  {background:var(--primary)}
+    .nc-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+    .nc-title{font-size:15px;font-weight:700;color:var(--text);flex:1;line-height:1.3}
+    .nc-body{font-size:13.5px;color:var(--text-2);line-height:1.7;margin-bottom:10px}
+    .nc-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-3)}
+    .nc-footer .nf-sep{opacity:.3}
+
+    /* ══ COMPOSE BOX ══ */
+    .compose-box{background:rgba(255,255,255,0.55);border-radius:var(--radius-lg);padding:24px;border:1.5px solid var(--border)}
+
+    /* ══ CHANNEL TILES ══ */
+    .channel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+    .channel-tile{padding:14px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.5);text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+    .channel-tile:hover{border-color:var(--border-strong)}
+    .channel-tile.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px rgba(14,165,233,.1)}
+    .channel-tile .ct-icon{font-size:22px;margin-bottom:6px}
+    .channel-tile .ct-name{font-size:12px;font-weight:600;color:var(--text)}
+
+    /* ══ AUDIENCE CHIPS ══ */
+    .audience-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .aud-chip{padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:rgba(255,255,255,.5);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-2);user-select:none}
+    .aud-chip.selected{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark)}
+
+    /* ══ ALERT HISTORY ROW ══ */
+    .alert-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .alert-row:last-child{border-bottom:none}
+    .ar-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .ar-info{flex:1}
+    .ar-title{font-weight:600;color:var(--text);line-height:1.2}
+    .ar-meta{font-size:11.5px;color:var(--text-3);margin-top:2px}
+
+    /* ══ COMPLAINT CARD ══ */
+    .complaint-card{border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border);background:rgba(255,255,255,.5);margin-bottom:9px;transition:all .15s}
+    .complaint-card:hover{border-color:var(--border-strong)}
+    .cc-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+    .cc-title{font-size:13.5px;font-weight:600;color:var(--text);flex:1}
+    .cc-body{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:8px}
+    .cc-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-3)}
+
+    /* ══ EVENT CARD ══ */
+    .event-card{border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--border);background:rgba(255,255,255,.52);margin-bottom:10px;transition:all .18s}
+    .event-card:hover{border-color:var(--border-strong)}
+    .event-head{display:flex;align-items:center;gap:14px;padding:14px 16px}
+    .event-date-block{width:46px;text-align:center;flex-shrink:0;border-radius:8px;padding:6px 4px;background:rgba(14,165,233,.09)}
+    .edb-day{font-size:20px;font-weight:800;color:var(--primary-dark);line-height:1}
+    .edb-mon{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px}
+    .event-info{flex:1}
+    .ev-name{font-size:14px;font-weight:700;color:var(--text)}
+    .ev-meta{font-size:12px;color:var(--text-3);margin-top:2px}
+
+    /* ══ SMS PREVIEW ══ */
+    .sms-preview-box{background:rgba(14,165,233,.06);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border);margin-top:14px;display:none}
+    .sms-preview-box.show{display:block;animation:pageEnter .2s var(--ease) both}
+    .sms-bubble{background:white;border-radius:12px;border:1px solid var(--border);padding:12px 14px;font-size:13.5px;color:var(--text);line-height:1.6;margin-bottom:8px}
+    .sms-chars{font-size:11.5px;color:var(--text-3);text-align:right}
+
+    /* ══ TOPBAR ══ */
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}}
+  </style>
+</head>
+<body>
+
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Communication</span></div>
+      <div class="page-title">Communication</div>
+      <div class="page-sub">Notices, alerts, complaints and event management</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="switchTab('compose',null)">✉️ Compose Alert</button>
+      <button class="btn btn-primary" onclick="openPostNoticeModal()">📌 Post Notice</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue"><div class="stat-icon">📣</div><div class="stat-label">Total Notices</div><div class="stat-value" id="statNotices">0</div><div class="stat-delta delta-flat">posted</div></div>
+    <div class="stat-card glass danger"><div class="stat-icon">🚨</div><div class="stat-label">Urgent</div><div class="stat-value" id="statUrgent">0</div><div class="stat-delta delta-down">require attention</div></div>
+    <div class="stat-card glass warn"><div class="stat-icon">📤</div><div class="stat-label">Alerts Sent</div><div class="stat-value" id="statAlerts">0</div><div class="stat-delta delta-up">this month</div></div>
+    <div class="stat-card glass teal"><div class="stat-icon">📅</div><div class="stat-label">Upcoming Events</div><div class="stat-value" id="statEvents">0</div><div class="stat-delta delta-flat">this month</div></div>
+    <div class="stat-card glass accent"><div class="stat-icon">📋</div><div class="stat-label">Complaints</div><div class="stat-value" id="statComplaints">0</div><div class="stat-delta delta-flat">received</div></div>
+    <div class="stat-card glass success"><div class="stat-icon">✓</div><div class="stat-label">Resolved</div><div class="stat-value" id="statResolved">0</div><div class="stat-delta delta-up">complaints</div></div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('noticeboard',this)">📌 Notice Board</button>
+    <button class="main-tab" onclick="switchTab('compose',this)">✉️ Send Alert</button>
+    <button class="main-tab" onclick="switchTab('history',this)">📤 Sent History</button>
+    <button class="main-tab" onclick="switchTab('complaints',this)">📋 Complaints</button>
+    <button class="main-tab" onclick="switchTab('events',this)">🎉 Events</button>
+  </div>
+
+  <!-- ══ TAB: NOTICE BOARD ══ -->
+  <div id="tab-noticeboard" class="tab-pane active">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px">
+
+      <div>
+        <!-- Filter bar -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div class="search-wrap" style="flex:1;min-width:180px;max-width:260px">
+            <span class="search-icon">🔍</span>
+            <input class="form-input" type="text" id="noticeSearch" placeholder="Search notices..." oninput="renderNoticeBoard()">
+          </div>
+          <select id="noticeFilterPriority" onchange="renderNoticeBoard()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;color:var(--text);outline:none">
+            <option value="">All Priorities</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Important">Important</option>
+            <option value="Normal">Normal</option>
+          </select>
+          <select id="noticeFilterAud" onchange="renderNoticeBoard()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;color:var(--text);outline:none">
+            <option value="">All Audience</option>
+            <option value="All">All</option>
+            <option value="Students">Students</option>
+            <option value="Faculty">Faculty</option>
+            <option value="Parents">Parents</option>
+          </select>
+          <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="noticeCount">0 notices</span>
+        </div>
+
+        <div id="noticeBoardList"></div>
+      </div>
+
+      <!-- Sidebar: quick post + summary -->
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Quick Post</div></div>
+          <div class="field" style="margin-bottom:10px">
+            <label>Title</label>
+            <input type="text" id="qTitle" placeholder="Notice title...">
+          </div>
+          <div class="field" style="margin-bottom:10px">
+            <label>Message</label>
+            <textarea id="qMessage" rows="3" placeholder="Write your notice here..."></textarea>
+          </div>
+          <div class="form-row" style="margin-bottom:12px">
+            <div class="field">
+              <label>Priority</label>
+              <select id="qPriority"><option>Normal</option><option>Important</option><option>Urgent</option></select>
+            </div>
+            <div class="field">
+              <label>For</label>
+              <select id="qAudience"><option>All</option><option>Students</option><option>Faculty</option><option>Parents</option></select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="quickPostNotice()">📌 Post Notice</button>
+        </div>
+
+        <!-- Priority breakdown -->
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Notice Summary</div></div>
+          <div id="noticeSummary"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TAB: COMPOSE / SEND ALERT ══ -->
+  <div id="tab-compose" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px">
+
+      <div class="compose-box glass">
+        <div class="card-title" style="margin-bottom:16px">Compose & Send Alert</div>
+
+        <!-- Channel selection -->
+        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin-bottom:10px">Send Via</div>
+        <div class="channel-grid">
+          <div class="channel-tile selected" data-ch="inapp" onclick="toggleChannel(this)"><div class="ct-icon">🔔</div><div class="ct-name">In-App</div></div>
+          <div class="channel-tile" data-ch="sms"   onclick="toggleChannel(this)"><div class="ct-icon">📱</div><div class="ct-name">SMS</div></div>
+          <div class="channel-tile" data-ch="whatsapp" onclick="toggleChannel(this)"><div class="ct-icon">💬</div><div class="ct-name">WhatsApp</div></div>
+          <div class="channel-tile" data-ch="email" onclick="toggleChannel(this)"><div class="ct-icon">📧</div><div class="ct-name">Email</div></div>
+        </div>
+
+        <!-- Audience -->
+        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin-bottom:10px">Send To</div>
+        <div class="audience-chips">
+          <div class="aud-chip selected" data-aud="All"      onclick="toggleAud(this)">🌐 All</div>
+          <div class="aud-chip"          data-aud="Students" onclick="toggleAud(this)">🎓 Students</div>
+          <div class="aud-chip"          data-aud="Parents"  onclick="toggleAud(this)">👨‍👩‍👧 Parents</div>
+          <div class="aud-chip"          data-aud="Faculty"  onclick="toggleAud(this)">👩‍🏫 Faculty</div>
+          <div class="aud-chip"          data-aud="Custom"   onclick="toggleAud(this)">🎯 Custom</div>
+        </div>
+
+        <!-- Custom recipient -->
+        <div id="customRecipient" style="display:none;margin-bottom:14px">
+          <div class="field">
+            <label>Select Students / Faculty</label>
+            <select id="customSelect" multiple style="height:90px;padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none;width:100%"></select>
+            <span class="field-hint">Hold Ctrl/Cmd to select multiple</span>
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div class="field" style="margin-bottom:14px">
+          <label>Subject / Title</label>
+          <input type="text" id="composeSubject" placeholder="Fee reminder / Exam schedule / Notice..." oninput="updateSMSPreview()">
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Message *</label>
+          <textarea id="composeMessage" rows="5" placeholder="Type your message here..." oninput="updateSMSPreview()"></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:16px">
+          <div class="field">
+            <label>Priority</label>
+            <select id="composePriority"><option>Normal</option><option>Important</option><option>Urgent</option></select>
+          </div>
+          <div class="field">
+            <label>Schedule (optional)</label>
+            <input type="datetime-local" id="composeSchedule">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="sendAlert()">📤 Send Now</button>
+          <button class="btn btn-outline" onclick="scheduleAlert()">🕒 Schedule</button>
+          <button class="btn btn-ghost" onclick="clearCompose()">✕ Clear</button>
+        </div>
+      </div>
+
+      <!-- Preview panel -->
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Message Preview</div><div class="card-sub">How it will appear on each channel</div></div>
+          <div id="smsPreviewBox" class="sms-preview-box show">
+            <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📱 SMS / WhatsApp Preview</div>
+            <div class="sms-bubble" id="smsBubbleText">Your message will appear here...</div>
+            <div class="sms-chars" id="smsCharCount">0 / 160 characters</div>
+          </div>
+          <div style="margin-top:14px;padding:14px;background:var(--primary-light);border-radius:var(--radius-sm)">
+            <div style="font-size:11px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔔 In-App Notification</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)" id="notifTitle">—</div>
+            <div style="font-size:12.5px;color:var(--text-2);margin-top:4px" id="notifBody">—</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:6px">📌 Posted by Admin · Just now</div>
+          </div>
+        </div>
+
+        <!-- Recipient count -->
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Recipients</div></div>
+          <div id="recipientSummary"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TAB: SENT HISTORY ══ -->
+  <div id="tab-history" class="tab-pane">
+    <div class="card glass">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <select id="histChannel" onchange="renderHistory()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none">
+          <option value="">All Channels</option>
+          <option value="inapp">In-App</option><option value="sms">SMS</option>
+          <option value="whatsapp">WhatsApp</option><option value="email">Email</option>
+        </select>
+        <select id="histAud" onchange="renderHistory()" style="padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;outline:none">
+          <option value="">All Audience</option>
+          <option>All</option><option>Students</option><option>Faculty</option><option>Parents</option>
+        </select>
+        <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="histCount">0 sent</span>
+      </div>
+      <div id="alertHistoryList"></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: COMPLAINTS ══ -->
+  <div id="tab-complaints" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div><div class="card-title">Complaints & Feedback</div><div class="card-sub">Received from students and parents</div></div>
+          <div style="display:flex;gap:8px">
+            <select id="complaintFilter" onchange="renderComplaints()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:12.5px;outline:none">
+              <option value="">All</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="Modal.open('addComplaintModal')">+ Add</button>
+          </div>
+        </div>
+        <div id="complaintList"></div>
+      </div>
+
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Status Overview</div></div>
+          <div id="complaintStats"></div>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">By Category</div></div>
+          <div id="complaintCategories"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TAB: EVENTS ══ -->
+  <div id="tab-events" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title">Event Calendar</div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addEventModal')">+ Add Event</button>
+        </div>
+        <div id="eventList"></div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Upcoming This Month</div></div>
+        <div id="upcomingEvents"></div>
+        <div class="divider"></div>
+        <div class="card-title" style="font-size:13px;margin-bottom:10px">By Type</div>
+        <div id="eventTypeStats"></div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL: POST NOTICE -->
+<div class="modal-overlay" id="postNoticeModal">
+  <div class="modal glass modal-lg">
+    <div class="modal-header">
+      <div><div class="modal-title" id="noticeModalTitle">Post Notice</div><div class="modal-sub">This will appear on the notice board for all users</div></div>
+      <button class="modal-close" onclick="Modal.close('postNoticeModal')">✕</button>
+    </div>
+    <input type="hidden" id="editNoticeId">
+    <div class="field" style="margin-bottom:14px">
+      <label>Title *</label>
+      <input type="text" id="nTitle" placeholder="Notice heading...">
+      <span class="field-error">Title is required</span>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Message *</label>
+      <textarea id="nMessage" rows="4" placeholder="Detailed notice content..."></textarea>
+      <span class="field-error">Message is required</span>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Priority</label><select id="nPriority"><option>Normal</option><option>Important</option><option>Urgent</option></select></div>
+      <div class="field"><label>For</label><select id="nAudience"><option>All</option><option>Students</option><option>Faculty</option><option>Parents</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="field"><label>Valid Until</label><input type="date" id="nExpiry"></div>
+      <div class="field"><label>Posted By</label><input type="text" id="nPostedBy" value="Admin"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveNotice()">Post Notice</button>
+      <button class="btn btn-outline" onclick="Modal.close('postNoticeModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD COMPLAINT -->
+<div class="modal-overlay" id="addComplaintModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div class="modal-title">Record Complaint / Feedback</div>
+      <button class="modal-close" onclick="Modal.close('addComplaintModal')">✕</button>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>From (Name)</label><input type="text" id="cFrom" placeholder="Student / Parent name"></div>
+      <div class="field"><label>Category</label><select id="cCategory"><option>Academics</option><option>Faculty</option><option>Fees</option><option>Infrastructure</option><option>Transport</option><option>Other</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Complaint / Feedback *</label>
+      <textarea id="cBody" rows="3" placeholder="Describe the issue..."></textarea>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="field"><label>Priority</label><select id="cPriority"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+      <div class="field"><label>Status</label><select id="cStatus"><option>Open</option><option>In Progress</option><option>Resolved</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveComplaint()">Save</button>
+      <button class="btn btn-outline" onclick="Modal.close('addComplaintModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD EVENT -->
+<div class="modal-overlay" id="addEventModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div class="modal-title">Add Event</div>
+      <button class="modal-close" onclick="Modal.close('addEventModal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Event Name *</label>
+      <input type="text" id="evName" placeholder="Annual Day / Sports Meet / Parent-Teacher Meeting">
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Date *</label><input type="date" id="evDate"></div>
+      <div class="field"><label>Time</label><input type="time" id="evTime" value="10:00"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Type</label><select id="evType"><option>Academic</option><option>Cultural</option><option>Sports</option><option>Meeting</option><option>Celebration</option><option>Other</option></select></div>
+      <div class="field"><label>Venue</label><input type="text" id="evVenue" placeholder="Main Hall / Ground..."></div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Description</label>
+      <textarea id="evDesc" rows="2" placeholder="Brief description..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveEvent()">Save Event</button>
+      <button class="btn btn-outline" onclick="Modal.close('addEventModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+let selectedChannels = new Set(['inapp']);
+let selectedAudience = new Set(['All']);
+
+/* ═══════════ SEED ═══════════ */
+function seedCommData() {
+  if (DB.get('commSeeded')) return;
+
+  DB.set('notices', [
+    {id:'N001', title:'Fee Submission Last Date',    message:'Last date for fee submission is 30th July 2024. Late fee of ₹100/day will be charged after that. Kindly pay at the accounts office between 9 AM – 4 PM on working days.', priority:'Important', audience:'All',      date:'2024-06-20', postedBy:'Admin',     expiry:'2024-07-30'},
+    {id:'N002', title:'Annual Day — 15th August',    message:'Annual Day celebrations will be held on 15th August 2024. All students are requested to be present in school uniform by 9 AM sharp. Parents are welcome to attend.', priority:'Normal',    audience:'Students', date:'2024-07-01', postedBy:'Admin',     expiry:'2024-08-15'},
+    {id:'N003', title:'Mandatory Faculty Meeting',   message:'All faculty members are required to attend a mandatory meeting on 10th July at 10 AM in the conference hall. Agenda: New semester planning & curriculum changes.', priority:'Urgent',    audience:'Faculty',  date:'2024-07-05', postedBy:'Principal', expiry:'2024-07-10'},
+    {id:'N004', title:'Mid-Term Exam Schedule Released', message:'The mid-term examination schedule for all courses has been released. Students can collect their hall tickets from the admin office. Exams begin 1st September.', priority:'Important', audience:'Students', date:'2024-07-15', postedBy:'Admin',     expiry:'2024-09-01'},
+    {id:'N005', title:'Parent-Teacher Meeting',      message:'Parent-Teacher Meeting scheduled for 20th July 2024. All parents are requested to attend between 10 AM – 1 PM. Individual slots will be allotted at the reception.', priority:'Normal',    audience:'Parents',  date:'2024-07-10', postedBy:'Admin',     expiry:'2024-07-20'},
+    {id:'N006', title:'Library Clearance Notice',    message:'All students who have pending library books must return them by 31st July. Fine of ₹5/day per book will be charged after the due date.', priority:'Normal',    audience:'Students', date:'2024-07-18', postedBy:'Librarian',expiry:'2024-07-31'},
+  ]);
+
+  DB.set('alertHistory', [
+    {id:'A001', subject:'Fee Reminder',     message:'Dear Parent, fees for your ward are due. Please pay by 30 July 2024 to avoid late charges.',          channels:['sms','whatsapp'], audience:'Parents',  sentAt:'2024-07-01 09:00', sentBy:'Admin', count:45},
+    {id:'A002', subject:'Exam Timetable',   message:'Mid-term exam timetable is out! Check the notice board or EduSoft portal for full schedule.',           channels:['inapp','sms'],   audience:'Students', sentAt:'2024-07-15 10:30', sentBy:'Admin', count:32},
+    {id:'A003', subject:'Faculty Meeting',  message:'Reminder: Faculty meeting today at 10 AM. Please be on time. Conference Hall, Block B.',                channels:['inapp'],         audience:'Faculty',  sentAt:'2024-07-10 08:00', sentBy:'Principal',count:7},
+    {id:'A004', subject:'Annual Day',       message:'Annual Day is on 15 Aug. All students report by 9 AM in uniform. Parents are welcome!',                  channels:['whatsapp'],      audience:'All',      sentAt:'2024-08-01 11:00', sentBy:'Admin', count:80},
+    {id:'A005', subject:'Result Published', message:'Unit Test 1 results have been published. Check your grade card on the EduSoft student portal.',          channels:['inapp','email'], audience:'Students', sentAt:'2024-08-20 14:00', sentBy:'Admin', count:32},
+  ]);
+
+  DB.set('complaints', [
+    {id:'CP001', from:'Rajesh Patel (Parent)',  category:'Fees',          body:'Fee receipt was not generated after online payment. Kindly resolve.',       priority:'High',   status:'Resolved',    date:'2024-07-03', resolution:'Receipt re-issued on 05 July.'},
+    {id:'CP002', from:'Priya Shah (Student)',   category:'Faculty',       body:'Prof. for Physics often comes late to class. Affecting our studies.',        priority:'Normal', status:'In Progress', date:'2024-07-10', resolution:''},
+    {id:'CP003', from:'Anand Mehta (Parent)',   category:'Infrastructure',body:'Water cooler on 2nd floor is not working since 2 weeks.',                    priority:'High',   status:'Resolved',    date:'2024-07-12', resolution:'Repaired on 14 July.'},
+    {id:'CP004', from:'Vivek Tiwari (Student)', category:'Academics',     body:'Syllabus for Chemistry is not being covered as per schedule.',               priority:'Urgent', status:'Open',        date:'2024-07-20', resolution:''},
+    {id:'CP005', from:'Imran Khan (Parent)',    category:'Fees',          body:'Scholarship amount was not adjusted in the fee calculation.',                 priority:'High',   status:'Open',        date:'2024-07-22', resolution:''},
+  ]);
+
+  DB.set('events', [
+    {id:'EV001', name:'Annual Day',            date:'2024-08-15', time:'09:00', type:'Cultural',   venue:'Main Hall',      desc:'Annual cultural celebration with student performances.'},
+    {id:'EV002', name:'Parent-Teacher Meeting',date:'2024-07-20', time:'10:00', type:'Meeting',    venue:'Classrooms',     desc:'Individual PTM slots for all courses.'},
+    {id:'EV003', name:'Science Exhibition',    date:'2024-09-10', time:'11:00', type:'Academic',   venue:'Block C Ground', desc:'Students present science projects. Open to all.'},
+    {id:'EV004', name:'Sports Day',            date:'2024-10-05', time:'08:00', type:'Sports',     venue:'Ground',         desc:'Inter-house sports competition. All students participate.'},
+    {id:'EV005', name:'Diwali Celebration',    date:'2024-11-01', time:'03:00', type:'Celebration',venue:'Main Hall',      desc:'Cultural program and prize distribution.'},
+    {id:'EV006', name:'Semester End Meeting',  date:'2024-11-25', time:'10:00', type:'Meeting',    venue:'Conference Hall',desc:'Faculty meeting to review semester performance.'},
+  ]);
+
+  DB.set('commSeeded', true);
+}
+
+/* ═══════════ INIT ═══════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('communication');
+  seedCommData();
+  updateStats();
+  renderNoticeBoard();
+  updateSMSPreview();
+  renderRecipientSummary();
+  populateCustomSelect();
+
+  const notices = DB.get('notices') || [];
+  const latestExpiry = notices.length
+    ? notices.reduce((a,n) => n.expiry > a ? n.expiry : a, '')
+    : '';
+  if (latestExpiry) document.getElementById('nExpiry').value = latestExpiry;
+  document.getElementById('evDate').value = Utils.today();
+});
+
+function populateCustomSelect() {
+  const el = document.getElementById('customSelect');
+  if (!el) return;
+  const students = DB.get('students') || [];
+  const faculty  = DB.get('faculty')  || [];
+  let html = '<optgroup label="Students">';
+  students.forEach(s => { html += `<option value="s-${s.id}">${s.firstName} ${s.lastName}</option>`; });
+  html += '</optgroup><optgroup label="Faculty">';
+  faculty.forEach(f  => { html += `<option value="f-${f.id}">${f.name}</option>`; });
+  html += '</optgroup>';
+  el.innerHTML = html;
+}
+
+/* ═══════════ STATS ═══════════ */
+function updateStats() {
+  const notices    = DB.get('notices')     || [];
+  const alerts     = DB.get('alertHistory')|| [];
+  const complaints = DB.get('complaints')  || [];
+  const events     = DB.get('events')      || [];
+  const now = new Date();
+  const thisMonth  = events.filter(e => {
+    const d = new Date(e.date);
+    return d >= now && d.getMonth() === now.getMonth();
+  }).length;
+
+  document.getElementById('statNotices').textContent   = notices.length;
+  document.getElementById('statUrgent').textContent    = notices.filter(n=>n.priority==='Urgent').length;
+  document.getElementById('statAlerts').textContent    = alerts.length;
+  document.getElementById('statEvents').textContent    = thisMonth;
+  document.getElementById('statComplaints').textContent= complaints.length;
+  document.getElementById('statResolved').textContent  = complaints.filter(c=>c.status==='Resolved').length;
+}
+
+/* ═══════════ NOTICE BOARD ═══════════ */
+function renderNoticeBoard() {
+  const notices  = DB.get('notices') || [];
+  const search   = document.getElementById('noticeSearch')?.value.toLowerCase() || '';
+  const priFilter= document.getElementById('noticeFilterPriority')?.value || '';
+  const audFilter= document.getElementById('noticeFilterAud')?.value || '';
+
+  const filtered = notices.filter(n =>
+    (!search    || n.title.toLowerCase().includes(search) || n.message.toLowerCase().includes(search)) &&
+    (!priFilter || n.priority === priFilter) &&
+    (!audFilter || n.audience === audFilter)
+  ).sort((a,b) => {
+    const rank = { Urgent:0, Important:1, Normal:2 };
+    return (rank[a.priority]||2) - (rank[b.priority]||2) || b.date.localeCompare(a.date);
+  });
+
+  document.getElementById('noticeCount').textContent = filtered.length + ' notice' + (filtered.length!==1?'s':'');
+
+  const priCls = { Urgent:'nc-urgent', Important:'nc-important', Normal:'nc-normal' };
+  const priIcon= { Urgent:'🚨', Important:'⚠️', Normal:'📌' };
+  const badgeCls = { Urgent:'badge-red', Important:'badge-yellow', Normal:'badge-blue' };
+  const audIcons = { All:'🌐', Students:'🎓', Faculty:'👩‍🏫', Parents:'👨‍👩‍👧' };
+
+  document.getElementById('noticeBoardList').innerHTML = filtered.length
+    ? filtered.map(n => `
+        <div class="notice-card ${priCls[n.priority]||'nc-normal'}">
+          <div class="nc-header">
+            <span style="font-size:18px">${priIcon[n.priority]||'📌'}</span>
+            <div class="nc-title">${n.title}</div>
+            <span class="badge ${badgeCls[n.priority]||'badge-blue'}">${n.priority}</span>
+          </div>
+          <div class="nc-body">${n.message}</div>
+          <div class="nc-footer">
+            <span>${audIcons[n.audience]||'🌐'} ${n.audience}</span>
+            <span class="nf-sep">·</span>
+            <span>📅 ${Utils.formatDate(n.date)}</span>
+            <span class="nf-sep">·</span>
+            <span>By ${n.postedBy}</span>
+            ${n.expiry ? `<span class="nf-sep">·</span><span>Valid till ${Utils.formatDate(n.expiry)}</span>` : ''}
+            <div style="margin-left:auto;display:flex;gap:5px">
+              <button class="btn-icon" onclick="openEditNotice('${n.id}')" style="font-size:12px">✏️</button>
+              <button class="btn-icon" onclick="deleteNotice('${n.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+            </div>
+          </div>
+        </div>`)
+      .join('')
+    : `<div class="table-empty glass" style="border-radius:var(--radius)"><div class="empty-icon">📭</div><div class="empty-msg">No notices found</div><div class="empty-sub">Post a new notice using the form on the right</div></div>`;
+
+  // Summary
+  const all = DB.get('notices') || [];
+  const counts = { Urgent:0, Important:0, Normal:0 };
+  all.forEach(n => { if (counts[n.priority]!==undefined) counts[n.priority]++; });
+  document.getElementById('noticeSummary').innerHTML = Object.entries(counts).map(([p,c]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="display:flex;align-items:center;gap:7px">${priIcon[p]} <span style="font-weight:600">${p}</span></span>
+      <span class="badge ${badgeCls[p]}">${c}</span>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:13px;font-weight:700">
+       <span>Total</span><span style="color:var(--primary-dark)">${all.length}</span>
+     </div>`;
+}
+
+function openPostNoticeModal() {
+  document.getElementById('noticeModalTitle').textContent = 'Post Notice';
+  document.getElementById('editNoticeId').value = '';
+  document.getElementById('nTitle').value   = '';
+  document.getElementById('nMessage').value = '';
+  document.getElementById('nPriority').value= 'Normal';
+  document.getElementById('nAudience').value= 'All';
+  document.getElementById('nPostedBy').value= 'Admin';
+  document.getElementById('nExpiry').value  = '';
+  Modal.open('postNoticeModal');
+}
+
+function openEditNotice(id) {
+  const n = DB.find('notices', id);
+  if (!n) return;
+  document.getElementById('noticeModalTitle').textContent = 'Edit Notice';
+  document.getElementById('editNoticeId').value = id;
+  document.getElementById('nTitle').value    = n.title;
+  document.getElementById('nMessage').value  = n.message;
+  document.getElementById('nPriority').value = n.priority;
+  document.getElementById('nAudience').value = n.audience;
+  document.getElementById('nPostedBy').value = n.postedBy;
+  document.getElementById('nExpiry').value   = n.expiry||'';
+  Modal.open('postNoticeModal');
+}
+
+function saveNotice() {
+  const title   = document.getElementById('nTitle').value.trim();
+  const message = document.getElementById('nMessage').value.trim();
+  if (!title)   { document.getElementById('nTitle').closest('.field').classList.add('has-error'); Toast.error('Title required'); return; }
+  if (!message) { document.getElementById('nMessage').closest('.field').classList.add('has-error'); Toast.error('Message required'); return; }
+
+  const editId = document.getElementById('editNoticeId').value;
+  const data = {
+    title, message,
+    priority: document.getElementById('nPriority').value,
+    audience: document.getElementById('nAudience').value,
+    postedBy: document.getElementById('nPostedBy').value.trim() || 'Admin',
+    expiry:   document.getElementById('nExpiry').value,
+    date:     Utils.today(),
+  };
+
+  if (editId) { DB.update('notices', editId, data); Toast.success('Notice updated'); }
+  else        { data.id = DB.nextId('notices','N'); DB.push('notices', data); Toast.success('Notice posted!'); }
+
+  Modal.close('postNoticeModal');
+  updateStats(); renderNoticeBoard();
+}
+
+function quickPostNotice() {
+  const title   = document.getElementById('qTitle').value.trim();
+  const message = document.getElementById('qMessage').value.trim();
+  if (!title || !message) { Toast.error('Title and message required'); return; }
+  const data = { id: DB.nextId('notices','N'), title, message, priority: document.getElementById('qPriority').value, audience: document.getElementById('qAudience').value, date: Utils.today(), postedBy: 'Admin', expiry: '' };
+  DB.push('notices', data);
+  document.getElementById('qTitle').value = '';
+  document.getElementById('qMessage').value = '';
+  updateStats(); renderNoticeBoard();
+  Toast.success('Notice posted!');
+}
+
+function deleteNotice(id) {
+  if (!Utils.confirmDelete('Delete this notice?')) return;
+  DB.delete('notices', id);
+  updateStats(); renderNoticeBoard();
+  Toast.error('Notice deleted');
+}
+
+/* ═══════════ COMPOSE ═══════════ */
+function toggleChannel(el) {
+  const ch = el.dataset.ch;
+  if (selectedChannels.has(ch)) selectedChannels.delete(ch);
+  else                           selectedChannels.add(ch);
+  el.classList.toggle('selected', selectedChannels.has(ch));
+  updateSMSPreview();
+}
+
+function toggleAud(el) {
+  const aud = el.dataset.aud;
+  if (aud === 'All') {
+    selectedAudience.clear(); selectedAudience.add('All');
+    document.querySelectorAll('.aud-chip').forEach(c => c.classList.toggle('selected', c.dataset.aud==='All'));
+  } else {
+    selectedAudience.delete('All');
+    document.querySelector('.aud-chip[data-aud="All"]').classList.remove('selected');
+    if (selectedAudience.has(aud)) selectedAudience.delete(aud);
+    else                            selectedAudience.add(aud);
+    el.classList.toggle('selected', selectedAudience.has(aud));
+    if (!selectedAudience.size) { selectedAudience.add('All'); document.querySelector('.aud-chip[data-aud="All"]').classList.add('selected'); }
+  }
+  const isCustom = selectedAudience.has('Custom');
+  document.getElementById('customRecipient').style.display = isCustom ? 'block' : 'none';
+  renderRecipientSummary();
+}
+
+function updateSMSPreview() {
+  const subject = document.getElementById('composeSubject')?.value || '';
+  const message = document.getElementById('composeMessage')?.value || '';
+  const preview = subject ? `*${subject}*\n\n${message}\n\n— EduSoft Institute` : message || 'Your message will appear here...';
+  document.getElementById('smsBubbleText').textContent = preview;
+  document.getElementById('smsCharCount').textContent  = `${preview.length} characters`;
+  document.getElementById('notifTitle').textContent    = subject || '—';
+  document.getElementById('notifBody').textContent     = message || '—';
+}
+
+function renderRecipientSummary() {
+  const students = DB.get('students') || [];
+  const faculty  = DB.get('faculty')  || [];
+  let counts = { Students:0, Faculty:0, Parents:0 };
+
+  if (selectedAudience.has('All') || selectedAudience.has('Students')) counts.Students = students.length;
+  if (selectedAudience.has('All') || selectedAudience.has('Faculty'))  counts.Faculty  = faculty.length;
+  if (selectedAudience.has('All') || selectedAudience.has('Parents'))  counts.Parents  = students.length;
+  const total = [...new Set([counts.Students + counts.Faculty + (selectedAudience.has('Parents')?counts.Parents:0)])][0];
+
+  document.getElementById('recipientSummary').innerHTML = Object.entries(counts).map(([g,c]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text-2)">${g}</span>
+      <span class="badge badge-blue">${c}</span>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:14px;font-weight:700">
+       <span>Total Reach</span>
+       <span style="color:var(--primary-dark)">${counts.Students + counts.Faculty}</span>
+     </div>
+     <div style="margin-top:10px;font-size:11.5px;color:var(--text-3)">Via: ${[...selectedChannels].join(', ') || 'None selected'}</div>`;
+}
+
+function sendAlert() {
+  const subject = document.getElementById('composeSubject').value.trim();
+  const message = document.getElementById('composeMessage').value.trim();
+  if (!message) { Toast.error('Message is required'); return; }
+  if (!selectedChannels.size) { Toast.error('Select at least one channel'); return; }
+
+  const students = DB.get('students') || [];
+  const faculty  = DB.get('faculty')  || [];
+  let count = 0;
+  if (selectedAudience.has('All') || selectedAudience.has('Students')) count += students.length;
+  if (selectedAudience.has('All') || selectedAudience.has('Faculty'))  count += faculty.length;
+
+  const alert = {
+    id:       DB.nextId('alertHistory','A'),
+    subject:  subject || 'Alert',
+    message,
+    channels: [...selectedChannels],
+    audience: [...selectedAudience].join(', '),
+    sentAt:   new Date().toLocaleString('en-IN'),
+    sentBy:   'Admin',
+    count,
+  };
+  DB.push('alertHistory', alert);
+  updateStats();
+  clearCompose();
+  Toast.success(`Alert sent to ${count} recipient${count!==1?'s':''} via ${[...selectedChannels].join(', ')}!`);
+}
+
+function scheduleAlert() {
+  const dt = document.getElementById('composeSchedule').value;
+  if (!dt) { Toast.warning('Please pick a schedule date/time'); return; }
+  Toast.success(`Alert scheduled for ${new Date(dt).toLocaleString('en-IN')}`);
+}
+
+function clearCompose() {
+  document.getElementById('composeSubject').value  = '';
+  document.getElementById('composeMessage').value  = '';
+  document.getElementById('composeSchedule').value = '';
+  updateSMSPreview();
+}
+
+/* ═══════════ ALERT HISTORY ═══════════ */
+function renderHistory() {
+  const alerts  = DB.get('alertHistory') || [];
+  const chF     = document.getElementById('histChannel')?.value || '';
+  const audF    = document.getElementById('histAud')?.value    || '';
+  const chIcons = { inapp:'🔔', sms:'📱', whatsapp:'💬', email:'📧' };
+  const chColors= { inapp:'rgba(14,165,233,.08)', sms:'rgba(34,197,94,.08)', whatsapp:'rgba(37,211,102,.08)', email:'rgba(99,102,241,.08)' };
+
+  const filtered = alerts.filter(a =>
+    (!chF  || a.channels.includes(chF)) &&
+    (!audF || a.audience.includes(audF))
+  ).sort((a,b) => b.sentAt.localeCompare(a.sentAt));
+
+  document.getElementById('histCount').textContent = filtered.length + ' sent';
+
+  document.getElementById('alertHistoryList').innerHTML = filtered.length
+    ? filtered.map(a => `
+        <div class="alert-row">
+          <div class="ar-icon" style="background:${chColors[a.channels[0]]||'rgba(14,165,233,.08)'}">
+            ${a.channels.map(c=>chIcons[c]||'📤').join('')}
+          </div>
+          <div class="ar-info">
+            <div class="ar-title">${a.subject}</div>
+            <div class="ar-meta">${a.message.substring(0,80)}${a.message.length>80?'...':''}</div>
+            <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+              ${a.channels.map(c=>`<span class="badge badge-blue">${c}</span>`).join('')}
+              <span class="badge badge-gray">${a.audience}</span>
+              <span style="font-size:11.5px;color:var(--text-3)">${a.count} recipients</span>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:11.5px;color:var(--text-3)">${a.sentAt}</div>
+            <div style="font-size:11.5px;color:var(--text-3)">by ${a.sentBy}</div>
+          </div>
+        </div>`)
+      .join('')
+    : `<div class="table-empty"><div class="empty-icon">📤</div><div class="empty-msg">No alerts sent yet</div></div>`;
+}
+
+/* ═══════════ COMPLAINTS ═══════════ */
+function renderComplaints() {
+  const complaints = DB.get('complaints') || [];
+  const filter     = document.getElementById('complaintFilter')?.value || '';
+  const filtered   = complaints.filter(c => !filter || c.status===filter)
+                               .sort((a,b) => b.date.localeCompare(a.date));
+
+  const stCls = { Open:'badge-red', 'In Progress':'badge-yellow', Resolved:'badge-green' };
+  const prIcon= { Urgent:'🔴', High:'🟠', Normal:'🟡' };
+  const catIcon= { Academics:'📚', Faculty:'👩‍🏫', Fees:'💰', Infrastructure:'🏗️', Transport:'🚌', Other:'📋' };
+
+  document.getElementById('complaintList').innerHTML = filtered.length
+    ? filtered.map(c => `
+        <div class="complaint-card">
+          <div class="cc-top">
+            <span style="font-size:18px">${catIcon[c.category]||'📋'}</span>
+            <div class="cc-title">${c.body.substring(0,80)}${c.body.length>80?'...':''}</div>
+            <span class="badge ${stCls[c.status]||'badge-gray'}">${c.status}</span>
+          </div>
+          <div class="cc-footer">
+            <span>👤 ${c.from}</span>
+            <span class="nf-sep" style="opacity:.3">·</span>
+            <span>${catIcon[c.category]||''} ${c.category}</span>
+            <span class="nf-sep" style="opacity:.3">·</span>
+            <span>${prIcon[c.priority]||''} ${c.priority}</span>
+            <span class="nf-sep" style="opacity:.3">·</span>
+            <span>📅 ${Utils.formatDate(c.date)}</span>
+            <div style="margin-left:auto;display:flex;gap:4px">
+              ${c.status!=='Resolved'?`<button class="btn-icon" onclick="resolveComplaint('${c.id}')" style="font-size:11px;background:rgba(34,197,94,.1);color:var(--success-dark)">✓ Resolve</button>`:''}
+              <button class="btn-icon" onclick="deleteComplaint('${c.id}')" style="font-size:11px;background:rgba(239,68,68,.07)">🗑</button>
+            </div>
+          </div>
+          ${c.resolution?`<div style="margin-top:8px;padding:8px 12px;background:var(--success-light);border-radius:8px;font-size:12px;color:var(--success-dark)">✓ Resolution: ${c.resolution}</div>`:''}
+        </div>`)
+      .join('')
+    : `<div class="table-empty"><div class="empty-icon">📋</div><div class="empty-msg">No complaints found</div></div>`;
+
+  // Stats
+  const all = DB.get('complaints') || [];
+  const statMap = { Open:0, 'In Progress':0, Resolved:0 };
+  all.forEach(c => { if(statMap[c.status]!==undefined) statMap[c.status]++; });
+  document.getElementById('complaintStats').innerHTML = Object.entries(statMap).map(([s,c]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span class="badge ${stCls[s]||'badge-gray'}">${s}</span>
+      <span style="font-weight:700;color:var(--text)">${c}</span>
+    </div>`).join('');
+
+  // Categories
+  const catMap = {};
+  all.forEach(c => { catMap[c.category] = (catMap[c.category]||0)+1; });
+  document.getElementById('complaintCategories').innerHTML = Object.entries(catMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,cnt]) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span>${catIcon[cat]||'📋'}</span>
+        <span style="flex:1;color:var(--text-2)">${cat}</span>
+        <div class="progress" style="width:60px;height:5px"><div class="progress-bar" style="width:${Math.round((cnt/all.length)*100)}%"></div></div>
+        <span style="font-weight:700;color:var(--primary-dark);min-width:20px;text-align:right">${cnt}</span>
+      </div>`).join('');
+}
+
+function saveComplaint() {
+  const body = document.getElementById('cBody').value.trim();
+  if (!body) { Toast.error('Description required'); return; }
+  DB.push('complaints', {
+    id:       DB.nextId('complaints','CP'),
+    from:     document.getElementById('cFrom').value.trim() || 'Anonymous',
+    category: document.getElementById('cCategory').value,
+    body,
+    priority: document.getElementById('cPriority').value,
+    status:   document.getElementById('cStatus').value,
+    date:     Utils.today(),
+    resolution: '',
+  });
+  Modal.close('addComplaintModal');
+  updateStats(); renderComplaints();
+  Toast.success('Complaint recorded');
+}
+
+function resolveComplaint(id) {
+  const res = prompt('Enter resolution note:');
+  if (res === null) return;
+  DB.update('complaints', id, { status:'Resolved', resolution: res || 'Resolved by admin.' });
+  updateStats(); renderComplaints();
+  Toast.success('Complaint resolved');
+}
+
+function deleteComplaint(id) {
+  if (!Utils.confirmDelete('Delete this complaint?')) return;
+  DB.delete('complaints', id);
+  updateStats(); renderComplaints();
+  Toast.error('Complaint deleted');
+}
+
+/* ═══════════ EVENTS ═══════════ */
+function renderEvents() {
+  const events  = DB.get('events') || [];
+  const now     = new Date();
+  const typeIcon= { Academic:'📚', Cultural:'🎭', Sports:'⚽', Meeting:'🤝', Celebration:'🎉', Other:'📅' };
+  const typeClr = { Academic:'rgba(14,165,233,.1)', Cultural:'rgba(99,102,241,.1)', Sports:'rgba(34,197,94,.1)', Meeting:'rgba(245,158,11,.1)', Celebration:'rgba(236,72,153,.1)', Other:'rgba(148,163,184,.1)' };
+
+  const sorted = [...events].sort((a,b) => a.date.localeCompare(b.date));
+
+  document.getElementById('eventList').innerHTML = sorted.length
+    ? sorted.map(e => {
+        const d       = new Date(e.date);
+        const isPast  = d < now;
+        const dLeft   = Math.ceil((d - now) / 86400000);
+        const mon     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+        return `
+          <div class="event-card" style="opacity:${isPast?.6:1}">
+            <div class="event-head">
+              <div class="event-date-block" style="background:${isPast?'rgba(148,163,184,.1)':'rgba(14,165,233,.09)'}">
+                <div class="edb-day" style="color:${isPast?'var(--text-3)':'var(--primary-dark)'}">${d.getDate()}</div>
+                <div class="edb-mon">${mon}</div>
+              </div>
+              <div style="width:38px;height:38px;border-radius:9px;background:${typeClr[e.type]||'rgba(14,165,233,.1)'};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">
+                ${typeIcon[e.type]||'📅'}
+              </div>
+              <div class="event-info">
+                <div class="ev-name">${e.name}</div>
+                <div class="ev-meta">⏰ ${e.time} · 📍 ${e.venue||'—'} · <span class="badge badge-gray" style="font-size:10px">${e.type}</span></div>
+                ${e.desc?`<div style="font-size:12px;color:var(--text-3);margin-top:3px">${e.desc}</div>`:''}
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+                ${isPast
+                  ? `<span class="badge badge-gray">Past</span>`
+                  : `<span style="font-size:11px;font-weight:700;color:${dLeft<=3?'var(--danger-dark)':dLeft<=7?'var(--warning-dark)':'var(--primary-dark)'}">${dLeft}d away</span>`}
+                <button class="btn-icon" onclick="deleteEvent('${e.id}')" style="font-size:11px;background:rgba(239,68,68,.07)">🗑</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div class="table-empty glass" style="border-radius:var(--radius)"><div class="empty-icon">🎉</div><div class="empty-msg">No events yet</div><div class="empty-sub">Add your first event</div></div>`;
+
+  // Upcoming
+  const upcoming = sorted.filter(e => new Date(e.date) >= now).slice(0,5);
+  document.getElementById('upcomingEvents').innerHTML = upcoming.length
+    ? upcoming.map(e => {
+        const d    = new Date(e.date);
+        const dLeft= Math.ceil((d-now)/86400000);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span style="font-size:16px">${typeIcon[e.type]||'📅'}</span>
+          <div style="flex:1"><div style="font-weight:600;color:var(--text)">${e.name}</div><div style="font-size:11px;color:var(--text-3)">${Utils.formatDate(e.date)}</div></div>
+          <span style="font-size:11.5px;font-weight:700;color:${dLeft<=7?'var(--danger-dark)':'var(--primary-dark)'}">${dLeft}d</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:16px">No upcoming events</div>';
+
+  // By type
+  const tMap = {};
+  events.forEach(e => { tMap[e.type]=(tMap[e.type]||0)+1; });
+  document.getElementById('eventTypeStats').innerHTML = Object.entries(tMap).map(([t,c]) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span>${typeIcon[t]||'📅'}</span>
+      <span style="flex:1;color:var(--text-2)">${t}</span>
+      <span class="badge badge-blue">${c}</span>
+    </div>`).join('');
+
+  updateStats();
+}
+
+function saveEvent() {
+  const name = document.getElementById('evName').value.trim();
+  const date = document.getElementById('evDate').value;
+  if (!name || !date) { Toast.error('Name and date required'); return; }
+  DB.push('events', {
+    id:    DB.nextId('events','EV'),
+    name,  date,
+    time:  document.getElementById('evTime').value  || '10:00',
+    type:  document.getElementById('evType').value,
+    venue: document.getElementById('evVenue').value.trim(),
+    desc:  document.getElementById('evDesc').value.trim(),
+  });
+  Modal.close('addEventModal');
+  renderEvents();
+  Toast.success('Event added: ' + name);
+}
+
+function deleteEvent(id) {
+  if (!Utils.confirmDelete('Delete this event?')) return;
+  DB.delete('events', id);
+  renderEvents();
+  Toast.error('Event deleted');
+}
+
+/* ═══════════ TAB SWITCH ═══════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else { const m = document.querySelector(`.main-tab[onclick*="'${name}'"]`); if (m) m.classList.add('active'); }
+
+  if (name==='noticeboard') renderNoticeBoard();
+  if (name==='compose')     { renderRecipientSummary(); updateSMSPreview(); }
+  if (name==='history')     renderHistory();
+  if (name==='complaints')  renderComplaints();
+  if (name==='events')      renderEvents();
+}
+</script>
+</body>
+</html>
