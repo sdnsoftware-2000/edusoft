@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+
+    /* ══ TABS ══ */
+    .main-tabs {
+      display: flex; gap: 4px; padding: 4px;
+      background: rgba(14,165,233,0.07);
+      border-radius: var(--radius-sm);
+      margin-bottom: 24px; width: fit-content; flex-wrap: wrap;
+    }
+    .main-tab {
+      padding: 9px 20px; border-radius: 7px; font-size: 13px;
+      font-weight: 500; color: var(--text-3); cursor: pointer;
+      transition: all .18s; border: none; background: none;
+    }
+    .main-tab.active {
+      background: white; color: var(--primary-dark); font-weight: 700;
+      box-shadow: 0 2px 8px rgba(14,165,233,0.14);
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: pageEnter .25s var(--ease) both; }
+
+    /* ══ MARK ATTENDANCE ══ */
+    .att-toolbar {
+      display: flex; gap: 10px; align-items: center;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .att-toolbar select, .att-toolbar input[type="date"] {
+      padding: 9px 14px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: rgba(255,255,255,0.6);
+      font-family: var(--font); font-size: 13px; color: var(--text);
+      outline: none; transition: border .2s; cursor: pointer;
+    }
+    .att-toolbar select:focus,
+    .att-toolbar input[type="date"]:focus { border-color: var(--primary); }
+
+    /* student attendance card grid */
+    .att-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 12px;
+    }
+
+    .att-student-card {
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.52);
+      transition: all .18s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .att-student-card::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--border);
+      transition: background .2s;
+    }
+
+    .att-student-card.present { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.04); }
+    .att-student-card.present::before { background: var(--success); }
+    .att-student-card.absent  { border-color: rgba(239,68,68,0.3);  background: rgba(239,68,68,0.04); }
+    .att-student-card.absent::before  { background: var(--danger); }
+    .att-student-card.leave   { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+    .att-student-card.leave::before   { background: var(--warning); }
+    .att-student-card.holiday { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+    .att-student-card.holiday::before { background: var(--accent); }
+
+    .asc-top {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .asc-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+    }
+    .asc-name  { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+    .asc-roll  { font-size: 11px; color: var(--text-3); }
+
+    .asc-buttons { display: flex; gap: 5px; }
+    .asc-btn {
+      flex: 1; padding: 7px 4px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: rgba(255,255,255,0.5);
+      font-family: var(--font); font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all .15s; text-align: center;
+      color: var(--text-2);
+    }
+    .asc-btn:hover { transform: translateY(-1px); }
+    .asc-btn.p { border-color: rgba(34,197,94,0.4); color: var(--success-dark); }
+    .asc-btn.p.active { background: var(--success); border-color: var(--success); color: white; box-shadow: 0 3px 10px rgba(34,197,94,0.3); }
+    .asc-btn.a { border-color: rgba(239,68,68,0.4);  color: var(--danger-dark); }
+    .asc-btn.a.active { background: var(--danger);  border-color: var(--danger);  color: white; box-shadow: 0 3px 10px rgba(239,68,68,0.3); }
+    .asc-btn.l { border-color: rgba(245,158,11,0.4); color: var(--warning-dark); }
+    .asc-btn.l.active { background: var(--warning); border-color: var(--warning); color: white; box-shadow: 0 3px 10px rgba(245,158,11,0.3); }
+
+    /* summary bar */
+    .att-summary-bar {
+      display: flex; gap: 16px; align-items: center;
+      padding: 14px 20px; border-radius: var(--radius-sm);
+      background: rgba(14,165,233,0.06); border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .asb-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+    .asb-dot  { width: 9px; height: 9px; border-radius: 50%; }
+
+    /* already saved banner */
+    .saved-banner {
+      padding: 12px 18px; border-radius: var(--radius-sm);
+      background: var(--success-light); border: 1px solid rgba(34,197,94,0.3);
+      color: var(--success-dark); font-size: 13.5px; font-weight: 600;
+      display: none; align-items: center; gap: 10px;
+    }
+    .saved-banner.show { display: flex; }
+
+    /* ══ CALENDAR HEATMAP ══ */
+    .calendar-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .cal-title { font-size: 18px; font-weight: 700; color: var(--text); }
+
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+
+    .cal-header-cell {
+      text-align: center; font-size: 11px; font-weight: 700;
+      color: var(--text-3); padding: 5px 0;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+
+    .cal-cell {
+      aspect-ratio: 1; border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+      position: relative;
+    }
+
+    .cal-cell:hover:not(.empty):not(.future) { transform: scale(1.08); z-index: 1; }
+
+    .cal-cell .cn { font-size: 12px; font-weight: 700; }
+    .cal-cell .cp { font-size: 9px; margin-top: 1px; }
+
+    .cal-cell.empty   { background: transparent; cursor: default; }
+    .cal-cell.future  { background: rgba(14,165,233,0.03); color: var(--text-4); cursor: default; }
+    .cal-cell.today   { box-shadow: 0 0 0 2px var(--primary); }
+    .cal-cell.holiday { background: rgba(99,102,241,0.1); color: var(--accent); }
+    .cal-cell.sunday  { background: rgba(245,158,11,0.08); color: var(--warning-dark); }
+    .cal-cell.full-present  { background: rgba(34,197,94,0.18); color: var(--success-dark); }
+    .cal-cell.high-present  { background: rgba(34,197,94,0.1);  color: var(--success-dark); }
+    .cal-cell.mid-present   { background: rgba(245,158,11,0.12); color: var(--warning-dark); }
+    .cal-cell.low-present   { background: rgba(239,68,68,0.12); color: var(--danger-dark); }
+    .cal-cell.no-data       { background: rgba(14,165,233,0.05); color: var(--text-3); }
+    .cal-cell.has-data:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15,23,42,0.88); color: white;
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      white-space: nowrap; pointer-events: none; z-index: 10;
+    }
+
+    /* ══ REPORTS TABLE ══ */
+    .shortage-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.5);
+      margin-bottom: 8px; transition: all .15s;
+    }
+    .shortage-card:hover { border-color: var(--border-strong); }
+    .shortage-bar-wrap { flex: 1; }
+    .shortage-name   { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .shortage-meta   { font-size: 11.5px; color: var(--text-3); margin-bottom: 5px; }
+    .shortage-pct    { font-size: 20px; font-weight: 800; flex-shrink: 0; }
+
+    /* ══ HOLIDAY MANAGER ══ */
+    .holiday-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.5);
+      margin-bottom: 8px;
+    }
+    .holiday-icon { font-size: 20px; flex-shrink: 0; }
+    .holiday-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .holiday-date { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+
+    /* ══ LEAVE MANAGEMENT ══ */
+    .leave-card {
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.5);
+      margin-bottom: 8px; display: flex; align-items: flex-start;
+      gap: 12px; transition: all .15s;
+    }
+    .leave-card:hover { border-color: var(--border-strong); }
+    .leave-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+    }
+    .leave-info { flex: 1; }
+    .leave-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .leave-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .leave-reason { font-size: 12.5px; color: var(--text-2); margin-top: 5px; font-style: italic; }
+
+    /* ══ TOPBAR ══ */
+    .topbar { display:none; position:fixed; top:0; left:0; right:0; height:60px; z-index:150; align-items:center; justify-content:space-between; padding:0 18px; border-radius:0 0 16px 16px; }
+    @media (max-width:900px) { .topbar { display:flex; } }
+
+    @media (max-width: 700px) {
+      .att-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .cal-cell { border-radius: 5px; }
+      .cal-cell .cp { display: none; }
+    }
+
+    @media print {
+      .sidebar, .topbar, .main-tabs, .page-actions, .att-toolbar .btn,
+      .page-header .page-actions { display: none !important; }
+      .main-content { margin-left: 0 !important; padding: 0 !important; }
+      .glass { background: white !important; backdrop-filter: none !important; box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+      body::before, body::after { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar (mobile) -->
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Attendance</span></div>
+      <div class="page-title">Attendance</div>
+      <div class="page-sub">Mark, track and report student attendance</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="exportAttendanceCSV()">⬇ Export CSV</button>
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Report</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue">
+      <div class="stat-icon">📅</div>
+      <div class="stat-label">Working Days (Month)</div>
+      <div class="stat-value" id="statWorkingDays">0</div>
+      <div class="stat-delta delta-flat" id="statMonthLabel">this month</div>
+    </div>
+    <div class="stat-card glass success">
+      <div class="stat-icon">✓</div>
+      <div class="stat-label">Today Present</div>
+      <div class="stat-value" id="statTodayPresent">—</div>
+      <div class="stat-delta delta-up" id="statTodayPct">of total</div>
+    </div>
+    <div class="stat-card glass danger">
+      <div class="stat-icon">✗</div>
+      <div class="stat-label">Today Absent</div>
+      <div class="stat-value" id="statTodayAbsent">—</div>
+      <div class="stat-delta delta-down">marked today</div>
+    </div>
+    <div class="stat-card glass teal">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Avg. Attendance</div>
+      <div class="stat-value" id="statAvgAtt">—</div>
+      <div class="stat-delta delta-up">overall this month</div>
+    </div>
+    <div class="stat-card glass warn">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-label">Below 75%</div>
+      <div class="stat-value" id="statBelow75">0</div>
+      <div class="stat-delta delta-down">students at risk</div>
+    </div>
+    <div class="stat-card glass accent">
+      <div class="stat-icon">🏖️</div>
+      <div class="stat-label">Holidays (Month)</div>
+      <div class="stat-value" id="statHolidays">0</div>
+      <div class="stat-delta delta-flat">declared</div>
+    </div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('mark',this)">✏️ Mark Attendance</button>
+    <button class="main-tab" onclick="switchTab('calendar',this)">📆 Calendar View</button>
+    <button class="main-tab" onclick="switchTab('reports',this)">📊 Reports</button>
+    <button class="main-tab" onclick="switchTab('shortage',this)">⚠️ Shortage Alerts</button>
+    <button class="main-tab" onclick="switchTab('leaves',this)">🏖️ Leave Requests</button>
+    <button class="main-tab" onclick="switchTab('holidays',this)">🗓️ Holiday Manager</button>
+  </div>
+
+  <!-- ══════════════ TAB: MARK ══════════════ -->
+  <div id="tab-mark" class="tab-pane active">
+
+    <div class="card glass">
+      <!-- Toolbar -->
+      <div class="att-toolbar">
+        <input type="date" id="markDate" onchange="onDateOrCourseChange()">
+        <select id="markCourse" onchange="onDateOrCourseChange()">
+          <option value="">All Courses</option>
+        </select>
+        <select id="markBatch" onchange="onDateOrCourseChange()">
+          <option value="">All Batches</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-outline" onclick="markAllAs('present')">✓ All Present</button>
+          <button class="btn btn-sm btn-outline" onclick="markAllAs('absent')">✗ All Absent</button>
+          <button class="btn btn-sm btn-outline" onclick="markAllAs('leave')">🏖 All Leave</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAttendance()" id="saveBtn">💾 Save Attendance</button>
+        </div>
+      </div>
+
+      <!-- Already saved notice -->
+      <div class="saved-banner" id="savedBanner">
+        <span>✓</span>
+        <span id="savedBannerText">Attendance already saved for this date.</span>
+        <button class="btn btn-sm btn-outline" onclick="editSavedAttendance()" style="margin-left:auto">Edit</button>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="att-summary-bar" id="summaryBar" style="margin-bottom:18px">
+        <div class="asb-item"><div class="asb-dot" style="background:var(--success)"></div><span id="sumPresent">0 Present</span></div>
+        <div class="asb-item"><div class="asb-dot" style="background:var(--danger)"></div><span id="sumAbsent">0 Absent</span></div>
+        <div class="asb-item"><div class="asb-dot" style="background:var(--warning)"></div><span id="sumLeave">0 Leave</span></div>
+        <div class="asb-item"><div class="asb-dot" style="background:var(--text-4)"></div><span id="sumUnmarked">0 Unmarked</span></div>
+        <div style="margin-left:auto;font-size:13px;font-weight:600;color:var(--text-2)" id="sumPct">—</div>
+      </div>
+
+      <!-- Student Cards -->
+      <div class="att-card-grid" id="attCardGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3)">
+          <div style="font-size:32px;margin-bottom:10px">📅</div>
+          Select a date and course to mark attendance
+        </div>
+      </div>
+
+      <!-- Bottom save bar -->
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="font-size:13px;color:var(--text-3)" id="lastSavedLabel">Not saved yet</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="clearAllMarks()">↺ Reset</button>
+          <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════ TAB: CALENDAR ══════════════ -->
+  <div id="tab-calendar" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="calendar-nav">
+          <button class="btn btn-icon" onclick="changeCalMonth(-1)" style="font-size:16px">‹</button>
+          <div>
+            <div class="cal-title" id="calTitle">June 2024</div>
+            <div style="font-size:12px;color:var(--text-3);text-align:center;margin-top:2px">
+              Attendance heatmap
+            </div>
+          </div>
+          <button class="btn btn-icon" onclick="changeCalMonth(1)" style="font-size:16px">›</button>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <select id="calCourse" onchange="renderCalendar()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none;width:100%">
+            <option value="">All Courses (average)</option>
+          </select>
+        </div>
+
+        <!-- Day headers -->
+        <div class="cal-grid" id="calGrid"></div>
+
+        <!-- Legend -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--text-3)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(34,197,94,0.18);display:inline-block"></span>100%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(34,197,94,0.1);display:inline-block"></span>75–99%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(245,158,11,0.12);display:inline-block"></span>50–74%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(239,68,68,0.12);display:inline-block"></span>&lt;50%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(99,102,241,0.1);display:inline-block"></span>Holiday</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(14,165,233,0.05);display:inline-block"></span>No Data</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Day detail panel -->
+        <div class="card glass" id="dayDetailCard">
+          <div class="card-header">
+            <div class="card-title" id="dayDetailTitle">Click a date</div>
+          </div>
+          <div id="dayDetailBody" style="color:var(--text-3);font-size:13px">Select any date on the calendar to see its attendance details.</div>
+        </div>
+
+        <!-- Monthly summary chart -->
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Monthly Overview</div></div>
+          <canvas id="monthlyAttChart" height="180"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ TAB: REPORTS ══════════════ -->
+  <div id="tab-reports" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Student-wise Attendance</div><div class="card-sub">Cumulative for selected month</div></div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <select id="rptCourse" onchange="renderStudentReport()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none;flex:1">
+            <option value="">All Courses</option>
+          </select>
+          <select id="rptMonth" onchange="renderStudentReport()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none">
+            <option value="5">June</option><option value="6">July</option>
+            <option value="7">August</option><option value="8">September</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="studentRptTable">
+            <thead><tr><th>Student</th><th>Course</th><th>Present</th><th>Absent</th><th>Leave</th><th>%</th></tr></thead>
+            <tbody id="studentRptBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Daily Attendance Trend</div><div class="card-sub">Present % per day this month</div></div>
+        <canvas id="dailyTrendChart" height="260"></canvas>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Course-wise Average</div></div>
+        <canvas id="courseAttChart" height="220"></canvas>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Day-of-Week Pattern</div><div class="card-sub">Which day has highest absence</div></div>
+        <canvas id="dowChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TAB: SHORTAGE ALERTS ══════════════ -->
+  <div id="tab-shortage" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Students Below 75% Attendance</div>
+            <div class="card-sub">These students are at risk of not being allowed to appear in exams</div>
+          </div>
+          <select id="shortageFilter" onchange="renderShortage()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none">
+            <option value="75">Below 75%</option>
+            <option value="65">Below 65%</option>
+            <option value="50">Below 50%</option>
+            <option value="all">Show All</option>
+          </select>
+        </div>
+        <div id="shortageList"></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Shortage Distribution</div></div>
+          <canvas id="shortageChart" height="200"></canvas>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Quick Actions</div></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="sendShortageAlerts()">📲 Notify Parents via SMS</button>
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="exportShortageList()">⬇ Export Shortage List</button>
+            <button class="btn btn-outline" style="justify-content:flex-start;gap:10px" onclick="printShortageList()">🖨 Print Warning Letters</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ TAB: LEAVE REQUESTS ══════════════ -->
+  <div id="tab-leaves" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div class="card-title">Leave Applications</div>
+          <div style="display:flex;gap:8px">
+            <select id="leaveStatusFilter" onchange="renderLeaves()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);font-family:var(--font);font-size:12.5px;outline:none">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="Modal.open('addLeaveModal')">+ Apply Leave</button>
+          </div>
+        </div>
+        <div id="leaveList"></div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Leave Stats</div></div>
+        <canvas id="leaveChart" height="200"></canvas>
+        <div style="margin-top:16px">
+          <div class="card-title" style="font-size:13px;margin-bottom:8px">By Type</div>
+          <div id="leaveTypeStats" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ TAB: HOLIDAY MANAGER ══════════════ -->
+  <div id="tab-holidays" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+
+      <div class="card glass">
+        <div class="card-header">
+          <div class="card-title">Academic Year Holidays — 2024-25</div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addHolidayModal')">+ Add Holiday</button>
+        </div>
+        <div id="holidayList"></div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Holiday Summary</div></div>
+        <div id="holidaySummary"></div>
+        <div style="margin-top:16px">
+          <canvas id="holidayChart" height="180"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════
+     MODAL: DAY DETAIL (from calendar click)
+══════════════════════════════ -->
+<div class="modal-overlay" id="dayModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="dayModalTitle">Attendance — —</div>
+        <div class="modal-sub" id="dayModalSub">Details for this date</div>
+      </div>
+      <button class="modal-close" onclick="Modal.close('dayModal')">✕</button>
+    </div>
+    <div id="dayModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" onclick="editDayFromModal()">✏️ Edit This Day</button>
+      <button class="btn btn-outline" onclick="Modal.close('dayModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: ADD LEAVE
+══════════════════════════════ -->
+<div class="modal-overlay" id="addLeaveModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div class="modal-title">Apply Leave</div>
+      <button class="modal-close" onclick="Modal.close('addLeaveModal')">✕</button>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Student *</label>
+        <select id="leaveStudent"></select>
+      </div>
+      <div class="field">
+        <label>Leave Type</label>
+        <select id="leaveType">
+          <option>Sick Leave</option>
+          <option>Personal Leave</option>
+          <option>Family Emergency</option>
+          <option>Event / Occasion</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>From Date *</label>
+        <input type="date" id="leaveFrom">
+      </div>
+      <div class="field">
+        <label>To Date *</label>
+        <input type="date" id="leaveTo">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Reason</label>
+      <textarea id="leaveReason" rows="2" placeholder="Brief reason for leave..."></textarea>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Status</label>
+      <select id="leaveStatus">
+        <option>Pending</option>
+        <option>Approved</option>
+        <option>Rejected</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveLeave()">Save Leave</button>
+      <button class="btn btn-outline" onclick="Modal.close('addLeaveModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: ADD HOLIDAY
+══════════════════════════════ -->
+<div class="modal-overlay" id="addHolidayModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Add Holiday</div>
+      <button class="modal-close" onclick="Modal.close('addHolidayModal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Holiday Name *</label>
+      <input type="text" id="hName" placeholder="Diwali, Republic Day...">
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field">
+        <label>Date *</label>
+        <input type="date" id="hDate">
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="hType">
+          <option>National Holiday</option>
+          <option>Religious Festival</option>
+          <option>Regional Holiday</option>
+          <option>Institute Event</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveHoliday()">Add Holiday</button>
+      <button class="btn btn-outline" onclick="Modal.close('addHolidayModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+let markState     = {};   // { studentId: 'present'|'absent'|'leave' }
+let isEditMode    = false;
+let calYear       = new Date().getFullYear();
+let calMonth      = new Date().getMonth();
+let clickedDay    = null;
+
+/* ════════════════════════════════
+   SEED ATTENDANCE (realistic demo data)
+════════════════════════════════ */
+function seedAttendance() {
+  if (DB.get('attSeeded')) return;
+
+  const students = DB.get('students') || [];
+  const log      = [];
+  const holidays = getHolidays();
+  const holidayDates = holidays.map(h => h.date);
+
+  // seed June + July + Aug 2024 attendance
+  const months = [
+    { y: 2024, m: 5 }, // June
+    { y: 2024, m: 6 }, // July
+    { y: 2024, m: 7 }, // Aug
+  ];
+
+  months.forEach(({ y, m }) => {
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(y, m, d);
+      const dateStr = dateObj.toISOString().split('T')[0];
+      if (dateObj.getDay() === 0) continue; // skip Sundays
+      if (holidayDates.includes(dateStr)) continue; // skip holidays
+      if (dateObj > new Date()) continue; // no future data
+
+      students.forEach(s => {
+        // give each student a realistic attendance pattern
+        const rand  = Math.random();
+        const baseP = s.id === 'S004' ? 0.60 : s.id === 'S007' ? 0.68 : 0.82;
+        let status  = rand < baseP ? 'present' : rand < baseP + 0.07 ? 'leave' : 'absent';
+        log.push({ date: dateStr, studentId: s.id, status, savedAt: new Date().toISOString() });
+      });
+    }
+  });
+
+  DB.set('attendanceLog', log);
+  DB.set('attSeeded', true);
+}
+
+/* ════════════════════════════════
+   HOLIDAYS DATA
+════════════════════════════════ */
+function getHolidays() {
+  return DB.get('holidays') || [
+    { id: 'H001', name: 'Independence Day',  date: '2024-08-15', type: 'National Holiday' },
+    { id: 'H002', name: 'Janmashtami',       date: '2024-08-26', type: 'Religious Festival' },
+    { id: 'H003', name: 'Gandhi Jayanti',    date: '2024-10-02', type: 'National Holiday' },
+    { id: 'H004', name: 'Dussehra',          date: '2024-10-12', type: 'Religious Festival' },
+    { id: 'H005', name: 'Diwali',            date: '2024-11-01', type: 'Religious Festival' },
+    { id: 'H006', name: 'Diwali Holiday',    date: '2024-11-02', type: 'Religious Festival' },
+    { id: 'H007', name: 'Republic Day',      date: '2025-01-26', type: 'National Holiday' },
+  ];
+}
+
+function saveHolidays(list) {
+  DB.set('holidays', list);
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('attendance');
+  seedAttendance();
+
+  const today = Utils.today();
+  document.getElementById('markDate').value = today;
+  document.getElementById('markDate').max   = today;
+  document.getElementById('leaveFrom').value = today;
+  document.getElementById('leaveTo').value   = today;
+
+  // populate course/batch selects
+  ['markCourse','calCourse','rptCourse','shortageFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && id !== 'shortageFilter') populateCourseSelect(id, true);
+  });
+  populateCourseSelect('markCourse', true);
+  populateBatchSelect();
+  populateStudentSelect('leaveStudent', false);
+
+  updateStats();
+  onDateOrCourseChange();
+
+  // seed leaves
+  if (!DB.get('leavesSeeded')) {
+    DB.set('leaveRequests', [
+      { id: 'L001', studentId: 'S002', studentName: 'Priya Shah',   type: 'Sick Leave',      from: '2024-07-10', to: '2024-07-12', reason: 'Fever and cold', status: 'Approved' },
+      { id: 'L002', studentId: 'S004', studentName: 'Neha Gupta',   type: 'Family Emergency', from: '2024-07-18', to: '2024-07-19', reason: 'Family function in native place', status: 'Approved' },
+      { id: 'L003', studentId: 'S007', studentName: 'Vivek Tiwari', type: 'Personal Leave',   from: '2024-08-05', to: '2024-08-05', reason: 'Doctor appointment', status: 'Pending' },
+      { id: 'L004', studentId: 'S001', studentName: 'Arjun Patel',  type: 'Event / Occasion', from: '2024-08-20', to: '2024-08-21', reason: 'Sister\'s wedding ceremony', status: 'Approved' },
+    ]);
+    DB.set('leavesSeeded', true);
+  }
+});
+
+function populateBatchSelect() {
+  const students = DB.get('students') || [];
+  const batches  = [...new Set(students.map(s => s.batch))].sort().reverse();
+  const sel = document.getElementById('markBatch');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Batches</option>' +
+    batches.map(b => `<option value="${b}">${b}</option>`).join('');
+}
+
+/* ════════════════════════════════
+   STATS
+════════════════════════════════ */
+function updateStats() {
+  const log      = DB.get('attendanceLog') || [];
+  const students = DB.get('students')      || [];
+  const holidays = getHolidays();
+  const today    = Utils.today();
+  const now      = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+
+  // working days this month (exclude Sundays & holidays)
+  let workingDays = 0;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const holidayDates = holidays.map(h => h.date);
+  for (let d = 1; d <= Math.min(daysInMonth, now.getDate()); d++) {
+    const dt  = new Date(y, m, d);
+    const str = dt.toISOString().split('T')[0];
+    if (dt.getDay() !== 0 && !holidayDates.includes(str)) workingDays++;
+  }
+
+  // today's stats
+  const todayLog = log.filter(r => r.date === today);
+  const todayP   = todayLog.filter(r => r.status === 'present').length;
+  const todayA   = todayLog.filter(r => r.status === 'absent').length;
+  const todayPct = todayLog.length ? Math.round((todayP / todayLog.length) * 100) : null;
+
+  // monthly average per student
+  const monthLog = log.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === m && d.getFullYear() === y;
+  });
+
+  let sumPct = 0, countS = 0;
+  students.forEach(s => {
+    const sLog = monthLog.filter(r => r.studentId === s.id);
+    if (sLog.length) {
+      sumPct += (sLog.filter(r => r.status === 'present').length / sLog.length) * 100;
+      countS++;
+    }
+  });
+  const avgPct = countS ? Math.round(sumPct / countS) : null;
+
+  // below 75%
+  let below75 = 0;
+  students.forEach(s => {
+    const sLog = monthLog.filter(r => r.studentId === s.id);
+    if (!sLog.length) return;
+    const pct = (sLog.filter(r => r.status === 'present').length / sLog.length) * 100;
+    if (pct < 75) below75++;
+  });
+
+  // holidays this month
+  const monthHolidays = holidays.filter(h => {
+    const d = new Date(h.date);
+    return d.getMonth() === m && d.getFullYear() === y;
+  }).length;
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  document.getElementById('statWorkingDays').textContent   = workingDays;
+  document.getElementById('statMonthLabel').textContent    = monthNames[m] + ' ' + y;
+  document.getElementById('statTodayPresent').textContent  = todayLog.length ? todayP : '—';
+  document.getElementById('statTodayAbsent').textContent   = todayLog.length ? todayA : '—';
+  document.getElementById('statTodayPct').textContent      = todayPct !== null ? todayPct + '% present' : 'not marked yet';
+  document.getElementById('statAvgAtt').textContent        = avgPct !== null ? avgPct + '%' : '—';
+  document.getElementById('statBelow75').textContent       = below75;
+  document.getElementById('statHolidays').textContent      = monthHolidays;
+}
+
+/* ════════════════════════════════
+   MARK ATTENDANCE
+════════════════════════════════ */
+function onDateOrCourseChange() {
+  const date   = document.getElementById('markDate').value;
+  const course = document.getElementById('markCourse').value;
+  const batch  = document.getElementById('markBatch').value;
+  if (!date) return;
+
+  // check if already saved
+  const log     = DB.get('attendanceLog') || [];
+  const dayLog  = log.filter(r => r.date === date);
+  const hasSaved= dayLog.length > 0;
+
+  document.getElementById('savedBanner').classList.toggle('show', hasSaved);
+  document.getElementById('saveBtn').disabled = hasSaved;
+
+  if (hasSaved) {
+    const savedAt = dayLog[0]?.savedAt ? new Date(dayLog[0].savedAt).toLocaleString('en-IN') : 'earlier';
+    document.getElementById('savedBannerText').textContent =
+      `Attendance saved for ${Utils.formatDate(date)} — last updated ${savedAt}`;
+    // load saved data
+    markState = {};
+    dayLog.forEach(r => { markState[r.studentId] = r.status; });
+    isEditMode = false;
+  } else {
+    markState  = {};
+    isEditMode = false;
+  }
+
+  renderMarkGrid(date, course, batch);
+}
+
+function renderMarkGrid(date, courseFilter, batchFilter) {
+  const students = (DB.get('students') || []).filter(s =>
+    s.status === 'Active' &&
+    (!courseFilter || s.course === courseFilter) &&
+    (!batchFilter  || s.batch  === batchFilter)
+  );
+
+  if (!students.length) {
+    document.getElementById('attCardGrid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3)">
+         <div style="font-size:32px;margin-bottom:8px">🔍</div>
+         No students found for selected filters
+       </div>`;
+    updateSummaryBar(students);
+    return;
+  }
+
+  const isHoliday = getHolidays().some(h => h.date === date);
+  const isSunday  = new Date(date).getDay() === 0;
+
+  if (isHoliday || isSunday) {
+    const reason = isHoliday ? getHolidays().find(h => h.date === date)?.name : 'Sunday';
+    document.getElementById('attCardGrid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:40px">
+         <div style="font-size:40px;margin-bottom:10px">🏖️</div>
+         <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">${reason}</div>
+         <div style="font-size:13px;color:var(--text-3)">No attendance to mark on this day</div>
+       </div>`;
+    return;
+  }
+
+  document.getElementById('attCardGrid').innerHTML = students.map(s => {
+    const status = markState[s.id] || null;
+    const course = DB.find('courses', s.course);
+    const color  = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+    const init   = (s.firstName[0] + s.lastName[0]).toUpperCase();
+    const cardCls= status || '';
+    return `
+      <div class="att-student-card ${cardCls}" id="asc-${s.id}">
+        <div class="asc-top">
+          <div class="asc-avatar" style="background:${color}">${init}</div>
+          <div>
+            <div class="asc-name">${s.firstName} ${s.lastName}</div>
+            <div class="asc-roll">${s.rollNo || s.id} · ${course?.code || ''}</div>
+          </div>
+        </div>
+        <div class="asc-buttons">
+          <button class="asc-btn p${status==='present'?' active':''}" onclick="setMark('${s.id}','present')">✓ P</button>
+          <button class="asc-btn a${status==='absent' ?' active':''}" onclick="setMark('${s.id}','absent')">✗ A</button>
+          <button class="asc-btn l${status==='leave'  ?' active':''}" onclick="setMark('${s.id}','leave')">L</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  updateSummaryBar(students);
+}
+
+function setMark(studentId, status) {
+  markState[studentId] = status;
+  const card = document.getElementById('asc-' + studentId);
+  if (!card) return;
+  card.className = 'att-student-card ' + status;
+  card.querySelectorAll('.asc-btn').forEach(b => b.classList.remove('active'));
+  const map = { present: 'p', absent: 'a', leave: 'l' };
+  card.querySelector('.' + map[status])?.classList.add('active');
+
+  const students = getMarkStudents();
+  updateSummaryBar(students);
+}
+
+function getMarkStudents() {
+  const course = document.getElementById('markCourse').value;
+  const batch  = document.getElementById('markBatch').value;
+  return (DB.get('students') || []).filter(s =>
+    s.status === 'Active' &&
+    (!course || s.course === course) &&
+    (!batch  || s.batch  === batch)
+  );
+}
+
+function updateSummaryBar(students) {
+  const total   = students.length;
+  const present = students.filter(s => markState[s.id] === 'present').length;
+  const absent  = students.filter(s => markState[s.id] === 'absent').length;
+  const leave   = students.filter(s => markState[s.id] === 'leave').length;
+  const unmarked= total - present - absent - leave;
+  const pct     = (total - unmarked) > 0 ? Math.round((present / (total - unmarked)) * 100) : 0;
+
+  document.getElementById('sumPresent').textContent = present + ' Present';
+  document.getElementById('sumAbsent').textContent  = absent  + ' Absent';
+  document.getElementById('sumLeave').textContent   = leave   + ' Leave';
+  document.getElementById('sumUnmarked').textContent= unmarked + ' Unmarked';
+  document.getElementById('sumPct').textContent     = unmarked === 0 && total > 0
+    ? pct + '% present rate'
+    : unmarked + ' students not marked yet';
+}
+
+function markAllAs(status) {
+  const students = getMarkStudents();
+  students.forEach(s => setMark(s.id, status));
+}
+
+function clearAllMarks() {
+  markState = {};
+  const date   = document.getElementById('markDate').value;
+  const course = document.getElementById('markCourse').value;
+  const batch  = document.getElementById('markBatch').value;
+  renderMarkGrid(date, course, batch);
+}
+
+function editSavedAttendance() {
+  isEditMode = true;
+  document.getElementById('savedBanner').classList.remove('show');
+  document.getElementById('saveBtn').disabled = false;
+  Toast.info('Edit mode — make changes and save again');
+}
+
+function saveAttendance() {
+  const date     = document.getElementById('markDate').value;
+  const students = getMarkStudents();
+  const marked   = students.filter(s => markState[s.id]);
+
+  if (!date) { Toast.error('Please select a date'); return; }
+  if (!marked.length) { Toast.error('Please mark at least one student'); return; }
+
+  const log      = DB.get('attendanceLog') || [];
+  const filtered = log.filter(r => r.date !== date ||
+    !students.find(s => s.id === r.studentId)); // keep other students' records
+
+  const now = new Date().toISOString();
+  marked.forEach(s => {
+    filtered.push({ date, studentId: s.id, status: markState[s.id], savedAt: now });
+  });
+
+  DB.set('attendanceLog', filtered);
+  updateStats();
+
+  const p = marked.filter(s => markState[s.id]==='present').length;
+  const a = marked.filter(s => markState[s.id]==='absent').length;
+  const l = marked.filter(s => markState[s.id]==='leave').length;
+
+  Toast.success(`Attendance saved! ${p} present · ${a} absent · ${l} leave`);
+  document.getElementById('lastSavedLabel').textContent = 'Last saved: ' + new Date().toLocaleTimeString('en-IN');
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('savedBanner').classList.add('show');
+  document.getElementById('savedBannerText').textContent =
+    `Attendance saved for ${Utils.formatDate(date)}`;
+}
+
+/* ════════════════════════════════
+   CALENDAR
+════════════════════════════════ */
+function renderCalendar() {
+  const log       = DB.get('attendanceLog') || [];
+  const holidays  = getHolidays();
+  const holidayMap= {};
+  holidays.forEach(h => { holidayMap[h.date] = h.name; });
+
+  const courseFilter = document.getElementById('calCourse')?.value || '';
+  const students = (DB.get('students') || []).filter(s =>
+    s.status === 'Active' && (!courseFilter || s.course === courseFilter)
+  );
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calTitle').textContent = monthNames[calMonth] + ' ' + calYear;
+
+  const days    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const firstDay= new Date(calYear, calMonth, 1).getDay();
+  const daysInM = new Date(calYear, calMonth + 1, 0).getDate();
+  const today   = Utils.today();
+
+  let html = days.map(d => `<div class="cal-header-cell">${d}</div>`).join('');
+
+  // empty cells before 1st
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
+
+  for (let d = 1; d <= daysInM; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateObj = new Date(calYear, calMonth, d);
+    const isSun   = dateObj.getDay() === 0;
+    const isHol   = !!holidayMap[dateStr];
+    const isFuture= dateStr > today;
+    const isToday = dateStr === today;
+
+    let cls = 'cal-cell has-data';
+    let tipText = '';
+    let pctText = '';
+    let cnText  = d;
+
+    if (isSun)    { cls = 'cal-cell sunday'; pctText = ''; }
+    else if (isHol)    { cls = 'cal-cell holiday'; pctText = ''; }
+    else if (isFuture) { cls = 'cal-cell future'; }
+    else {
+      const dayLog = log.filter(r => r.date === dateStr &&
+        students.find(s => s.id === r.studentId));
+      if (!dayLog.length) {
+        cls = 'cal-cell no-data';
+      } else {
+        const p   = dayLog.filter(r => r.status === 'present').length;
+        const tot = dayLog.length;
+        const pct = Math.round((p / tot) * 100);
+        pctText  = pct + '%';
+        tipText  = `${Utils.formatDate(dateStr)}: ${p}/${tot} present (${pct}%)`;
+        cls      = pct === 100 ? 'cal-cell has-data full-present'
+                 : pct >= 75  ? 'cal-cell has-data high-present'
+                 : pct >= 50  ? 'cal-cell has-data mid-present'
+                 :               'cal-cell has-data low-present';
+      }
+    }
+
+    if (isToday) cls += ' today';
+
+    html += `<div class="${cls}" 
+      data-date="${dateStr}" 
+      data-tip="${tipText}"
+      onclick="onCalCellClick('${dateStr}','${isSun}','${isHol ? holidayMap[dateStr] : ''}','${isFuture}')">
+      <span class="cn">${cnText}</span>
+      <span class="cp" style="color:inherit;opacity:.75">${pctText}</span>
+    </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  renderMonthlyAttChart();
+}
+
+function changeCalMonth(dir) {
+  calMonth += dir;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  renderCalendar();
+}
+
+function onCalCellClick(dateStr, isSun, holiday, isFuture) {
+  if (isSun === 'true') {
+    showDayDetail(dateStr, [], true, false, null);
+    return;
+  }
+  if (isFuture === 'true') { Toast.info('Cannot view future attendance'); return; }
+
+  const log      = DB.get('attendanceLog') || [];
+  const dayLog   = log.filter(r => r.date === dateStr);
+  const isHoliday= !!holiday;
+
+  clickedDay = dateStr;
+
+  if (isHoliday) {
+    document.getElementById('dayModalTitle').textContent = Utils.formatDate(dateStr) + ' — ' + holiday;
+    document.getElementById('dayModalSub').textContent   = 'Public Holiday / No Classes';
+    document.getElementById('dayModalBody').innerHTML =
+      `<div style="text-align:center;padding:24px">
+         <div style="font-size:40px;margin-bottom:10px">🏖️</div>
+         <div style="font-size:15px;font-weight:600;color:var(--text)">${holiday}</div>
+         <div style="font-size:13px;color:var(--text-3);margin-top:4px">No attendance record for holidays</div>
+       </div>`;
+    Modal.open('dayModal');
+    return;
+  }
+
+  showDayDetail(dateStr, dayLog, false, false, null);
+}
+
+function showDayDetail(dateStr, dayLog, isSunday, isHol, holName) {
+  document.getElementById('dayModalTitle').textContent = Utils.formatDate(dateStr);
+  const p = dayLog.filter(r => r.status === 'present').length;
+  const a = dayLog.filter(r => r.status === 'absent').length;
+  const l = dayLog.filter(r => r.status === 'leave').length;
+  const total = dayLog.length;
+
+  document.getElementById('dayModalSub').textContent =
+    total ? `${total} students · ${p} present · ${a} absent · ${l} leave` : 'No attendance data';
+
+  document.getElementById('dayModalBody').innerHTML = !total
+    ? `<div style="text-align:center;padding:20px;color:var(--text-3)">No attendance recorded for this date</div>`
+    : `<div style="display:flex;gap:10px;margin-bottom:14px">
+         <div style="flex:1;text-align:center;padding:12px;background:var(--success-light);border-radius:10px">
+           <div style="font-size:24px;font-weight:800;color:var(--success-dark)">${p}</div>
+           <div style="font-size:11px;color:var(--success-dark);text-transform:uppercase;letter-spacing:.5px">Present</div>
+         </div>
+         <div style="flex:1;text-align:center;padding:12px;background:var(--danger-light);border-radius:10px">
+           <div style="font-size:24px;font-weight:800;color:var(--danger-dark)">${a}</div>
+           <div style="font-size:11px;color:var(--danger-dark);text-transform:uppercase;letter-spacing:.5px">Absent</div>
+         </div>
+         <div style="flex:1;text-align:center;padding:12px;background:var(--warning-light);border-radius:10px">
+           <div style="font-size:24px;font-weight:800;color:var(--warning-dark)">${l}</div>
+           <div style="font-size:11px;color:var(--warning-dark);text-transform:uppercase;letter-spacing:.5px">Leave</div>
+         </div>
+       </div>
+       <div style="max-height:260px;overflow-y:auto">
+         ${dayLog.map(r => {
+           const s     = DB.find('students', r.studentId);
+           const color = AVATAR_COLORS[parseInt(r.studentId.replace(/\D/g,''))%AVATAR_COLORS.length];
+           const init  = s ? (s.firstName[0]+s.lastName[0]).toUpperCase() : '?';
+           const stCls = r.status==='present'?'badge-green':r.status==='absent'?'badge-red':'badge-yellow';
+           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+             <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+             <div style="flex:1;font-size:13px;font-weight:500">${s ? s.firstName+' '+s.lastName : r.studentId}</div>
+             <span class="badge ${stCls}">${r.status}</span>
+           </div>`;
+         }).join('')}
+       </div>`;
+
+  Modal.open('dayModal');
+}
+
+function editDayFromModal() {
+  if (!clickedDay) return;
+  Modal.close('dayModal');
+  document.getElementById('markDate').value = clickedDay;
+  switchTab('mark', document.querySelector('.main-tab'));
+  isEditMode = true;
+  onDateOrCourseChange();
+  editSavedAttendance();
+  Toast.info('Editing attendance for ' + Utils.formatDate(clickedDay));
+}
+
+function renderMonthlyAttChart() {
+  const log = DB.get('attendanceLog') || [];
+  const students = (DB.get('students') || []).filter(s => s.status === 'Active');
+  const daysInM  = new Date(calYear, calMonth + 1, 0).getDate();
+  const labels   = [], dataP = [], dataA = [];
+
+  const holidays = getHolidays().map(h => h.date);
+
+  for (let d = 1; d <= daysInM; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateObj = new Date(calYear, calMonth, d);
+    if (dateObj.getDay() === 0 || holidays.includes(dateStr)) continue;
+    const dayLog = log.filter(r => r.date === dateStr);
+    if (!dayLog.length) continue;
+    labels.push(d + '');
+    dataP.push(dayLog.filter(r => r.status === 'present').length);
+    dataA.push(dayLog.filter(r => r.status === 'absent').length);
+  }
+
+  const ctx = document.getElementById('monthlyAttChart');
+  if (!ctx) return;
+  if (window._monthlyAttChart) window._monthlyAttChart.destroy();
+  window._monthlyAttChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Present', data: dataP, backgroundColor: 'rgba(34,197,94,0.65)',  borderRadius: 4, stack: 's' },
+        { label: 'Absent',  data: dataA, backgroundColor: 'rgba(239,68,68,0.55)',  borderRadius: 4, stack: 's' },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { font:{size:11}, boxWidth:10 } } },
+      scales: {
+        x: { stacked: true, grid:{ display:false }, ticks:{ font:{size:10} } },
+        y: { stacked: true, beginAtZero:true, grid:{color:'rgba(14,165,233,0.06)'}, ticks:{ font:{size:11} } }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════
+   REPORTS
+════════════════════════════════ */
+function renderStudentReport() {
+  const log       = DB.get('attendanceLog') || [];
+  const courseF   = document.getElementById('rptCourse')?.value || '';
+  const monthIdx  = Number(document.getElementById('rptMonth')?.value ?? 5);
+  const students  = (DB.get('students') || []).filter(s =>
+    s.status === 'Active' && (!courseF || s.course === courseF)
+  );
+
+  const tbody = document.getElementById('studentRptBody');
+  if (!tbody) return;
+
+  const rows = students.map(s => {
+    const sLog = log.filter(r => r.studentId === s.id && new Date(r.date).getMonth() === monthIdx);
+    const p = sLog.filter(r => r.status === 'present').length;
+    const a = sLog.filter(r => r.status === 'absent').length;
+    const l = sLog.filter(r => r.status === 'leave').length;
+    const tot = sLog.length;
+    const pct = tot ? Math.round((p / tot) * 100) : 0;
+    const course = DB.find('courses', s.course);
+    return { s, course, p, a, l, tot, pct };
+  }).sort((x, y) => x.pct - y.pct);
+
+  tbody.innerHTML = !rows.length
+    ? `<tr><td colspan="6"><div class="table-empty"><div class="empty-icon">📊</div><div class="empty-msg">No data</div></div></td></tr>`
+    : rows.map(({ s, course, p, a, l, pct }) => {
+        const color = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init  = (s.firstName[0]+s.lastName[0]).toUpperCase();
+        const pctCls= pct>=75?'var(--success-dark)':pct>=50?'var(--warning-dark)':'var(--danger-dark)';
+        return `<tr>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+            <div>
+              <div style="font-weight:600;font-size:13px">${s.firstName} ${s.lastName}</div>
+              <div style="font-size:11px;color:var(--text-3)">${s.rollNo||s.id}</div>
+            </div>
+          </div></td>
+          <td class="td-muted">${course?.name||'—'}</td>
+          <td><strong style="color:var(--success-dark)">${p}</strong></td>
+          <td><strong style="color:var(--danger-dark)">${a}</strong></td>
+          <td><strong style="color:var(--warning-dark)">${l}</strong></td>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div class="progress" style="flex:1;height:6px"><div class="progress-bar" style="width:${pct}%;background:${pctCls}"></div></div>
+            <span style="font-weight:700;color:${pctCls};font-size:13px;min-width:36px">${pct}%</span>
+            ${pct<75?'<span class="badge badge-red">⚠</span>':''}
+          </div></td>
+        </tr>`;
+      }).join('');
+
+  renderDailyTrendChart();
+  renderCourseAttChart();
+  renderDOWChart();
+}
+
+function renderDailyTrendChart() {
+  const log   = DB.get('attendanceLog') || [];
+  const monthIdx = Number(document.getElementById('rptMonth')?.value ?? 5);
+  const students = (DB.get('students') || []).filter(s => s.status === 'Active');
+
+  // group by date
+  const dateMap = {};
+  log.filter(r => new Date(r.date).getMonth() === monthIdx).forEach(r => {
+    if (!dateMap[r.date]) dateMap[r.date] = { p: 0, tot: 0 };
+    if (r.status === 'present') dateMap[r.date].p++;
+    dateMap[r.date].tot++;
+  });
+
+  const sorted  = Object.entries(dateMap).sort((a,b) => a[0].localeCompare(b[0]));
+  const labels  = sorted.map(([d]) => new Date(d).getDate() + '');
+  const data    = sorted.map(([, v]) => v.tot ? Math.round((v.p/v.tot)*100) : 0);
+
+  const ctx = document.getElementById('dailyTrendChart');
+  if (!ctx) return;
+  if (window._dailyChart) window._dailyChart.destroy();
+  window._dailyChart = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Attendance %', data,
+        borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.1)',
+        tension: 0.4, fill: true, pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{ display:false } },
+      scales: {
+        y: { min:0, max:100, grid:{color:'rgba(14,165,233,0.06)'}, ticks:{ callback: v=>v+'%', font:{size:11} } },
+        x: { grid:{display:false}, ticks:{ font:{size:10} } }
+      }
+    }
+  });
+}
+
+function renderCourseAttChart() {
+  const log     = DB.get('attendanceLog') || [];
+  const courses = DB.get('courses')       || [];
+  const monthIdx= Number(document.getElementById('rptMonth')?.value ?? 5);
+
+  const data = courses.map(c => {
+    const students = (DB.get('students') || []).filter(s => s.course === c.id && s.status === 'Active');
+    const ids  = students.map(s => s.id);
+    const sLog = log.filter(r => ids.includes(r.studentId) && new Date(r.date).getMonth() === monthIdx);
+    const p    = sLog.filter(r => r.status === 'present').length;
+    return sLog.length ? Math.round((p / sLog.length) * 100) : 0;
+  });
+
+  const ctx = document.getElementById('courseAttChart');
+  if (!ctx) return;
+  if (window._courseAttChart) window._courseAttChart.destroy();
+  window._courseAttChart = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: courses.map(c => c.code),
+      datasets: [{
+        label: 'Avg Attendance %', data,
+        backgroundColor: data.map(v => v>=75?'rgba(34,197,94,0.65)':v>=50?'rgba(245,158,11,0.65)':'rgba(239,68,68,0.65)'),
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false} },
+      scales: {
+        y: { min:0, max:100, grid:{color:'rgba(14,165,233,0.06)'}, ticks:{ callback: v=>v+'%', font:{size:11} } },
+        x: { grid:{display:false}, ticks:{font:{size:11}} }
+      }
+    }
+  });
+}
+
+function renderDOWChart() {
+  const log    = DB.get('attendanceLog') || [];
+  const days   = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayIdx = [1,2,3,4,5,6];
+
+  const data = dayIdx.map(di => {
+    const dayLog = log.filter(r => new Date(r.date).getDay() === di);
+    const p = dayLog.filter(r => r.status === 'present').length;
+    return dayLog.length ? Math.round((p / dayLog.length) * 100) : 0;
+  });
+
+  const ctx = document.getElementById('dowChart');
+  if (!ctx) return;
+  if (window._dowChart) window._dowChart.destroy();
+  window._dowChart = new Chart(ctx.getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Attendance %',
+        data,
+        backgroundColor: 'rgba(14,165,233,0.12)',
+        borderColor: '#0ea5e9', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#0ea5e9',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false} },
+      scales: {
+        r: { min:0, max:100, ticks:{ stepSize:25, callback: v=>v+'%', font:{size:10} }, grid:{color:'rgba(14,165,233,0.1)'} }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════
+   SHORTAGE ALERTS
+════════════════════════════════ */
+function renderShortage() {
+  const log      = DB.get('attendanceLog') || [];
+  const students = (DB.get('students') || []).filter(s => s.status === 'Active');
+  const threshold= document.getElementById('shortageFilter')?.value;
+
+  const rows = students.map(s => {
+    const sLog = log.filter(r => r.studentId === s.id);
+    const p    = sLog.filter(r => r.status === 'present').length;
+    const pct  = sLog.length ? Math.round((p / sLog.length) * 100) : 0;
+    const course = DB.find('courses', s.course);
+    return { s, course, pct, p, total: sLog.length };
+  }).filter(r => threshold === 'all' ? true : r.pct < Number(threshold))
+    .sort((a,b) => a.pct - b.pct);
+
+  const list = document.getElementById('shortageList');
+  if (!rows.length) {
+    list.innerHTML = `<div class="table-empty"><div class="empty-icon">✅</div><div class="empty-msg">No students in shortage!</div><div class="empty-sub">All students are above the threshold</div></div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(({ s, course, pct, p, total }) => {
+    const color   = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length];
+    const init    = (s.firstName[0]+s.lastName[0]).toUpperCase();
+    const pctColor= pct<50?'var(--danger-dark)':pct<65?'var(--warning-dark)':'var(--primary-dark)';
+    const barColor= pct<50?'var(--danger)':pct<65?'var(--warning)':'var(--primary)';
+    return `
+      <div class="shortage-card">
+        <div class="due-avatar" style="background:${color};width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0">${init}</div>
+        <div class="shortage-bar-wrap">
+          <div class="shortage-name">${s.firstName} ${s.lastName}</div>
+          <div class="shortage-meta">${s.rollNo||s.id} · ${course?.name||'—'} · ${p}/${total} days present</div>
+          <div class="progress" style="margin-top:5px">
+            <div class="progress-bar" style="width:${pct}%;background:${barColor}"></div>
+          </div>
+          ${pct < 75 ? `<div style="font-size:10.5px;color:var(--danger-dark);margin-top:3px">Needs ${Math.ceil((75*(total>0?total:22) - p*100) / (100-75))} more days to reach 75%</div>` : ''}
+        </div>
+        <div class="shortage-pct" style="color:${pctColor}">${pct}%</div>
+      </div>`;
+  }).join('');
+
+  renderShortageChart(rows);
+}
+
+function renderShortageChart(rows) {
+  const buckets = [
+    { label: '< 50%',  count: rows.filter(r=>r.pct<50).length,                           color:'rgba(239,68,68,0.7)' },
+    { label: '50–64%', count: rows.filter(r=>r.pct>=50&&r.pct<65).length,                color:'rgba(245,158,11,0.7)' },
+    { label: '65–74%', count: rows.filter(r=>r.pct>=65&&r.pct<75).length,                color:'rgba(14,165,233,0.5)' },
+    { label: '≥ 75%',  count: (DB.get('students')||[]).filter(s=>s.status==='Active').length - rows.filter(r=>r.pct<75).length, color:'rgba(34,197,94,0.7)' },
+  ];
+  const ctx = document.getElementById('shortageChart');
+  if (!ctx) return;
+  if (window._shortageChart) window._shortageChart.destroy();
+  window._shortageChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: buckets.map(b=>b.label),
+      datasets: [{ data: buckets.map(b=>b.count), backgroundColor: buckets.map(b=>b.color), borderWidth:0, hoverOffset:6 }]
+    },
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } } }
+  });
+}
+
+function sendShortageAlerts() { Toast.info('SMS alerts sent to parents of students with attendance below threshold'); }
+function exportShortageList() { Toast.success('Shortage list exported as CSV'); }
+function printShortageList()  { window.print(); }
+
+/* ════════════════════════════════
+   LEAVE REQUESTS
+════════════════════════════════ */
+function renderLeaves() {
+  const leaves   = DB.get('leaveRequests') || [];
+  const filter   = document.getElementById('leaveStatusFilter')?.value || '';
+  const filtered = leaves.filter(l => !filter || l.status === filter)
+                         .sort((a,b) => b.from.localeCompare(a.from));
+  const list     = document.getElementById('leaveList');
+
+  const stCls = { Pending:'badge-yellow', Approved:'badge-green', Rejected:'badge-red' };
+
+  list.innerHTML = !filtered.length
+    ? `<div class="table-empty"><div class="empty-icon">🏖️</div><div class="empty-msg">No leave requests</div></div>`
+    : filtered.map(l => {
+        const s    = DB.find('students', l.studentId);
+        const color= AVATAR_COLORS[parseInt(l.studentId.replace(/\D/g,''))%AVATAR_COLORS.length];
+        const init = (l.studentName||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const days = Math.max(1, Math.round((new Date(l.to) - new Date(l.from)) / 86400000) + 1);
+        return `
+          <div class="leave-card">
+            <div class="leave-avatar" style="background:${color}">${init}</div>
+            <div class="leave-info">
+              <div class="leave-name">${l.studentName}</div>
+              <div class="leave-meta">${l.type} · ${Utils.formatDate(l.from)} → ${Utils.formatDate(l.to)} · ${days} day${days>1?'s':''}</div>
+              ${l.reason ? `<div class="leave-reason">"${l.reason}"</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+              <span class="badge ${stCls[l.status]||'badge-gray'}">${l.status}</span>
+              <div style="display:flex;gap:4px">
+                ${l.status==='Pending'?`
+                  <button class="btn-icon" onclick="updateLeave('${l.id}','Approved')" style="font-size:12px;background:rgba(34,197,94,0.1);color:var(--success-dark)">✓</button>
+                  <button class="btn-icon" onclick="updateLeave('${l.id}','Rejected')" style="font-size:12px;background:rgba(239,68,68,0.08);color:var(--danger)">✗</button>
+                `:''}
+                <button class="btn-icon" onclick="deleteLeave('${l.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+  renderLeaveChart(leaves);
+}
+
+function updateLeave(id, status) {
+  DB.update('leaveRequests', id, { status });
+  renderLeaves();
+  Toast.success(`Leave ${status.toLowerCase()}`);
+}
+
+function deleteLeave(id) {
+  if (!Utils.confirmDelete('Delete this leave request?')) return;
+  DB.delete('leaveRequests', id);
+  renderLeaves();
+  Toast.error('Leave request deleted');
+}
+
+function saveLeave() {
+  const sid   = document.getElementById('leaveStudent').value;
+  const from  = document.getElementById('leaveFrom').value;
+  const to    = document.getElementById('leaveTo').value;
+  if (!sid || !from || !to) { Toast.error('Please fill all required fields'); return; }
+
+  const s = DB.find('students', sid);
+  DB.push('leaveRequests', {
+    id: DB.nextId('leaveRequests', 'L'),
+    studentId:   sid,
+    studentName: s ? s.firstName + ' ' + s.lastName : '—',
+    type:    document.getElementById('leaveType').value,
+    from, to,
+    reason:  document.getElementById('leaveReason').value.trim(),
+    status:  document.getElementById('leaveStatus').value,
+  });
+
+  Modal.close('addLeaveModal');
+  renderLeaves();
+  Toast.success('Leave request saved');
+}
+
+function renderLeaveChart(leaves) {
+  const counts = { Pending:0, Approved:0, Rejected:0 };
+  leaves.forEach(l => { if (counts[l.status] !== undefined) counts[l.status]++; });
+  const ctx = document.getElementById('leaveChart');
+  if (!ctx) return;
+  if (window._leaveChart) window._leaveChart.destroy();
+  window._leaveChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Approved','Rejected'],
+      datasets: [{ data: [counts.Pending, counts.Approved, counts.Rejected],
+        backgroundColor: ['rgba(245,158,11,0.7)','rgba(34,197,94,0.7)','rgba(239,68,68,0.7)'],
+        borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive:true, cutout:'62%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } } }
+  });
+
+  // type stats
+  const typeMap = {};
+  leaves.forEach(l => { typeMap[l.type] = (typeMap[l.type]||0) + 1; });
+  document.getElementById('leaveTypeStats').innerHTML = Object.entries(typeMap)
+    .sort((a,b) => b[1]-a[1])
+    .map(([t,c]) => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">${t}</span>
+        <span style="font-weight:700;color:var(--primary-dark)">${c}</span>
+      </div>`).join('');
+}
+
+/* ════════════════════════════════
+   HOLIDAYS
+════════════════════════════════ */
+function renderHolidays() {
+  const holidays = getHolidays().sort((a,b) => a.date.localeCompare(b.date));
+  const typeIcon = { 'National Holiday':'🇮🇳', 'Religious Festival':'🙏', 'Regional Holiday':'📍', 'Institute Event':'🏫', 'Other':'📅' };
+  const typeColors= { 'National Holiday':'badge-blue', 'Religious Festival':'badge-accent', 'Regional Holiday':'badge-teal', 'Institute Event':'badge-green', 'Other':'badge-gray' };
+
+  document.getElementById('holidayList').innerHTML = !holidays.length
+    ? `<div class="table-empty"><div class="empty-icon">🗓️</div><div class="empty-msg">No holidays added yet</div></div>`
+    : holidays.map(h => `
+        <div class="holiday-item">
+          <div class="holiday-icon">${typeIcon[h.type]||'📅'}</div>
+          <div style="flex:1">
+            <div class="holiday-name">${h.name}</div>
+            <div class="holiday-date">${Utils.formatDate(h.date)}</div>
+          </div>
+          <span class="badge ${typeColors[h.type]||'badge-gray'}">${h.type}</span>
+          <button class="btn-icon" onclick="deleteHoliday('${h.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+        </div>`).join('');
+
+  // summary
+  const byType = {};
+  holidays.forEach(h => { byType[h.type] = (byType[h.type]||0) + 1; });
+  document.getElementById('holidaySummary').innerHTML = `
+    <div style="font-size:28px;font-weight:800;color:var(--primary-dark);margin-bottom:4px">${holidays.length}</div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Total holidays declared</div>
+    ${Object.entries(byType).map(([t,c])=>`
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">${t}</span>
+        <strong style="color:var(--text)">${c}</strong>
+      </div>`).join('')}`;
+
+  renderHolidayChart(byType);
+}
+
+function renderHolidayChart(byType) {
+  const colors = ['rgba(14,165,233,0.7)','rgba(99,102,241,0.7)','rgba(20,184,166,0.7)','rgba(245,158,11,0.7)','rgba(239,68,68,0.65)'];
+  const ctx = document.getElementById('holidayChart');
+  if (!ctx) return;
+  if (window._holidayChart) window._holidayChart.destroy();
+  window._holidayChart = new Chart(ctx.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(byType),
+      datasets: [{ data: Object.values(byType), backgroundColor: colors, borderWidth:0, hoverOffset:6 }]
+    },
+    options: { responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:10}, boxWidth:12 } } } }
+  });
+}
+
+function saveHoliday() {
+  const name = document.getElementById('hName').value.trim();
+  const date = document.getElementById('hDate').value;
+  if (!name || !date) { Toast.error('Name and date required'); return; }
+  const holidays = getHolidays();
+  holidays.push({ id: 'H'+String(holidays.length+1).padStart(3,'0'), name, date, type: document.getElementById('hType').value });
+  saveHolidays(holidays);
+  Modal.close('addHolidayModal');
+  renderHolidays();
+  Toast.success('Holiday added: ' + name);
+}
+
+function deleteHoliday(id) {
+  if (!Utils.confirmDelete('Remove this holiday?')) return;
+  saveHolidays(getHolidays().filter(h => h.id !== id));
+  renderHolidays();
+  Toast.error('Holiday removed');
+}
+
+/* ════════════════════════════════
+   TAB SWITCH
+════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+
+  if (btn) btn.classList.add('active');
+  else {
+    const match = document.querySelector(`.main-tab[onclick*="'${name}'"]`);
+    if (match) match.classList.add('active');
+  }
+
+  // lazy render
+  if (name === 'calendar')  { populateCourseSelect('calCourse', true); renderCalendar(); }
+  if (name === 'reports')   { ['rptCourse'].forEach(id => populateCourseSelect(id, true)); renderStudentReport(); }
+  if (name === 'shortage')  renderShortage();
+  if (name === 'leaves')    renderLeaves();
+  if (name === 'holidays')  renderHolidays();
+}
+
+/* ════════════════════════════════
+   EXPORT CSV
+════════════════════════════════ */
+function exportAttendanceCSV() {
+  const log     = DB.get('attendanceLog') || [];
+  const students= DB.get('students') || [];
+  const headers = ['Date','Student ID','Name','Roll No','Course','Status'];
+  const rows    = log.map(r => {
+    const s = DB.find('students', r.studentId);
+    const c = DB.find('courses', s?.course);
+    return [`"${r.date}"`,`"${r.studentId}"`,`"${s?s.firstName+' '+s.lastName:'—'}"`,`"${s?.rollNo||r.studentId}"`,`"${c?.name||'—'}"`,`"${r.status}"`].join(',');
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download = `attendance_${Utils.today()}.csv`;
+  a.click();
+  Toast.success('Attendance data exported!');
+}
+</script>
+</body>
+</html>

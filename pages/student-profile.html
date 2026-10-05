@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Profile — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Profile-specific ── */
+    .profile-hero {
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--primary), var(--teal));
+      opacity: 0.08;
+      border-radius: inherit;
+    }
+
+    .profile-hero-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      position: relative;
+    }
+
+    .profile-big-avatar {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 800; color: white;
+      flex-shrink: 0;
+      box-shadow: 0 8px 28px rgba(14,165,233,0.35);
+      border: 4px solid rgba(255,255,255,0.8);
+    }
+
+    .profile-name { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+    .profile-meta { font-size: 13px; color: var(--text-3); margin-top: 4px; margin-bottom: 12px; }
+
+    .profile-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pstat { text-align: center; }
+    .pstat .pval { font-size: 22px; font-weight: 800; color: var(--primary-dark); }
+    .pstat .plbl { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    .profile-actions {
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* info grid */
+    .info-section {
+      padding: 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.4);
+    }
+
+    .info-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(14,165,233,0.04);
+      font-size: 13px;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-3); min-width: 130px; flex-shrink: 0; font-size: 12px; }
+    .info-val   { color: var(--text); font-weight: 500; flex: 1; }
+
+    /* tabs */
+    .profile-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: rgba(14,165,233,0.07);
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .profile-tab {
+      padding: 8px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.18s;
+      border: none;
+      background: none;
+    }
+
+    .profile-tab.active {
+      background: white;
+      color: var(--primary-dark);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(14,165,233,0.14);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: pageEnter 0.25s var(--ease) both; }
+
+    /* fee timeline */
+    .fee-timeline { display: flex; flex-direction: column; gap: 10px; }
+    .fee-txn {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.5);
+      transition: all .15s;
+    }
+    .fee-txn:hover { border-color: var(--border-strong); }
+    .fee-txn-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: var(--success-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .fee-txn-info .txn-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .fee-txn-info .txn-meta { font-size: 11.5px; color: var(--text-3); }
+    .fee-txn-amount { margin-left: auto; font-size: 16px; font-weight: 800; color: var(--success-dark); }
+
+    /* attendance heatmap */
+    .att-month { margin-bottom: 20px; }
+    .att-month-label { font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .att-week { display: flex; gap: 5px; flex-wrap: wrap; }
+    .att-day {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600;
+      cursor: default;
+      title: attr(data-date);
+    }
+    .att-day.present  { background: var(--success-light);  color: var(--success-dark); }
+    .att-day.absent   { background: var(--danger-light);   color: var(--danger-dark); }
+    .att-day.holiday  { background: var(--warning-light);  color: var(--warning-dark); }
+    .att-day.noclass  { background: rgba(14,165,233,0.06); color: var(--text-3); }
+
+    /* topbar */
+    .topbar { display: none; position: fixed; top: 0; left: 0; right: 0; height: 60px; z-index: 150; align-items: center; justify-content: space-between; padding: 0 18px; border-radius: 0 0 16px 16px; }
+    @media (max-width: 900px) { .topbar { display: flex; } }
+
+    @media (max-width: 700px) {
+      .profile-hero-inner { flex-direction: column; }
+      .profile-actions { flex-direction: row; margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter" id="mainContent">
+  <!-- Loaded dynamically -->
+  <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+    <div style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🎓</div>
+      <div style="font-size:15px;color:var(--text-3)">Loading student profile...</div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/core.js"></script>
+<script>
+const AVATAR_COLORS = ['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('students');
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) { showError('No student ID provided.'); return; }
+  const s = DB.find('students', id);
+  if (!s) { showError('Student not found. They may have been deleted.'); return; }
+  renderProfile(s);
+});
+
+function showError(msg) {
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+      <div style="text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Oops!</div>
+        <div style="font-size:14px;color:var(--text-3);margin-bottom:20px">${msg}</div>
+        <a href="students.html" class="btn btn-primary">← Back to Students</a>
+      </div>
+    </div>`;
+}
+
+function renderProfile(s) {
+  document.title = `${s.firstName} ${s.lastName} — EduSoft`;
+
+  const course  = DB.find('courses', s.course);
+  const color   = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+  const initial = (s.firstName[0] + s.lastName[0]).toUpperCase();
+  const txns    = (DB.get('feeTransactions') || []).filter(t => t.studentId === s.id);
+  const results = (DB.get('results') || []).filter(r => r.studentId === s.id);
+  const totalPaid = txns.reduce((a,t) => a + Number(t.amount), 0);
+  const courseFee = Number(course?.fee || 0);
+  const feePercent = courseFee ? Math.min(100, Math.round((totalPaid / courseFee) * 100)) : 0;
+
+  // attendance (simulated for demo)
+  const attLog = DB.get('attendanceLog') || [];
+  const studentAtt = attLog.filter(a => a.studentId === s.id);
+  const presentDays = studentAtt.filter(a => a.status === 'present').length || 18;
+  const totalDays   = studentAtt.length || 22;
+  const attPct = totalDays ? Math.round((presentDays / totalDays) * 100) : 82;
+
+  document.getElementById('mainContent').innerHTML = `
+
+    <!-- Breadcrumb -->
+    <div class="page-header" style="margin-bottom:16px">
+      <div class="page-title-wrap">
+        <div class="breadcrumb">
+          <a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a>
+          <span class="sep">›</span>
+          <a href="students.html" style="color:var(--text-3);text-decoration:none">Students</a>
+          <span class="sep">›</span>
+          <span class="current">${s.firstName} ${s.lastName}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="profile-hero glass stagger">
+      <div class="profile-hero-inner">
+        <div class="profile-big-avatar" style="background:${color}">${initial}</div>
+        <div style="flex:1">
+          <div class="profile-name">${s.firstName} ${s.lastName}</div>
+          <div class="profile-meta">${s.rollNo || s.id} &nbsp;·&nbsp; ${course?.name || 'No course'} &nbsp;·&nbsp; Batch ${s.batch}</div>
+          <div class="profile-badges">
+            ${Utils.statusBadge(s.status)}
+            ${Utils.statusBadge(s.feesStatus)}
+            <span class="badge badge-blue">${s.gender || ''}</span>
+            ${s.blood ? `<span class="badge badge-accent">${s.blood}</span>` : ''}
+          </div>
+          <div class="profile-stats">
+            <div class="pstat">
+              <div class="pval">${attPct}%</div>
+              <div class="plbl">Attendance</div>
+            </div>
+            <div class="pstat">
+              <div class="pval">${results.length}</div>
+              <div class="plbl">Exams</div>
+            </div>
+            <div class="pstat">
+              <div class="pval">${Utils.formatCurrency(totalPaid)}</div>
+              <div class="plbl">Fees Paid</div>
+            </div>
+            <div class="pstat">
+              <div class="pval">${feePercent}%</div>
+              <div class="plbl">Fee Cleared</div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-primary btn-sm" onclick="editFromProfile('${s.id}')">✏️ Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="printIDCard('${s.id}')">🪪 ID Card</button>
+          <button class="btn btn-outline btn-sm" onclick="printProfile('${s.id}')">🖨 Print</button>
+          <a href="students.html" class="btn btn-ghost btn-sm">← Back</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchProfileTab('overview',this)">Overview</button>
+      <button class="profile-tab" onclick="switchProfileTab('fees',this)">Fee History</button>
+      <button class="profile-tab" onclick="switchProfileTab('results',this)">Exam Results</button>
+      <button class="profile-tab" onclick="switchProfileTab('attendance',this)">Attendance</button>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div id="tab-overview" class="tab-pane active">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <div class="info-section">
+          <div class="info-section-title">📋 Personal Information</div>
+          ${infoRow('Email', s.email)}
+          ${infoRow('Mobile', s.phone)}
+          ${infoRow('Date of Birth', Utils.formatDate(s.dob))}
+          ${infoRow('Gender', s.gender)}
+          ${infoRow('Blood Group', s.blood || '—')}
+          ${infoRow('Address', s.address || '—')}
+        </div>
+
+        <div class="info-section">
+          <div class="info-section-title">🎓 Academic Information</div>
+          ${infoRow('Student ID', s.id)}
+          ${infoRow('Roll Number', s.rollNo || s.id)}
+          ${infoRow('Course', course?.name || '—')}
+          ${infoRow('Duration', course?.duration || '—')}
+          ${infoRow('Batch', s.batch)}
+          ${infoRow('Admission Date', Utils.formatDate(s.admissionDate))}
+          ${infoRow('Prev. School', s.prevSchool || '—')}
+        </div>
+
+        <div class="info-section">
+          <div class="info-section-title">👨‍👩‍👧 Parent / Guardian</div>
+          ${infoRow('Name', s.parentName || '—')}
+          ${infoRow('Relation', s.relation || '—')}
+          ${infoRow('Mobile', s.parentPhone || '—')}
+          ${infoRow('Email', s.parentEmail || '—')}
+          ${infoRow('Occupation', s.parentOcc || '—')}
+        </div>
+
+        <div class="info-section">
+          <div class="info-section-title">💰 Fee Summary</div>
+          ${infoRow('Course Fee', Utils.formatCurrency(courseFee))}
+          ${infoRow('Total Paid', Utils.formatCurrency(totalPaid))}
+          ${infoRow('Balance Due', Utils.formatCurrency(Math.max(0, courseFee - totalPaid)))}
+          ${infoRow('Receipts', txns.length + ' transactions')}
+          <div style="margin-top:12px">
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:5px">${feePercent}% cleared</div>
+            <div class="progress"><div class="progress-bar" style="width:${feePercent}%"></div></div>
+          </div>
+        </div>
+
+      </div>
+
+      ${s.notes ? `<div class="alert alert-info" style="margin-top:16px"><span>📝</span><div><strong>Notes:</strong> ${s.notes}</div></div>` : ''}
+    </div>
+
+    <!-- TAB: FEE HISTORY -->
+    <div id="tab-fees" class="tab-pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">
+          ${txns.length} transaction${txns.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Total: <span style="color:var(--success-dark)">${Utils.formatCurrency(totalPaid)}</span>
+        </div>
+        <a href="fees.html" class="btn btn-outline btn-sm">+ Collect Fee</a>
+      </div>
+      <div class="fee-timeline">
+        ${txns.length
+          ? txns.map(t => `
+            <div class="fee-txn">
+              <div class="fee-txn-icon">💳</div>
+              <div class="fee-txn-info">
+                <div class="txn-name">${t.remarks || 'Fee Payment'}</div>
+                <div class="txn-meta">${Utils.formatDate(t.date)} · ${t.mode} · ${t.receiptNo}</div>
+              </div>
+              ${Utils.statusBadge(t.status)}
+              <div class="fee-txn-amount">${Utils.formatCurrency(t.amount)}</div>
+            </div>`).join('')
+          : `<div class="table-empty"><div class="empty-icon">💸</div><div class="empty-msg">No transactions yet</div><div class="empty-sub">Fee payments will appear here</div></div>`
+        }
+      </div>
+    </div>
+
+    <!-- TAB: RESULTS -->
+    <div id="tab-results" class="tab-pane">
+      ${results.length ? `
+        <div style="margin-bottom:20px">
+          <canvas id="resultChart" height="160"></canvas>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Exam</th><th>Course</th><th>Date</th><th>Marks</th><th>%</th><th>Grade</th><th>Result</th></tr></thead>
+            <tbody>
+              ${results.map(r => {
+                const exam = DB.find('exams', r.examId);
+                const pct  = Math.round((r.marksObtained / (exam?.maxMarks||100)) * 100);
+                return `<tr>
+                  <td class="td-strong">${exam?.name || '—'}</td>
+                  <td>${DB.find('courses', exam?.courseId)?.name || '—'}</td>
+                  <td class="td-muted">${Utils.formatDate(exam?.date)}</td>
+                  <td>${r.marksObtained} / ${exam?.maxMarks||100}</td>
+                  <td><strong style="color:${pct>=75?'var(--success-dark)':pct>=50?'var(--warning-dark)':'var(--danger-dark)'}">${pct}%</strong></td>
+                  <td>${Utils.statusBadge(r.grade)}</td>
+                  <td>${Utils.statusBadge(r.result)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>` : `<div class="table-empty"><div class="empty-icon">📝</div><div class="empty-msg">No results yet</div><div class="empty-sub">Exam results will appear here once entered</div></div>`
+      }
+    </div>
+
+    <!-- TAB: ATTENDANCE -->
+    <div id="tab-attendance" class="tab-pane">
+      <div class="stat-grid" style="margin-bottom:20px">
+        <div class="stat-card glass success"><div class="stat-icon">✓</div><div class="stat-label">Present Days</div><div class="stat-value">${presentDays}</div></div>
+        <div class="stat-card glass danger"><div class="stat-icon">✗</div><div class="stat-label">Absent Days</div><div class="stat-value">${totalDays - presentDays}</div></div>
+        <div class="stat-card glass blue"><div class="stat-icon">%</div><div class="stat-label">Percentage</div><div class="stat-value">${attPct}%</div>
+          <div class="progress" style="margin-top:8px"><div class="progress-bar" style="width:${attPct}%"></div></div>
+        </div>
+      </div>
+
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Monthly Attendance — 2024</div></div>
+        <div id="attHeatmap"></div>
+      </div>
+
+      <div class="card glass" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">Weekly Trend</div></div>
+        <canvas id="attWeekChart" height="150"></canvas>
+      </div>
+    </div>
+  `;
+
+  // draw charts after render
+  requestAnimationFrame(() => {
+    if (results.length) drawResultChart(results);
+    drawAttWeekChart();
+    renderAttHeatmap();
+  });
+}
+
+function infoRow(label, val) {
+  return `<div class="info-row">
+    <span class="info-label">${label}</span>
+    <span class="info-val">${val || '—'}</span>
+  </div>`;
+}
+
+function switchProfileTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function drawResultChart(results) {
+  const ctx = document.getElementById('resultChart');
+  if (!ctx) return;
+  const labels = results.map(r => DB.find('exams', r.examId)?.name || r.examId);
+  const data   = results.map(r => {
+    const exam = DB.find('exams', r.examId);
+    return Math.round((r.marksObtained / (exam?.maxMarks || 100)) * 100);
+  });
+  new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Score %',
+        data,
+        backgroundColor: data.map(v => v >= 75 ? 'rgba(34,197,94,0.65)' : v >= 50 ? 'rgba(245,158,11,0.65)' : 'rgba(239,68,68,0.65)'),
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, grid: { color: 'rgba(14,165,233,0.06)' }, ticks: { callback: v => v + '%', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function drawAttWeekChart() {
+  const ctx = document.getElementById('attWeekChart');
+  if (!ctx) return;
+  new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: ['Week 1','Week 2','Week 3','Week 4'],
+      datasets: [{
+        label: 'Days Present',
+        data: [5, 4, 5, 4],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.1)',
+        tension: 0.4, fill: true, pointRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 5, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(14,165,233,0.06)' } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderAttHeatmap() {
+  const months = [
+    { label: 'June 2024',   days: 20 },
+    { label: 'July 2024',   days: 23 },
+    { label: 'August 2024', days: 22 },
+  ];
+  const statuses = ['present','present','absent','present','present','holiday','noclass','present','absent','present','present','present','absent','noclass','present','present','present','present','absent','present','present','present','absent'];
+
+  const html = months.map((m, mi) => `
+    <div class="att-month">
+      <div class="att-month-label">${m.label}</div>
+      <div class="att-week">
+        ${Array.from({length: m.days}, (_,i) => {
+          const st = statuses[(mi * 7 + i) % statuses.length];
+          const label = st === 'present' ? 'P' : st === 'absent' ? 'A' : st === 'holiday' ? 'H' : '–';
+          return `<div class="att-day ${st}" title="${st}">${label}</div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  const legend = `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:12px">
+    <span style="display:flex;align-items:center;gap:5px"><span class="att-day present" style="width:18px;height:18px;font-size:8px">P</span>Present</span>
+    <span style="display:flex;align-items:center;gap:5px"><span class="att-day absent"  style="width:18px;height:18px;font-size:8px">A</span>Absent</span>
+    <span style="display:flex;align-items:center;gap:5px"><span class="att-day holiday" style="width:18px;height:18px;font-size:8px">H</span>Holiday</span>
+  </div>`;
+
+  document.getElementById('attHeatmap').innerHTML = html + legend;
+}
+
+function editFromProfile(id) {
+  window.location.href = `students.html?edit=${id}`;
+}
+
+function printIDCard(id) {
+  const s = DB.find('students', id);
+  if (!s) return;
+  const course = DB.find('courses', s.course);
+  const color  = AVATAR_COLORS[parseInt(s.id.replace(/\D/g,'')) % AVATAR_COLORS.length];
+  const initial = (s.firstName[0] + s.lastName[0]).toUpperCase();
+  const w = window.open('', '_blank', 'width=600,height=400');
+  w.document.write(`<!DOCTYPE html><html><head><title>ID Card — ${s.firstName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f0f9ff}
+    .card{width:340px;border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(14,165,233,0.2);background:white;page-break-inside:avoid}
+    .card-top{background:linear-gradient(135deg,#0ea5e9,#14b8a6);padding:22px 20px 36px;position:relative}
+    .institute{font-family:'DM Serif Display',serif;font-size:20px;color:white}
+    .inst-sub{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:1.5px;text-transform:uppercase}
+    .card-type{position:absolute;top:14px;right:16px;background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:1px}
+    .avatar-wrap{position:absolute;bottom:-28px;left:20px;width:56px;height:56px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+    .card-body{padding:36px 20px 20px}
+    .s-name{font-size:17px;font-weight:800;color:#0f172a;margin-bottom:2px}
+    .s-meta{font-size:12px;color:#64748b;margin-bottom:14px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+    .info-cell{background:#f8fafc;border-radius:8px;padding:8px 10px}
+    .ic-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;margin-bottom:2px}
+    .ic-val{font-size:12.5px;font-weight:600;color:#0f172a}
+    .barcode{text-align:center;padding:10px 0;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;letter-spacing:3px;font-family:monospace}
+    @media print{body{background:white}.card{box-shadow:none}}
+  </style></head><body>
+  <div class="card">
+    <div class="card-top">
+      <div class="institute">EduSoft Institute</div>
+      <div class="inst-sub">by Uniitechs</div>
+      <div class="card-type">STUDENT</div>
+      <div class="avatar-wrap">${initial}</div>
+    </div>
+    <div class="card-body">
+      <div class="s-name">${s.firstName} ${s.lastName}</div>
+      <div class="s-meta">${course?.name || '—'} · Batch ${s.batch}</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="ic-label">Roll No.</div><div class="ic-val">${s.rollNo||s.id}</div></div>
+        <div class="info-cell"><div class="ic-label">Student ID</div><div class="ic-val">${s.id}</div></div>
+        <div class="info-cell"><div class="ic-label">Mobile</div><div class="ic-val">${s.phone}</div></div>
+        <div class="info-cell"><div class="ic-label">Blood Group</div><div class="ic-val">${s.blood||'N/A'}</div></div>
+        <div class="info-cell"><div class="ic-label">Parent</div><div class="ic-val">${s.parentName||'—'}</div></div>
+        <div class="info-cell"><div class="ic-label">Emergency</div><div class="ic-val">${s.parentPhone||'—'}</div></div>
+      </div>
+      <div class="barcode">||||| ${s.id} · ${s.rollNo||'EDU'} |||||</div>
+    </div>
+  </div>
+  <script>window.onload=()=>{window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function printProfile(id) {
+  window.print();
+}
+</script>
+</body>
+</html>

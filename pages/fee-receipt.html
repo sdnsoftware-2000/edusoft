@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fee Receipt — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <style>
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+      background: var(--bg);
+    }
+
+    .receipt-page-wrap {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    /* top action bar — hidden on print */
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ── receipt paper ── */
+    .receipt-paper {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 48px rgba(14,165,233,0.14);
+      overflow: hidden;
+    }
+
+    /* header band */
+    .rp-header {
+      background: linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%);
+      padding: 28px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rp-header::after {
+      content: '';
+      position: absolute;
+      right: -30px; bottom: -30px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .rp-header::before {
+      content: '';
+      position: absolute;
+      right: 60px; top: -20px;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .rp-brand {
+      font-family: var(--font-display);
+      font-size: 28px;
+      color: white;
+      line-height: 1;
+    }
+
+    .rp-brand-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .rp-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 0.5px;
+      margin-top: 14px;
+    }
+
+    .rp-receipt-no {
+      position: absolute;
+      right: 32px; top: 28px;
+      text-align: right;
+    }
+
+    .rp-receipt-no .rno-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .rp-receipt-no .rno-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: white;
+      margin-top: 2px;
+      letter-spacing: 1px;
+    }
+
+    .rp-receipt-no .rno-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 4px;
+    }
+
+    /* body */
+    .rp-body { padding: 28px 32px; }
+
+    /* student section */
+    .rp-student {
+      background: #f0f9ff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 22px;
+    }
+
+    .rp-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    .rp-student-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .rp-student-grid .sg-item {
+      font-size: 13px;
+    }
+
+    .rp-student-grid .sg-label { color: #64748b; margin-right: 4px; }
+    .rp-student-grid .sg-val   { font-weight: 600; color: #0f172a; }
+
+    /* detail rows */
+    .rp-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13.5px;
+    }
+
+    .rp-detail-row:last-of-type { border-bottom: none; }
+    .rp-detail-row .dr-label { color: #64748b; }
+    .rp-detail-row .dr-val   { font-weight: 600; color: #0f172a; }
+    .rp-detail-row .dr-ref   { font-family: monospace; font-size: 12.5px; }
+
+    /* discount row */
+    .rp-discount-row .dr-val { color: #15803d; }
+
+    /* total */
+    .rp-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 0 0;
+      border-top: 2px solid #bae6fd;
+      margin-top: 8px;
+    }
+
+    .rp-total .rt-label { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .rp-total .rt-value { font-size: 32px; font-weight: 800; color: #0f766e; letter-spacing: -1px; }
+
+    /* amount in words */
+    .rp-words {
+      font-size: 12px;
+      color: #64748b;
+      font-style: italic;
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    /* status stamp */
+    .rp-stamp {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed #bae6fd;
+    }
+
+    .stamp-box {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      border: 3px solid #22c55e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(-15deg);
+      opacity: 0.85;
+    }
+
+    .stamp-box .st-label { font-size: 14px; font-weight: 800; color: #15803d; letter-spacing: 2px; }
+    .stamp-box .st-sub   { font-size: 9px;  color: #15803d; letter-spacing: 1px; margin-top: 2px; }
+
+    /* footer */
+    .rp-footer {
+      background: #f8fafc;
+      padding: 16px 32px;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.8;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    /* next payment notice */
+    .rp-next {
+      background: #fef3c7;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 16px;
+      font-size: 12.5px;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { padding: 0; background: white; }
+      .action-bar { display: none !important; }
+      .receipt-paper { box-shadow: none; border-radius: 0; }
+      .rp-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .rp-student { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="receipt-page-wrap">
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print Receipt</button>
+    <button class="btn btn-outline" onclick="history.back()">← Back</button>
+    <a href="fees.html" class="btn btn-ghost">💰 Fees Home</a>
+    <span style="margin-left:auto;font-size:12.5px;color:var(--text-3)" id="receiptLabel">Loading...</span>
+  </div>
+
+  <!-- Receipt paper -->
+  <div class="receipt-paper" id="receiptPaper">
+    <div style="padding:48px;text-align:center;color:#94a3b8;font-size:14px" id="loadingState">
+      Loading receipt...
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const id     = params.get('id');
+
+  if (!id) { showError('No receipt ID provided.'); return; }
+
+  const t = DB.find('feeTransactions', id);
+  if (!t) { showError('Receipt not found. It may have been deleted.'); return; }
+
+  const student = DB.find('students', t.studentId);
+  const course  = DB.find('courses', student?.course || t.courseId);
+
+  document.title    = `Receipt ${t.receiptNo} — EduSoft`;
+  document.getElementById('receiptLabel').textContent = 'Receipt: ' + t.receiptNo;
+
+  renderReceipt(t, student, course);
+});
+
+function showError(msg) {
+  document.getElementById('receiptPaper').innerHTML = `
+    <div style="padding:48px;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+      <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px">Receipt not found</div>
+      <div style="font-size:13px;color:#94a3b8">${msg}</div>
+    </div>`;
+}
+
+function numberToWords(num) {
+  const ones  = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+                  'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
+                  'Seventeen','Eighteen','Nineteen'];
+  const tens  = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+
+  if (num === 0) return 'Zero';
+  if (num < 0)   return 'Minus ' + numberToWords(-num);
+
+  let words = '';
+  if (Math.floor(num / 100000) > 0) {
+    words += numberToWords(Math.floor(num / 100000)) + ' Lakh ';
+    num %= 100000;
+  }
+  if (Math.floor(num / 1000) > 0) {
+    words += numberToWords(Math.floor(num / 1000)) + ' Thousand ';
+    num %= 1000;
+  }
+  if (Math.floor(num / 100) > 0) {
+    words += numberToWords(Math.floor(num / 100)) + ' Hundred ';
+    num %= 100;
+  }
+  if (num > 0) {
+    if (words !== '') words += 'and ';
+    if (num < 20) words += ones[num];
+    else words += tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
+  }
+  return words.trim();
+}
+
+function renderReceipt(t, student, course) {
+  const modeIcons = { Cash:'💵', UPI:'📱', 'Bank Transfer':'🏦', Cheque:'📋', Card:'💳', DD:'📄', NEFT:'🔁', Other:'💼' };
+  const amtWords  = numberToWords(Math.round(t.amount)) + ' Rupees Only';
+
+  // Compute running balance
+  const allTxns   = (DB.get('feeTransactions')||[]).filter(x => x.studentId === t.studentId && x.status !== 'Refunded');
+  const totalPaid = allTxns.reduce((a,x) => a + Number(x.amount), 0);
+  const courseFee = Number(course?.fee || 0);
+  const balance   = Math.max(0, courseFee - totalPaid);
+
+  document.getElementById('receiptPaper').innerHTML = `
+    <!-- HEADER -->
+    <div class="rp-header">
+      <div class="rp-brand">EduSoft</div>
+      <div class="rp-brand-sub">by Uniitechs</div>
+      <div class="rp-badge">
+        <span>✓</span> FEE RECEIPT
+      </div>
+      <div class="rp-receipt-no">
+        <div class="rno-label">Receipt No.</div>
+        <div class="rno-val">${t.receiptNo}</div>
+        <div class="rno-date">${Utils.formatDate(t.date)}</div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="rp-body">
+
+      <!-- Student Info -->
+      <div class="rp-student">
+        <div class="rp-section-label">Student Information</div>
+        <div class="rp-student-grid">
+          <div class="sg-item"><span class="sg-label">Name:</span><span class="sg-val">${t.studentName}</span></div>
+          <div class="sg-item"><span class="sg-label">Roll No:</span><span class="sg-val">${student?.rollNo || t.studentId}</span></div>
+          <div class="sg-item"><span class="sg-label">Course:</span><span class="sg-val">${course?.name || '—'}</span></div>
+          <div class="sg-item"><span class="sg-label">Batch:</span><span class="sg-val">${student?.batch || '—'}</span></div>
+          <div class="sg-item"><span class="sg-label">Mobile:</span><span class="sg-val">${student?.phone || '—'}</span></div>
+          <div class="sg-item"><span class="sg-label">Parent:</span><span class="sg-val">${student?.parentName || '—'}</span></div>
+        </div>
+      </div>
+
+      <!-- Payment Details -->
+      <div class="rp-section-label">Payment Details</div>
+
+      <div class="rp-detail-row">
+        <span class="dr-label">Fee Head / Description</span>
+        <span class="dr-val">${t.remarks || 'Tuition Fee'}</span>
+      </div>
+      <div class="rp-detail-row">
+        <span class="dr-label">Academic Year</span>
+        <span class="dr-val">${t.year || '2024-25'}</span>
+      </div>
+      <div class="rp-detail-row">
+        <span class="dr-label">Payment Date</span>
+        <span class="dr-val">${Utils.formatDate(t.date)}</span>
+      </div>
+      <div class="rp-detail-row">
+        <span class="dr-label">Payment Mode</span>
+        <span class="dr-val">${modeIcons[t.mode] || ''} ${t.mode}</span>
+      </div>
+      ${t.reference ? `
+      <div class="rp-detail-row">
+        <span class="dr-label">Transaction / Ref. No.</span>
+        <span class="dr-val dr-ref">${t.reference}</span>
+      </div>` : ''}
+      ${t.bankName ? `
+      <div class="rp-detail-row">
+        <span class="dr-label">Bank Name</span>
+        <span class="dr-val">${t.bankName}</span>
+      </div>` : ''}
+      ${t.discount && Number(t.discount) > 0 ? `
+      <div class="rp-detail-row rp-discount-row">
+        <span class="dr-label">Discount Applied</span>
+        <span class="dr-val">− ${Utils.formatCurrency(t.discount)}</span>
+      </div>` : ''}
+
+      <!-- Total -->
+      <div class="rp-total">
+        <div class="rt-label">Amount Paid</div>
+        <div class="rt-value">${Utils.formatCurrency(t.amount)}</div>
+      </div>
+      <div class="rp-words">(${amtWords})</div>
+
+      <!-- Balance notice -->
+      ${balance > 0 ? `
+      <div class="rp-next">
+        <span>⚠️</span>
+        <span>Outstanding balance: <strong>${Utils.formatCurrency(balance)}</strong>. Please clear dues at the earliest.</span>
+      </div>` : `
+      <div style="background:var(--success-light);border-radius:8px;padding:10px 14px;margin-top:16px;font-size:12.5px;color:var(--success-dark);display:flex;align-items:center;gap:8px">
+        <span>🎉</span><span><strong>All fees cleared!</strong> No pending dues for this academic year.</span>
+      </div>`}
+
+      <!-- Payment Summary -->
+      <div style="margin-top:20px;padding:14px;background:rgba(14,165,233,0.04);border-radius:10px;border:1px solid rgba(14,165,233,0.1)">
+        <div class="rp-section-label" style="margin-bottom:8px">Fee Summary for ${course?.name || 'Course'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--primary-dark)">${Utils.formatCurrency(courseFee)}</div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Total Fee</div>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--success-dark)">${Utils.formatCurrency(totalPaid)}</div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Paid So Far</div>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:${balance > 0 ? 'var(--danger-dark)' : 'var(--success-dark)' }">${Utils.formatCurrency(balance)}</div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Balance</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stamp -->
+      <div class="rp-stamp">
+        <div style="text-align:right;margin-right:24px">
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:28px">Authorised Signatory</div>
+          <div style="width:120px;border-top:1px solid #cbd5e1;padding-top:6px;font-size:11px;color:#475569;text-align:center">EduSoft Institute</div>
+        </div>
+        <div class="stamp-box">
+          <span class="st-label">PAID</span>
+          <span class="st-sub">VERIFIED</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="rp-footer">
+      This is a computer-generated receipt and does not require a physical signature.<br>
+      EduSoft Institute · Ahmedabad, Gujarat · info@edusoft.in · +91 98765 00000<br>
+      <strong>Powered by EduSoft — by Uniitechs</strong>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

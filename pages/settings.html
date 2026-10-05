@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <style>
+    .settings-layout{display:grid;grid-template-columns:220px 1fr;gap:24px}
+    .settings-nav{display:flex;flex-direction:column;gap:2px}
+    .sn-item{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;color:var(--text-2);transition:all .18s;user-select:none;border:none;background:none;text-align:left;width:100%}
+    .sn-item:hover{background:rgba(14,165,233,.08);color:var(--primary-dark)}
+    .sn-item.active{background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(20,184,166,.1));color:var(--primary-dark);font-weight:700}
+    .sn-item.active::before{content:'';position:absolute;left:0;width:3px;height:70%;background:linear-gradient(180deg,var(--primary),var(--teal));border-radius:0 3px 3px 0}
+    .sn-item{position:relative}
+    .sn-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+
+    .settings-section{display:none}.settings-section.active{display:block;animation:pageEnter .25s var(--ease) both}
+    .section-card{border-radius:var(--radius-lg);padding:24px;border:1.5px solid var(--border);background:rgba(255,255,255,.55);margin-bottom:18px}
+    .sc-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .sc-sub{font-size:12.5px;color:var(--text-3);margin-bottom:20px}
+
+    /* Toggle switch */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+    .toggle-row:last-child{border-bottom:none}
+    .tr-label{font-size:13.5px;font-weight:500;color:var(--text)}
+    .tr-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+    .toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+    .toggle-switch input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:99px;cursor:pointer;transition:.3s}
+    .toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+    .toggle-switch input:checked + .toggle-slider{background:var(--primary)}
+    .toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px)}
+
+    /* Color picker */
+    .color-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .color-opt{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s}
+    .color-opt.selected{border-color:var(--text);transform:scale(1.15)}
+    .color-opt:hover{transform:scale(1.1)}
+
+    /* Data item */
+    .data-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .data-item:last-child{border-bottom:none}
+    .di-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .di-info{flex:1}
+    .di-name{font-size:13.5px;font-weight:600;color:var(--text)}
+    .di-meta{font-size:11.5px;color:var(--text-3);margin-top:1px}
+    .di-count{font-size:18px;font-weight:800;color:var(--primary-dark)}
+
+    /* Integration card */
+    .integration-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:rgba(255,255,255,.52);margin-bottom:10px;transition:all .15s}
+    .integration-card:hover{border-color:var(--border-strong)}
+    .int-icon{font-size:28px;flex-shrink:0}
+    .int-info{flex:1}
+    .int-name{font-size:14px;font-weight:700;color:var(--text)}
+    .int-desc{font-size:12px;color:var(--text-3);margin-top:2px}
+
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}.settings-layout{grid-template-columns:1fr}}
+    @media(max-width:900px){.settings-nav{flex-direction:row;flex-wrap:wrap;gap:4px}}
+    @media(max-width:900px){.sn-item{padding:8px 12px;font-size:12px}}
+  </style>
+</head>
+<body>
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand"><div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div><div class="brand-tagline">by Uniitechs</div></div>
+    <div class="nav-section"><div class="nav-label">Main</div><a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a></div>
+    <div class="nav-section"><div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card"><div class="avatar" data-user-avatar>A</div><div class="user-info"><div class="u-name" data-user-name>Admin</div><div class="u-role" data-user-role>Administrator</div></div></div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Settings</span></div>
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Configure EduSoft for your institute</div>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+    <!-- LEFT NAV -->
+    <div>
+      <div class="card glass" style="padding:12px">
+        <div class="settings-nav">
+          <button class="sn-item active" onclick="showSection('institute',this)"><span class="sn-icon">🏫</span>Institute Profile</button>
+          <button class="sn-item" onclick="showSection('academic',this)"><span class="sn-icon">📅</span>Academic Year</button>
+          <button class="sn-item" onclick="showSection('branding',this)"><span class="sn-icon">🎨</span>Branding & Theme</button>
+          <button class="sn-item" onclick="showSection('notifications',this)"><span class="sn-icon">🔔</span>Notifications</button>
+          <button class="sn-item" onclick="showSection('fees',this)"><span class="sn-icon">💰</span>Fees & Finance</button>
+          <button class="sn-item" onclick="showSection('attendance',this)"><span class="sn-icon">📅</span>Attendance Rules</button>
+          <button class="sn-item" onclick="showSection('data',this)"><span class="sn-icon">💾</span>Data Management</button>
+          <button class="sn-item" onclick="showSection('integrations',this)"><span class="sn-icon">🔗</span>Integrations</button>
+          <button class="sn-item" onclick="showSection('about',this)"><span class="sn-icon">ℹ️</span>About EduSoft</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT CONTENT -->
+    <div>
+
+      <!-- ══ INSTITUTE PROFILE ══ -->
+      <div id="sec-institute" class="settings-section active">
+        <div class="section-card glass">
+          <div class="sc-title">🏫 Institute Profile</div>
+          <div class="sc-sub">Basic information about your institution</div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Institute Name *</label><input type="text" id="instName" placeholder="Sunshine Academy"></div>
+            <div class="field"><label>Short Name / Abbreviation</label><input type="text" id="instShort" placeholder="SA"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Registration Number</label><input type="text" id="instReg" placeholder="GUJ/EDU/2020/00123"></div>
+            <div class="field"><label>Affiliation / Board</label><input type="text" id="instBoard" placeholder="GSEB / CBSE / ICSE / University..."></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Principal Name</label><input type="text" id="instPrincipal" placeholder="Dr. Ramesh Shah"></div>
+            <div class="field"><label>Established Year</label><input type="text" id="instYear" placeholder="2010"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Email *</label><input type="email" id="instEmail" placeholder="info@sunshine.edu"></div>
+            <div class="field"><label>Phone *</label><input type="text" id="instPhone" placeholder="+91 98765 43210"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Website</label><input type="url" id="instWeb" placeholder="https://www.sunshine.edu"></div>
+            <div class="field"><label>GST Number (if applicable)</label><input type="text" id="instGst" placeholder="27AAAAA0000A1Z5"></div>
+          </div>
+          <div class="field" style="margin-bottom:16px"><label>Full Address</label><textarea id="instAddress" rows="2" placeholder="123 Education Lane, Ahmedabad, Gujarat — 380001"></textarea></div>
+          <div class="form-row" style="margin-bottom:16px">
+            <div class="field"><label>City</label><input type="text" id="instCity" placeholder="Ahmedabad"></div>
+            <div class="field"><label>State</label><input type="text" id="instState" placeholder="Gujarat"></div>
+            <div class="field"><label>PIN Code</label><input type="text" id="instPin" placeholder="380001"></div>
+          </div>
+          <button class="btn btn-primary" onclick="saveInstProfile()">💾 Save Institute Profile</button>
+        </div>
+      </div>
+
+      <!-- ══ ACADEMIC YEAR ══ -->
+      <div id="sec-academic" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">📅 Academic Year Configuration</div>
+          <div class="sc-sub">Set the current academic year, working days and holidays</div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Current Academic Year</label><input type="text" id="acYear" placeholder="2024-25" value="2024-25"></div>
+            <div class="field"><label>Year Start Date</label><input type="date" id="acStart" value="2024-06-01"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Year End Date</label><input type="date" id="acEnd" value="2025-04-30"></div>
+            <div class="field"><label>Working Days Per Week</label><select id="acWorkDays"><option value="5">5 days (Mon–Fri)</option><option value="6" selected>6 days (Mon–Sat)</option></select></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Class Start Time</label><input type="time" id="acClassStart" value="08:00"></div>
+            <div class="field"><label>Class End Time</label><input type="time" id="acClassEnd" value="16:30"></div>
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <label>Period Duration (minutes)</label>
+            <select id="acPeriodDur"><option value="45">45 minutes</option><option value="50">50 minutes</option><option value="60" selected>60 minutes</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="saveAcademic()">💾 Save Academic Settings</button>
+        </div>
+        <div class="section-card glass">
+          <div class="sc-title">📊 Year Promotion</div>
+          <div class="sc-sub">End-of-year actions — promote all active students to next year</div>
+          <div class="alert alert-warning" style="margin-bottom:16px"><span>⚠️</span>This will update the batch year for all active students. This action cannot be undone.</div>
+          <div class="form-row">
+            <div class="field"><label>Promote from</label><input type="text" id="promFrom2" value="2024-25"></div>
+            <div class="field"><label>Promote to</label><input type="text" id="promTo2" placeholder="2025-26"></div>
+          </div>
+          <button class="btn btn-danger btn-sm" style="margin-top:14px" onclick="globalPromote()">↑ Promote All Students</button>
+        </div>
+      </div>
+
+      <!-- ══ BRANDING ══ -->
+      <div id="sec-branding" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">🎨 Branding & Theme</div>
+          <div class="sc-sub">Customise the look and feel of EduSoft</div>
+          <div class="field" style="margin-bottom:16px"><label>Software Name (displayed in header)</label><input type="text" id="brandName" value="EduSoft" placeholder="EduSoft"></div>
+          <div class="field" style="margin-bottom:16px"><label>Tagline</label><input type="text" id="brandTagline" value="by Uniitechs" placeholder="by Uniitechs"></div>
+          <div class="field" style="margin-bottom:8px"><label>Primary Accent Color</label></div>
+          <div class="color-options" id="colorPicker">
+            <div class="color-opt selected" data-color="#0ea5e9" style="background:#0ea5e9" onclick="selectColor(this)" title="Sky Blue"></div>
+            <div class="color-opt" data-color="#6366f1" style="background:#6366f1" onclick="selectColor(this)" title="Indigo"></div>
+            <div class="color-opt" data-color="#14b8a6" style="background:#14b8a6" onclick="selectColor(this)" title="Teal"></div>
+            <div class="color-opt" data-color="#22c55e" style="background:#22c55e" onclick="selectColor(this)" title="Green"></div>
+            <div class="color-opt" data-color="#f59e0b" style="background:#f59e0b" onclick="selectColor(this)" title="Amber"></div>
+            <div class="color-opt" data-color="#ef4444" style="background:#ef4444" onclick="selectColor(this)" title="Red"></div>
+            <div class="color-opt" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectColor(this)" title="Purple"></div>
+            <div class="color-opt" data-color="#ec4899" style="background:#ec4899" onclick="selectColor(this)" title="Pink"></div>
+          </div>
+          <div style="margin-top:20px">
+            <div class="field" style="margin-bottom:8px"><label>Theme Mode</label></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-outline" id="themeLight" onclick="setTheme('light')" style="flex:1">☀️ Light (default)</button>
+              <button class="btn btn-outline" id="themeDark"  onclick="setTheme('dark')"  style="flex:1">🌙 Dark</button>
+              <button class="btn btn-outline" id="themeAuto"  onclick="setTheme('auto')"  style="flex:1">🖥 System</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveBranding()">💾 Save Branding</button>
+        </div>
+      </div>
+
+      <!-- ══ NOTIFICATIONS ══ -->
+      <div id="sec-notifications" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">🔔 Notification Preferences</div>
+          <div class="sc-sub">Configure when and how alerts are sent</div>
+          <div class="toggle-row"><div><div class="tr-label">Fee Due Reminder</div><div class="tr-sub">Auto-alert when student fees are overdue</div></div><label class="toggle-switch"><input type="checkbox" checked id="notifFee"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Attendance Shortage Alert</div><div class="tr-sub">Notify parents when attendance drops below 75%</div></div><label class="toggle-switch"><input type="checkbox" checked id="notifAtt"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Exam Schedule Notification</div><div class="tr-sub">Send exam schedule 7 days in advance</div></div><label class="toggle-switch"><input type="checkbox" checked id="notifExam"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Result Publication Alert</div><div class="tr-sub">Notify students when results are published</div></div><label class="toggle-switch"><input type="checkbox" id="notifResult"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Library Overdue Reminder</div><div class="tr-sub">Alert when books are past their due date</div></div><label class="toggle-switch"><input type="checkbox" checked id="notifLib"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Leave Approval Notification</div><div class="tr-sub">Notify faculty when leave is approved/rejected</div></div><label class="toggle-switch"><input type="checkbox" checked id="notifLeave"><span class="toggle-slider"></span></label></div>
+          <div style="margin-top:20px">
+            <div class="field" style="margin-bottom:12px"><label>Preferred Notification Channel</label><select><option>In-App Only</option><option>SMS + In-App</option><option>Email + In-App</option><option>All Channels</option></select></div>
+            <div class="field"><label>SMS Gateway API Key</label><input type="text" placeholder="Enter your SMS gateway API key..."></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="saveNotifications()">💾 Save Preferences</button>
+        </div>
+      </div>
+
+      <!-- ══ FEES & FINANCE ══ -->
+      <div id="sec-fees" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">💰 Fee & Finance Settings</div>
+          <div class="sc-sub">Default fee rules, late fine and payment configuration</div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Late Fine (₹ per day)</label><input type="number" id="finePerDay" value="100" min="0"></div>
+            <div class="field"><label>Fine Grace Period (days)</label><input type="number" id="fineGrace" value="0" min="0"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Fee Due Date (Day of Month)</label><input type="number" id="feeDueDay" value="10" min="1" max="31"></div>
+            <div class="field"><label>Default Payment Mode</label><select id="defaultPayMode"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>GST Rate on Fees (%)</label><select id="gstRate"><option value="0">0% (Exempt)</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option></select></div>
+            <div class="field"><label>Receipt Prefix</label><input type="text" id="receiptPrefix" value="RCP" placeholder="RCP"></div>
+          </div>
+          <div class="toggle-row"><div><div class="tr-label">Auto-update Student Fee Status</div><div class="tr-sub">Automatically mark fees as Paid / Partial based on transactions</div></div><label class="toggle-switch"><input type="checkbox" checked id="autoFeeStatus"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Allow Partial Payments</div><div class="tr-sub">Students can pay fees in multiple installments</div></div><label class="toggle-switch"><input type="checkbox" checked id="allowPartial"><span class="toggle-slider"></span></label></div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveFeeSettings()">💾 Save Fee Settings</button>
+        </div>
+      </div>
+
+      <!-- ══ ATTENDANCE ══ -->
+      <div id="sec-attendance" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">📅 Attendance Rules</div>
+          <div class="sc-sub">Configure attendance thresholds and rules</div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Minimum Attendance Required (%)</label><input type="number" id="minAtt" value="75" min="0" max="100"></div>
+            <div class="field"><label>Warning Threshold (%)</label><input type="number" id="warnAtt" value="80" min="0" max="100"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="field"><label>Attendance Marking Mode</label><select id="attMode"><option>Manual (daily)</option><option>Biometric</option><option>QR Code</option><option>RFID</option></select></div>
+            <div class="field"><label>Attendance Lock Time</label><select id="attLock"><option>End of Day</option><option>2 Hours After Class</option><option>No Lock</option></select></div>
+          </div>
+          <div class="toggle-row"><div><div class="tr-label">Count Sundays as Working Days</div><div class="tr-sub">Include Sundays in attendance calculation</div></div><label class="toggle-switch"><input type="checkbox" id="countSunday"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Auto Mark Holiday</div><div class="tr-sub">Automatically skip declared holidays in attendance</div></div><label class="toggle-switch"><input type="checkbox" checked id="autoHoliday"><span class="toggle-slider"></span></label></div>
+          <div class="toggle-row"><div><div class="tr-label">Medical Leave Counted Separately</div><div class="tr-sub">Medical leaves don't count against attendance percentage</div></div><label class="toggle-switch"><input type="checkbox" id="medLeave"><span class="toggle-slider"></span></label></div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveAttSettings()">💾 Save Attendance Rules</button>
+        </div>
+      </div>
+
+      <!-- ══ DATA MANAGEMENT ══ -->
+      <div id="sec-data" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">💾 Data Overview</div>
+          <div class="sc-sub">Current data stored in this browser's localStorage</div>
+          <div id="dataOverview"></div>
+        </div>
+        <div class="section-card glass">
+          <div class="sc-title">📦 Backup & Restore</div>
+          <div class="sc-sub">Export all data as JSON or import from a previous backup</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="backupData()">⬇ Download Backup (JSON)</button>
+            <label class="btn btn-outline" style="cursor:pointer">⬆ Restore from Backup <input type="file" accept=".json" style="display:none" onchange="restoreData(this)"></label>
+          </div>
+          <div style="margin-top:12px;font-size:12.5px;color:var(--text-3)">Backup includes: students, faculty, courses, fees, attendance, exams, results, library, accounts, settings and all seeded data.</div>
+        </div>
+        <div class="section-card glass" style="border-color:rgba(239,68,68,.25)">
+          <div class="sc-title" style="color:var(--danger-dark)">⚠️ Danger Zone</div>
+          <div class="sc-sub">These actions are irreversible. Use with extreme caution.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-danger-soft" onclick="resetModule()">🔄 Reset Module Data</button>
+            <button class="btn btn-danger" onclick="clearAllData()">💥 Clear ALL Data</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ INTEGRATIONS ══ -->
+      <div id="sec-integrations" class="settings-section">
+        <div class="section-card glass">
+          <div class="sc-title">🔗 Third-party Integrations</div>
+          <div class="sc-sub">Connect EduSoft with external services</div>
+          <div class="integration-card glass">
+            <div class="int-icon">📱</div>
+            <div class="int-info"><div class="int-name">SMS Gateway (MSG91 / Fast2SMS)</div><div class="int-desc">Send automated SMS for fees, attendance and notices</div></div>
+            <button class="btn btn-outline btn-sm" onclick="Toast.info('SMS gateway integration coming in v2.0')">Configure</button>
+          </div>
+          <div class="integration-card glass">
+            <div class="int-icon">📧</div>
+            <div class="int-info"><div class="int-name">Email (Gmail / SMTP)</div><div class="int-desc">Send automated emails to parents and students</div></div>
+            <button class="btn btn-outline btn-sm" onclick="Toast.info('Email integration coming in v2.0')">Configure</button>
+          </div>
+          <div class="integration-card glass">
+            <div class="int-icon">💬</div>
+            <div class="int-info"><div class="int-name">WhatsApp Business API</div><div class="int-desc">Send WhatsApp messages via official business API</div></div>
+            <button class="btn btn-outline btn-sm" onclick="Toast.info('WhatsApp integration coming in v2.0')">Configure</button>
+          </div>
+          <div class="integration-card glass">
+            <div class="int-icon">💳</div>
+            <div class="int-info"><div class="int-name">Payment Gateway (Razorpay / PayU)</div><div class="int-desc">Accept online fee payments via UPI, cards, netbanking</div></div>
+            <button class="btn btn-outline btn-sm" onclick="Toast.info('Payment gateway coming in v2.0')">Configure</button>
+          </div>
+          <div class="integration-card glass">
+            <div class="int-icon">☁️</div>
+            <div class="int-info"><div class="int-name">Google Drive Backup</div><div class="int-desc">Auto-sync daily backups to Google Drive</div></div>
+            <button class="btn btn-outline btn-sm" onclick="Toast.info('Cloud backup coming in v2.0')">Configure</button>
+          </div>
+          <div class="integration-card glass">
+            <div class="int-icon">🖨</div>
+            <div class="int-info"><div class="int-name">Print / PDF Service</div><div class="int-desc">Advanced PDF generation with custom templates</div></div>
+            <span class="badge badge-teal">Built-in</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ABOUT ══ -->
+      <div id="sec-about" class="settings-section">
+        <div class="section-card glass" style="text-align:center;padding:40px">
+          <div style="font-family:var(--font-display);font-size:48px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:8px">EduSoft</div>
+          <div style="font-size:13px;color:var(--text-3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Institute Management System</div>
+          <div style="font-size:14px;font-weight:600;color:var(--primary-dark);margin-bottom:24px">by Uniitechs</div>
+          <div style="display:inline-block;padding:8px 20px;background:var(--primary-light);border-radius:99px;font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:24px">Version 1.0.0 — 2024-25</div>
+          <div style="font-size:13.5px;color:var(--text-2);line-height:1.8;max-width:500px;margin:0 auto 24px">
+            EduSoft is a complete institute management software built for schools, coaching centres and colleges.
+            Manage students, faculty, fees, attendance, exams, library, timetable and more — all from one place.
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <div style="padding:12px 20px;background:rgba(14,165,233,.06);border-radius:var(--radius);text-align:center;min-width:100px"><div style="font-size:22px;font-weight:800;color:var(--primary-dark)" id="aboutStudents">0</div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Students</div></div>
+            <div style="padding:12px 20px;background:rgba(20,184,166,.06);border-radius:var(--radius);text-align:center;min-width:100px"><div style="font-size:22px;font-weight:800;color:var(--teal-dark)" id="aboutFaculty">0</div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Faculty</div></div>
+            <div style="padding:12px 20px;background:rgba(99,102,241,.06);border-radius:var(--radius);text-align:center;min-width:100px"><div style="font-size:22px;font-weight:800;color:var(--accent)" id="aboutCourses">0</div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Courses</div></div>
+            <div style="padding:12px 20px;background:rgba(34,197,94,.06);border-radius:var(--radius);text-align:center;min-width:100px"><div style="font-size:22px;font-weight:800;color:var(--success-dark)" id="aboutModules">14</div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Modules</div></div>
+          </div>
+        </div>
+        <div class="section-card glass">
+          <div class="sc-title">📜 Module Index</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px">
+            ${['Dashboard','Students','Courses','Fees & Receipts','Attendance','Exams & Results','Faculty & Staff','Timetable','Reports & Analytics','Library','Communication','Accounts & Finance','Users & Access','Settings'].map((m,i)=>`<div style="padding:6px 10px;border-radius:8px;background:rgba(14,165,233,.04);border:1px solid var(--border);display:flex;align-items:center;gap:6px"><span style="font-size:10px;font-weight:700;color:var(--primary-dark);min-width:20px">${String(i+1).padStart(2,'0')}</span>${m}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+  </div>
+</main>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initSidebar('settings');
+  loadInstProfile();loadAboutStats();loadDataOverview();
+  loadSavedSettings();
+});
+
+/* ══ SECTION SWITCH ══ */
+function showSection(name,btn){
+  document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sn-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='data')loadDataOverview();
+  if(name==='about')loadAboutStats();
+}
+
+/* ══ SAVED SETTINGS LOAD/SAVE ══ */
+function loadSavedSettings(){
+  const s=DB.get('appSettings')||{};
+  if(s.instName)document.getElementById('instName').value=s.instName;
+  if(s.instShort)document.getElementById('instShort').value=s.instShort;
+  if(s.instReg)document.getElementById('instReg').value=s.instReg;
+  if(s.instBoard)document.getElementById('instBoard').value=s.instBoard;
+  if(s.instPrincipal)document.getElementById('instPrincipal').value=s.instPrincipal;
+  if(s.instYear)document.getElementById('instYear').value=s.instYear;
+  if(s.instEmail)document.getElementById('instEmail').value=s.instEmail;
+  if(s.instPhone)document.getElementById('instPhone').value=s.instPhone;
+  if(s.instWeb)document.getElementById('instWeb').value=s.instWeb;
+  if(s.instGst)document.getElementById('instGst').value=s.instGst;
+  if(s.instAddress)document.getElementById('instAddress').value=s.instAddress;
+  if(s.instCity)document.getElementById('instCity').value=s.instCity;
+  if(s.instState)document.getElementById('instState').value=s.instState;
+  if(s.instPin)document.getElementById('instPin').value=s.instPin;
+  if(s.brandName)document.getElementById('brandName').value=s.brandName;
+  if(s.brandTagline)document.getElementById('brandTagline').value=s.brandTagline;
+}
+
+function loadInstProfile(){
+  const s=DB.get('appSettings');
+  if(!s){
+    // seed defaults
+    DB.set('appSettings',{instName:'Sunshine Academy',instEmail:'info@sunshine.edu',instPhone:'+91 98765 43210',instCity:'Ahmedabad',instState:'Gujarat',instPin:'380001',brandName:'EduSoft',brandTagline:'by Uniitechs'});
+    loadSavedSettings();
+  }
+}
+
+/* ══ SAVE FUNCTIONS ══ */
+function saveInstProfile(){
+  const s=DB.get('appSettings')||{};
+  const fields=['instName','instShort','instReg','instBoard','instPrincipal','instYear','instEmail','instPhone','instWeb','instGst','instAddress','instCity','instState','instPin'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value.trim();});
+  DB.set('appSettings',s);Toast.success('Institute profile saved!');
+}
+
+function saveAcademic(){
+  const s=DB.get('appSettings')||{};
+  ['acYear','acStart','acEnd','acWorkDays','acClassStart','acClassEnd','acPeriodDur'].forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value;});
+  DB.set('appSettings',s);Toast.success('Academic settings saved!');
+}
+
+function saveBranding(){
+  const s=DB.get('appSettings')||{};
+  s.brandName=document.getElementById('brandName').value.trim();
+  s.brandTagline=document.getElementById('brandTagline').value.trim();
+  s.selectedColor=document.querySelector('.color-opt.selected')?.dataset.color||'#0ea5e9';
+  DB.set('appSettings',s);Toast.success('Branding saved! Reload to see changes.');
+}
+
+function saveNotifications(){
+  const s=DB.get('appSettings')||{};
+  ['notifFee','notifAtt','notifExam','notifResult','notifLib','notifLeave'].forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.checked;});
+  DB.set('appSettings',s);Toast.success('Notification preferences saved!');
+}
+
+function saveFeeSettings(){
+  const s=DB.get('appSettings')||{};
+  ['finePerDay','fineGrace','feeDueDay','defaultPayMode','gstRate','receiptPrefix'].forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value;});
+  s.autoFeeStatus=document.getElementById('autoFeeStatus').checked;
+  s.allowPartial=document.getElementById('allowPartial').checked;
+  DB.set('appSettings',s);Toast.success('Fee settings saved!');
+}
+
+function saveAttSettings(){
+  const s=DB.get('appSettings')||{};
+  ['minAtt','warnAtt','attMode','attLock'].forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value;});
+  s.countSunday=document.getElementById('countSunday').checked;
+  s.autoHoliday=document.getElementById('autoHoliday').checked;
+  s.medLeave=document.getElementById('medLeave').checked;
+  DB.set('appSettings',s);Toast.success('Attendance rules saved!');
+}
+
+/* ══ BRANDING ══ */
+function selectColor(el){
+  document.querySelectorAll('.color-opt').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.documentElement.style.setProperty('--primary',el.dataset.color);
+}
+
+function setTheme(mode){
+  ['themeLight','themeDark','themeAuto'].forEach(id=>document.getElementById(id)?.classList.remove('btn-primary'));
+  document.getElementById('theme'+mode.charAt(0).toUpperCase()+mode.slice(1))?.classList.add('btn-primary');
+  Toast.info('Theme set to '+mode+' — applies on next load');
+}
+
+/* ══ DATA MANAGEMENT ══ */
+function loadDataOverview(){
+  const keys=['students','faculty','courses','feeTransactions','attendanceLog','exams','results','books','bookIssues','accountLedger','notices','timetable','systemUsers','activityLog'];
+  const labels={students:'Students',faculty:'Faculty',courses:'Courses',feeTransactions:'Fee Transactions',attendanceLog:'Attendance Records',exams:'Exams',results:'Exam Results',books:'Library Books',bookIssues:'Book Issues',accountLedger:'Account Entries',notices:'Notices',timetable:'Timetable Slots',systemUsers:'System Users',activityLog:'Activity Logs'};
+  const icons={students:'🎓',faculty:'👩‍🏫',courses:'📚',feeTransactions:'💰',attendanceLog:'📅',exams:'📝',results:'⭐',books:'📚',bookIssues:'📤',accountLedger:'🏧',notices:'📣',timetable:'🕒',systemUsers:'🔐',activityLog:'📋'};
+  document.getElementById('dataOverview').innerHTML=keys.map(k=>{
+    const data=DB.get(k);const count=Array.isArray(data)?data.length:data?1:0;
+    return `<div class="data-item"><div class="di-icon" style="background:rgba(14,165,233,.08)">${icons[k]||'📦'}</div><div class="di-info"><div class="di-name">${labels[k]}</div><div class="di-meta">Key: edusoft_${k}</div></div><div class="di-count">${count}</div></div>`;
+  }).join('');
+}
+
+function backupData(){
+  const keys=['students','faculty','courses','feeTransactions','attendanceLog','exams','results','books','bookIssues','accountLedger','notices','timetable','systemUsers','activityLog','academicBatches','appSettings','rooms','holidays','leaveRequests','facLeaves','budgetHeads','vendors','reportTemplates'];
+  const backup={version:'1.0',exportedAt:new Date().toISOString(),data:{}};
+  keys.forEach(k=>{const d=DB.get(k);if(d!==null)backup.data[k]=d;});
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(backup,null,2));
+  a.download='edusoft_backup_'+Utils.today()+'.json';a.click();
+  Toast.success('Backup downloaded successfully!');
+}
+
+function restoreData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const backup=JSON.parse(e.target.result);
+      if(!backup.data){Toast.error('Invalid backup file');return;}
+      if(!confirm('This will overwrite all existing data with the backup. Continue?'))return;
+      Object.entries(backup.data).forEach(([k,v])=>DB.set(k,v));
+      Toast.success('Data restored from backup! Reloading...');
+      setTimeout(()=>window.location.reload(),1500);
+    }catch(err){Toast.error('Failed to parse backup file: '+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+function resetModule(){
+  const mod=prompt('Which module to reset?\nType: students / faculty / courses / fees / attendance / exams / library / accounts');
+  if(!mod)return;const keyMap={students:'students',faculty:'faculty',courses:'courses',fees:'feeTransactions',attendance:'attendanceLog',exams:'exams',library:'books',accounts:'accountLedger'};
+  const key=keyMap[mod.toLowerCase()];
+  if(!key){Toast.error('Unknown module: '+mod);return;}
+  if(!confirm(`Reset all ${mod} data? This cannot be undone.`))return;
+  DB.set(key,[]);DB.remove('_seeded');
+  Toast.success(mod+' data cleared. Reload to re-seed.');
+}
+
+function clearAllData(){
+  if(!confirm('⚠️ This will DELETE ALL DATA including students, fees, attendance, results and settings. Are you absolutely sure?'))return;
+  if(!confirm('Last chance — this CANNOT be undone. Delete everything?'))return;
+  localStorage.clear();
+  Toast.success('All data cleared. Redirecting to login...');
+  setTimeout(()=>{window.location.href='../index.html';},1500);
+}
+
+/* ══ ACADEMIC YEAR PROMOTE ══ */
+function globalPromote(){
+  const from=document.getElementById('promFrom2').value.trim();const to=document.getElementById('promTo2').value.trim();
+  if(!from||!to){Toast.error('Enter both batch years');return;}
+  if(!confirm(`Promote ALL active students from ${from} to ${to}?`))return;
+  const students=DB.get('students')||[];let count=0;
+  students.forEach(s=>{if(s.batch===from&&s.status==='Active'){DB.update('students',s.id,{batch:to});count++;}});
+  Toast.success(`${count} students promoted to ${to}`);
+}
+
+/* ══ ABOUT STATS ══ */
+function loadAboutStats(){
+  document.getElementById('aboutStudents').textContent=(DB.get('students')||[]).length;
+  document.getElementById('aboutFaculty').textContent=(DB.get('faculty')||[]).length;
+  document.getElementById('aboutCourses').textContent=(DB.get('courses')||[]).length;
+}
+</script>
+</body>
+</html>

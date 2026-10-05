@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timetable — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <style>
+    /* ══ TABS ══ */
+    .main-tabs{display:flex;gap:4px;padding:4px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);margin-bottom:24px;width:fit-content;flex-wrap:wrap}
+    .main-tab{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .18s;border:none;background:none}
+    .main-tab.active{background:white;color:var(--primary-dark);font-weight:700;box-shadow:0 2px 8px rgba(14,165,233,0.14)}
+    .tab-pane{display:none}.tab-pane.active{display:block;animation:pageEnter .25s var(--ease) both}
+
+    /* ══ TIMETABLE GRID ══ */
+    .tt-wrap{overflow-x:auto;border-radius:var(--radius-lg)}
+    .tt-grid{min-width:760px;border-collapse:collapse;width:100%}
+    .tt-grid th,.tt-grid td{border:1px solid var(--border)}
+    .tt-grid th{padding:10px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);text-align:center;white-space:nowrap;background:rgba(14,165,233,0.04)}
+    .tt-grid .time-col{background:rgba(14,165,233,0.04);min-width:80px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--text-2);text-align:center;white-space:nowrap}
+    .tt-grid .day-head{min-width:130px}
+    .tt-cell{padding:4px;vertical-align:top;min-height:68px;cursor:pointer;transition:background .15s;position:relative}
+    .tt-cell:hover{background:rgba(14,165,233,0.05)}
+    .tt-cell.break-row{background:rgba(245,158,11,0.06)}
+    .tt-cell.empty-cell:hover::after{content:'+ Add';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--primary);opacity:.6}
+
+    /* slot pill */
+    .slot-pill{border-radius:8px;padding:6px 9px;margin:2px;font-size:11.5px;position:relative;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+    .slot-pill:hover{filter:brightness(0.96);transform:scale(1.02)}
+    .slot-pill .sp-subject{font-weight:700;color:var(--text);line-height:1.2}
+    .slot-pill .sp-faculty{font-size:10.5px;color:var(--text-3);margin-top:1px}
+    .slot-pill .sp-room  {font-size:10px;color:var(--text-3)}
+    .slot-pill .sp-del   {position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:rgba(239,68,68,0.15);color:var(--danger);font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;cursor:pointer;border:none}
+    .slot-pill:hover .sp-del{opacity:1}
+
+    /* break pill */
+    .break-pill{background:rgba(245,158,11,0.12);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:600;color:var(--warning-dark);text-align:center;margin:2px}
+
+    /* course colours */
+    .c-C001{background:rgba(14,165,233,0.1);border-left-color:#0ea5e9}
+    .c-C002{background:rgba(20,184,166,0.1);border-left-color:#14b8a6}
+    .c-C003{background:rgba(99,102,241,0.1);border-left-color:#6366f1}
+    .c-C004{background:rgba(245,158,11,0.1);border-left-color:#f59e0b}
+    .c-C005{background:rgba(236,72,153,0.1);border-left-color:#ec4899}
+    .c-F001{background:rgba(14,165,233,0.1);border-left-color:#0ea5e9}
+    .c-F002{background:rgba(99,102,241,0.1);border-left-color:#6366f1}
+    .c-F003{background:rgba(20,184,166,0.1);border-left-color:#14b8a6}
+    .c-F004{background:rgba(245,158,11,0.1);border-left-color:#f59e0b}
+    .c-F005{background:rgba(236,72,153,0.1);border-left-color:#ec4899}
+    .c-F006{background:rgba(34,197,94,0.1);border-left-color:#22c55e}
+    .c-F007{background:rgba(239,68,68,0.1);border-left-color:#ef4444}
+
+    /* conflict highlight */
+    .conflict-cell{background:rgba(239,68,68,0.08)!important}
+    .conflict-badge{background:var(--danger-light);color:var(--danger-dark);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:3px}
+
+    /* ══ LEGEND ══ */
+    .legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2)}
+    .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+    /* ══ FACULTY VIEW TABLE ══ */
+    .fac-tt-wrap{overflow-x:auto}
+    .fac-tt{min-width:700px;width:100%;border-collapse:collapse;font-size:13px}
+    .fac-tt th,.fac-tt td{border:1px solid var(--border);padding:9px 10px;text-align:center}
+    .fac-tt th{background:rgba(14,165,233,0.05);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3)}
+    .fac-tt td.has-class{background:rgba(14,165,233,0.06);font-weight:600;font-size:12.5px;color:var(--text)}
+    .fac-tt td.free{color:var(--text-4);font-size:12px}
+    .fac-tt td.break-td{background:rgba(245,158,11,0.08);font-size:11px;color:var(--warning-dark);font-weight:600}
+
+    /* ══ ROOM CARD ══ */
+    .room-card{border-radius:var(--radius);padding:18px;border:1.5px solid var(--border);background:rgba(255,255,255,0.5);margin-bottom:10px;transition:all .15s}
+    .room-card:hover{border-color:var(--border-strong)}
+    .room-name{font-size:14px;font-weight:700;color:var(--text)}
+    .room-meta{font-size:12px;color:var(--text-3);margin-top:2px}
+    .room-occ-bar{margin-top:10px}
+
+    /* ══ TOPBAR ══ */
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}}
+    @media print{
+      .sidebar,.topbar,.main-tabs,.page-actions,.btn,.filter-bar{display:none!important}
+      .main-content{margin-left:0!important;padding:0!important}
+      .glass{background:white!important;backdrop-filter:none!important;box-shadow:none!important;border:1px solid #e2e8f0!important}
+      body::before,body::after{display:none!important}
+      .tt-grid th,.tt-grid td{border:1px solid #e2e8f0}
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div>
+      <div class="brand-tagline">by Uniitechs</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" data-user-avatar>A</div>
+        <div class="user-info">
+          <div class="u-name" data-user-name>Admin</div>
+          <div class="u-role" data-user-role>Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Timetable</span></div>
+      <div class="page-title">Timetable</div>
+      <div class="page-sub">Weekly class schedule, faculty assignments and room management</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Timetable</button>
+      <button class="btn btn-outline" onclick="checkConflicts()">⚠️ Check Conflicts</button>
+      <button class="btn btn-primary" onclick="openAddSlotModal()">+ Add Period</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue"><div class="stat-icon">📅</div><div class="stat-label">Total Periods/Week</div><div class="stat-value" id="statPeriods">0</div><div class="stat-delta delta-flat">across all courses</div></div>
+    <div class="stat-card glass teal"><div class="stat-icon">👩‍🏫</div><div class="stat-label">Faculty Assigned</div><div class="stat-value" id="statFacAssigned">0</div><div class="stat-delta delta-flat">of total faculty</div></div>
+    <div class="stat-card glass success"><div class="stat-icon">🏫</div><div class="stat-label">Rooms Used</div><div class="stat-value" id="statRooms">0</div><div class="stat-delta delta-flat">this week</div></div>
+    <div class="stat-card glass warn"><div class="stat-icon">⚠️</div><div class="stat-label">Conflicts</div><div class="stat-value" id="statConflicts">0</div><div class="stat-delta delta-down">detected</div></div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('weekly',this)">📅 Weekly Grid</button>
+    <button class="main-tab" onclick="switchTab('faculty',this)">👩‍🏫 Faculty View</button>
+    <button class="main-tab" onclick="switchTab('rooms',this)">🏫 Room Manager</button>
+  </div>
+
+  <!-- ══ TAB: WEEKLY GRID ══ -->
+  <div id="tab-weekly" class="tab-pane active">
+    <div class="card glass" style="margin-bottom:16px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <div class="field" style="min-width:200px;flex:1;max-width:280px;margin-bottom:0">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-2);display:block;margin-bottom:5px">View Course</label>
+          <select id="ttCourseFilter" onchange="renderWeeklyGrid()" style="width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;color:var(--text);outline:none">
+            <option value="">All Courses</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
+          <button class="btn btn-sm btn-outline" onclick="clearTimetable()">🗑 Clear All</button>
+          <button class="btn btn-sm btn-outline" onclick="autoGenerate()">⚡ Auto-Generate</button>
+        </div>
+        <!-- Legend -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;margin-left:auto">
+          <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div>CS</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#14b8a6"></div>Commerce</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div>Science</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>BCA</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>Arts</div>
+        </div>
+      </div>
+      <div class="tt-wrap">
+        <table class="tt-grid" id="ttTable"></table>
+      </div>
+    </div>
+
+    <!-- Conflicts panel -->
+    <div id="conflictPanel" style="display:none" class="card glass">
+      <div class="card-header">
+        <div class="card-title" style="color:var(--danger-dark)">⚠️ Schedule Conflicts Detected</div>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('conflictPanel').style.display='none'">✕ Dismiss</button>
+      </div>
+      <div id="conflictList"></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: FACULTY VIEW ══ -->
+  <div id="tab-faculty" class="tab-pane">
+    <div class="card glass">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="min-width:220px;flex:1;max-width:320px;margin-bottom:0">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-2);display:block;margin-bottom:5px">Select Faculty</label>
+          <select id="facTTSelect" onchange="renderFacultyTT()" style="width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.6);font-family:var(--font);font-size:13px;color:var(--text);outline:none">
+            <option value="">All Faculty</option>
+          </select>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print Faculty Schedule</button>
+      </div>
+      <div class="fac-tt-wrap" id="facTTWrap"></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: ROOMS ══ -->
+  <div id="tab-rooms" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:20px">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title">Rooms & Halls</div>
+          <button class="btn btn-primary btn-sm" onclick="Modal.open('addRoomModal')">+ Add Room</button>
+        </div>
+        <div id="roomList"></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Room Occupancy — This Week</div><div class="card-sub">Periods assigned per room per day</div></div>
+        <div class="table-wrap">
+          <table class="data-table" id="roomOccTable">
+            <thead><tr><th>Room</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Total</th></tr></thead>
+            <tbody id="roomOccBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ MODAL: ADD / EDIT PERIOD ══ -->
+<div class="modal-overlay" id="addSlotModal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div><div class="modal-title" id="slotModalTitle">Add Period</div><div class="modal-sub" id="slotModalSub">Fill in the class details</div></div>
+      <button class="modal-close" onclick="Modal.close('addSlotModal')">✕</button>
+    </div>
+    <input type="hidden" id="editSlotId">
+    <input type="hidden" id="slotDay">
+    <input type="hidden" id="slotPeriodIdx">
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Course *</label><select id="slotCourse" onchange="onSlotCourseChange()"><option value="">— Select —</option></select></div>
+      <div class="field"><label>Subject *</label><select id="slotSubject"><option value="">— Select —</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Faculty</label><select id="slotFaculty"><option value="">— Unassigned —</option></select></div>
+      <div class="field"><label>Room</label><select id="slotRoom"><option value="">— Select Room —</option></select></div>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="field"><label>Day</label><select id="slotDaySelect"><option value="Mon">Monday</option><option value="Tue">Tuesday</option><option value="Wed">Wednesday</option><option value="Thu">Thursday</option><option value="Fri">Friday</option><option value="Sat">Saturday</option></select></div>
+      <div class="field"><label>Period Slot</label><select id="slotPeriodSelect"></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveSlot()">Save Period</button>
+      <button class="btn btn-outline" onclick="Modal.close('addSlotModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ADD ROOM ══ -->
+<div class="modal-overlay" id="addRoomModal">
+  <div class="modal glass modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Add Room / Hall</div>
+      <button class="modal-close" onclick="Modal.close('addRoomModal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:14px"><label>Room Name *</label><input type="text" id="roomName" placeholder="Room 101 / Main Hall / Lab A"></div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="field"><label>Capacity</label><input type="number" id="roomCap" placeholder="60" min="1"></div>
+      <div class="field"><label>Type</label><select id="roomType"><option>Classroom</option><option>Lab</option><option>Hall</option><option>Seminar Room</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:0"><label>Block / Location</label><input type="text" id="roomBlock" placeholder="Block A, Ground Floor"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveRoom()">Add Room</button>
+      <button class="btn btn-outline" onclick="Modal.close('addRoomModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+
+/* ═══════════ SEED DATA ═══════════ */
+const DAYS    = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY_LABELS = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday' };
+const PERIODS = [
+  { label:'08:00–09:00', idx:0 },
+  { label:'09:00–10:00', idx:1 },
+  { label:'10:00–10:15', idx:'break1', isBreak:true, breakLabel:'Short Break' },
+  { label:'10:15–11:15', idx:2 },
+  { label:'11:15–12:15', idx:3 },
+  { label:'12:15–01:00', idx:'lunch',  isBreak:true, breakLabel:'Lunch Break' },
+  { label:'01:00–02:00', idx:4 },
+  { label:'02:00–03:00', idx:5 },
+  { label:'03:00–03:10', idx:'break2', isBreak:true, breakLabel:'Short Break' },
+  { label:'03:10–04:10', idx:6 },
+];
+const CLASS_PERIODS = PERIODS.filter(p => !p.isBreak);
+
+function seedTimetable() {
+  if (DB.get('ttSeeded')) return;
+
+  DB.set('timetable', [
+    // CS Course (C001) — Pooja teaches CS, Meera teaches Math
+    {id:'TT001',day:'Mon',periodIdx:0,courseId:'C001',subject:'Mathematics',facultyId:'F001',room:'Room 101'},
+    {id:'TT002',day:'Mon',periodIdx:1,courseId:'C001',subject:'CS Theory',  facultyId:'F003',room:'Computer Lab'},
+    {id:'TT003',day:'Mon',periodIdx:2,courseId:'C001',subject:'Physics',    facultyId:'F002',room:'Room 101'},
+    {id:'TT004',day:'Mon',periodIdx:3,courseId:'C001',subject:'Practical',  facultyId:'F003',room:'Computer Lab'},
+
+    {id:'TT005',day:'Tue',periodIdx:0,courseId:'C001',subject:'Mathematics',facultyId:'F001',room:'Room 101'},
+    {id:'TT006',day:'Tue',periodIdx:1,courseId:'C001',subject:'CS Theory',  facultyId:'F003',room:'Room 102'},
+    {id:'TT007',day:'Tue',periodIdx:2,courseId:'C001',subject:'Physics',    facultyId:'F002',room:'Room 101'},
+
+    {id:'TT008',day:'Wed',periodIdx:0,courseId:'C001',subject:'Mathematics',facultyId:'F001',room:'Room 101'},
+    {id:'TT009',day:'Wed',periodIdx:1,courseId:'C001',subject:'Practical',  facultyId:'F003',room:'Computer Lab'},
+    {id:'TT010',day:'Wed',periodIdx:3,courseId:'C001',subject:'CS Theory',  facultyId:'F003',room:'Room 101'},
+
+    {id:'TT011',day:'Thu',periodIdx:0,courseId:'C001',subject:'Physics',    facultyId:'F002',room:'Room 101'},
+    {id:'TT012',day:'Thu',periodIdx:1,courseId:'C001',subject:'Mathematics',facultyId:'F001',room:'Room 101'},
+    {id:'TT013',day:'Thu',periodIdx:4,courseId:'C001',subject:'CS Theory',  facultyId:'F003',room:'Room 102'},
+
+    {id:'TT014',day:'Fri',periodIdx:0,courseId:'C001',subject:'Practical',  facultyId:'F003',room:'Computer Lab'},
+    {id:'TT015',day:'Fri',periodIdx:1,courseId:'C001',subject:'Mathematics',facultyId:'F001',room:'Room 101'},
+    {id:'TT016',day:'Fri',periodIdx:2,courseId:'C001',subject:'Physics',    facultyId:'F002',room:'Room 101'},
+
+    // Commerce (C002) — Ajay teaches Accounts, Reena teaches English
+    {id:'TT017',day:'Mon',periodIdx:4,courseId:'C002',subject:'Accounts',       facultyId:'F004',room:'Room 201'},
+    {id:'TT018',day:'Mon',periodIdx:5,courseId:'C002',subject:'English',         facultyId:'F005',room:'Room 201'},
+    {id:'TT019',day:'Tue',periodIdx:3,courseId:'C002',subject:'Business Studies',facultyId:'F004',room:'Room 201'},
+    {id:'TT020',day:'Wed',periodIdx:4,courseId:'C002',subject:'Economics',       facultyId:'F004',room:'Room 201'},
+    {id:'TT021',day:'Thu',periodIdx:2,courseId:'C002',subject:'Accounts',        facultyId:'F004',room:'Room 201'},
+    {id:'TT022',day:'Fri',periodIdx:3,courseId:'C002',subject:'English',         facultyId:'F005',room:'Room 201'},
+
+    // Science (C003) — Vivek teaches Physics, Meera teaches Maths
+    {id:'TT023',day:'Mon',periodIdx:6,courseId:'C003',subject:'Physics',   facultyId:'F002',room:'Room 102'},
+    {id:'TT024',day:'Tue',periodIdx:4,courseId:'C003',subject:'Chemistry', facultyId:'F002',room:'Room 102'},
+    {id:'TT025',day:'Wed',periodIdx:5,courseId:'C003',subject:'Maths',     facultyId:'F001',room:'Room 102'},
+    {id:'TT026',day:'Thu',periodIdx:3,courseId:'C003',subject:'Physics',   facultyId:'F002',room:'Room 102'},
+    {id:'TT027',day:'Fri',periodIdx:4,courseId:'C003',subject:'English',   facultyId:'F005',room:'Room 102'},
+  ]);
+
+  DB.set('rooms', [
+    { id:'R001', name:'Room 101',     capacity:60, type:'Classroom',    block:'Block A, Ground Floor' },
+    { id:'R002', name:'Room 102',     capacity:60, type:'Classroom',    block:'Block A, First Floor'  },
+    { id:'R003', name:'Room 201',     capacity:80, type:'Classroom',    block:'Block B, Ground Floor' },
+    { id:'R004', name:'Computer Lab', capacity:40, type:'Lab',          block:'Block C, Ground Floor' },
+    { id:'R005', name:'Main Hall',    capacity:200,type:'Hall',         block:'Main Building'         },
+    { id:'R006', name:'Lab A',        capacity:30, type:'Lab',          block:'Block C, First Floor'  },
+  ]);
+
+  DB.set('ttSeeded', true);
+}
+
+/* ═══════════ INIT ═══════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('timetable');
+  seedTimetable();
+  populateCourseSelect('ttCourseFilter');
+  populateCourseSelect('slotCourse');
+  populateFacultySelectLocal('slotFaculty');
+  populateFacultySelectLocal('facTTSelect');
+  populateRoomSelect();
+  populatePeriodSelect();
+  updateStats();
+  renderWeeklyGrid();
+});
+
+function populateFacultySelectLocal(id, blank = true) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const faculty = DB.get('faculty') || [];
+  el.innerHTML = (blank ? '<option value="">— Unassigned —</option>' : '') +
+    faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+}
+
+function populateRoomSelect() {
+  const rooms = DB.get('rooms') || [];
+  const el    = document.getElementById('slotRoom');
+  if (el) el.innerHTML = '<option value="">— No Room —</option>' +
+    rooms.map(r => `<option value="${r.name}">${r.name} (cap. ${r.capacity})</option>`).join('');
+}
+
+function populatePeriodSelect() {
+  const el = document.getElementById('slotPeriodSelect');
+  if (!el) return;
+  el.innerHTML = CLASS_PERIODS.map((p,i) =>
+    `<option value="${p.idx}">Period ${i+1} · ${p.label}</option>`).join('');
+}
+
+/* ═══════════ STATS ═══════════ */
+function updateStats() {
+  const tt = DB.get('timetable') || [];
+  const facIds  = [...new Set(tt.map(s => s.facultyId).filter(Boolean))];
+  const rooms   = [...new Set(tt.map(s => s.room).filter(Boolean))];
+  const conflicts= detectConflicts(tt);
+  document.getElementById('statPeriods').textContent    = tt.length;
+  document.getElementById('statFacAssigned').textContent= facIds.length;
+  document.getElementById('statRooms').textContent      = rooms.length;
+  document.getElementById('statConflicts').textContent  = conflicts.length;
+}
+
+/* ═══════════ WEEKLY GRID ═══════════ */
+function renderWeeklyGrid() {
+  const tt       = DB.get('timetable') || [];
+  const courseF  = document.getElementById('ttCourseFilter')?.value || '';
+  const filtered = courseF ? tt.filter(s => s.courseId === courseF) : tt;
+  const table    = document.getElementById('ttTable');
+
+  // Build map: day → periodIdx → [slots]
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+  filtered.forEach(s => {
+    if (!map[s.day]) map[s.day] = {};
+    if (!map[s.day][s.periodIdx]) map[s.day][s.periodIdx] = [];
+    map[s.day][s.periodIdx].push(s);
+  });
+
+  const conflicts = detectConflicts(tt);
+  const conflictKey = new Set(conflicts.map(c => c.key));
+
+  let html = '<thead><tr><th class="time-col">Time</th>';
+  DAYS.forEach(d => { html += `<th class="day-head">${DAY_LABELS[d]}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  PERIODS.forEach(p => {
+    if (p.isBreak) {
+      html += `<tr class="break-row"><td class="time-col" style="font-size:11px;color:var(--warning-dark)">${p.label}</td>`;
+      DAYS.forEach(() => { html += `<td class="tt-cell break-row"><div class="break-pill">${p.breakLabel}</div></td>`; });
+      html += '</tr>';
+      return;
+    }
+    const pIdx = p.idx;
+    html += `<tr><td class="time-col">${p.label}</td>`;
+    DAYS.forEach(d => {
+      const slots   = map[d]?.[pIdx] || [];
+      const isConf  = conflictKey.has(`${d}-${pIdx}`);
+      const cellCls = slots.length === 0 ? 'tt-cell empty-cell' : `tt-cell${isConf ? ' conflict-cell' : ''}`;
+      html += `<td class="${cellCls}" onclick="onCellClick('${d}',${pIdx})">`;
+      if (isConf && slots.length > 0) html += `<div class="conflict-badge">⚠ Conflict</div>`;
+      slots.forEach(s => {
+        const fac    = DB.find('faculty', s.facultyId);
+        const course = DB.find('courses', s.courseId);
+        html += `<div class="slot-pill c-${s.courseId}" onclick="event.stopPropagation();openEditSlot('${s.id}')">
+          <div class="sp-subject">${s.subject}</div>
+          <div class="sp-faculty">${fac ? fac.name.replace(/^(Prof\.|Mr\.|Ms\.) /,'') : '—'}</div>
+          ${s.room ? `<div class="sp-room">📍 ${s.room}</div>` : ''}
+          ${course ? `<div style="font-size:9.5px;color:var(--text-4);margin-top:1px">${course.code}</div>` : ''}
+          <button class="sp-del" onclick="event.stopPropagation();deleteSlot('${s.id}')">✕</button>
+        </div>`;
+      });
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+  updateStats();
+}
+
+/* ═══════════ CELL CLICK ═══════════ */
+function onCellClick(day, periodIdx) {
+  openAddSlotModal(day, periodIdx);
+}
+
+/* ═══════════ ADD / EDIT SLOT MODAL ═══════════ */
+function openAddSlotModal(day = '', periodIdx = '') {
+  document.getElementById('slotModalTitle').textContent = 'Add Period';
+  document.getElementById('slotModalSub').textContent   = day ? `${DAY_LABELS[day]} · ${PERIODS.find(p=>p.idx===periodIdx)?.label||''}` : 'Fill in class details';
+  document.getElementById('editSlotId').value    = '';
+  document.getElementById('slotCourse').value    = '';
+  document.getElementById('slotSubject').innerHTML = '<option value="">— Select Course first —</option>';
+  document.getElementById('slotFaculty').value   = '';
+  document.getElementById('slotRoom').value      = '';
+  if (day) document.getElementById('slotDaySelect').value = day;
+  if (periodIdx !== '') document.getElementById('slotPeriodSelect').value = periodIdx;
+  populateRoomSelect();
+  Modal.open('addSlotModal');
+}
+
+function openEditSlot(id) {
+  const s = DB.find('timetable', id);
+  if (!s) return;
+  document.getElementById('slotModalTitle').textContent = 'Edit Period';
+  document.getElementById('slotModalSub').textContent   = `${DAY_LABELS[s.day]} · ${PERIODS.find(p=>p.idx===s.periodIdx)?.label||''}`;
+  document.getElementById('editSlotId').value    = id;
+  document.getElementById('slotCourse').value    = s.courseId;
+  onSlotCourseChange();
+  setTimeout(() => { document.getElementById('slotSubject').value = s.subject; }, 50);
+  document.getElementById('slotFaculty').value   = s.facultyId || '';
+  populateRoomSelect();
+  setTimeout(() => { document.getElementById('slotRoom').value = s.room || ''; }, 50);
+  document.getElementById('slotDaySelect').value    = s.day;
+  document.getElementById('slotPeriodSelect').value = s.periodIdx;
+  Modal.open('addSlotModal');
+}
+
+function onSlotCourseChange() {
+  const courseId = document.getElementById('slotCourse').value;
+  const course   = DB.find('courses', courseId);
+  const el       = document.getElementById('slotSubject');
+  el.innerHTML   = (course?.subjects || []).length
+    ? '<option value="">— Select Subject —</option>' + course.subjects.map(s => `<option value="${s}">${s}</option>`).join('')
+    : '<option value="">— Select Course first —</option>';
+}
+
+function saveSlot() {
+  const courseId  = document.getElementById('slotCourse').value;
+  const subject   = document.getElementById('slotSubject').value;
+  const day       = document.getElementById('slotDaySelect').value;
+  const periodIdx = Number(document.getElementById('slotPeriodSelect').value);
+
+  if (!courseId || !subject) { Toast.error('Course and Subject are required'); return; }
+
+  const editId = document.getElementById('editSlotId').value;
+  const data = {
+    courseId,
+    subject,
+    facultyId: document.getElementById('slotFaculty').value,
+    room:      document.getElementById('slotRoom').value,
+    day, periodIdx,
+  };
+
+  if (editId) {
+    DB.update('timetable', editId, data);
+    Toast.success('Period updated');
+  } else {
+    data.id = DB.nextId('timetable', 'TT');
+    DB.push('timetable', data);
+    Toast.success('Period added');
+  }
+
+  Modal.close('addSlotModal');
+  renderWeeklyGrid();
+  if (document.getElementById('tab-faculty').classList.contains('active')) renderFacultyTT();
+  renderRoomOccupancy();
+}
+
+function deleteSlot(id) {
+  DB.delete('timetable', id);
+  renderWeeklyGrid();
+  Toast.error('Period removed');
+}
+
+/* ═══════════ CONFLICT DETECTION ═══════════ */
+function detectConflicts(tt) {
+  const conflicts = [];
+  const map = {};
+
+  tt.forEach(s => {
+    const key = `${s.day}-${s.periodIdx}`;
+    if (!map[key]) map[key] = { faculty:{}, rooms:{}, slots:[] };
+    map[key].slots.push(s);
+    if (s.facultyId) {
+      if (!map[key].faculty[s.facultyId]) map[key].faculty[s.facultyId] = [];
+      map[key].faculty[s.facultyId].push(s);
+    }
+    if (s.room) {
+      if (!map[key].rooms[s.room]) map[key].rooms[s.room] = [];
+      map[key].rooms[s.room].push(s);
+    }
+  });
+
+  Object.entries(map).forEach(([key, val]) => {
+    // Faculty conflict: same faculty in same slot
+    Object.entries(val.faculty).forEach(([facId, slots]) => {
+      if (slots.length > 1) {
+        const fac = DB.find('faculty', facId);
+        conflicts.push({ key, type:'faculty', message:`${fac?.name||facId} assigned to ${slots.length} classes at ${key.replace('-',' Period ')}` });
+      }
+    });
+    // Room conflict
+    Object.entries(val.rooms).forEach(([room, slots]) => {
+      if (slots.length > 1) {
+        conflicts.push({ key, type:'room', message:`Room "${room}" double-booked at ${key.replace('-',' on ')}` });
+      }
+    });
+  });
+
+  return conflicts;
+}
+
+function checkConflicts() {
+  const tt = DB.get('timetable') || [];
+  const conflicts = detectConflicts(tt);
+  const panel = document.getElementById('conflictPanel');
+
+  if (!conflicts.length) {
+    Toast.success('No conflicts detected! Timetable is clean ✓');
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+  document.getElementById('conflictList').innerHTML = conflicts.map(c => `
+    <div class="alert alert-${c.type==='faculty'?'warning':'danger'}" style="margin-bottom:8px">
+      <span>${c.type==='faculty'?'👩‍🏫':'🏫'}</span>
+      <span>${c.message}</span>
+    </div>`).join('');
+  Toast.warning(`${conflicts.length} conflict${conflicts.length>1?'s':''} found`);
+}
+
+function clearTimetable() {
+  if (!Utils.confirmDelete('Clear entire timetable? This cannot be undone.')) return;
+  DB.set('timetable', []);
+  renderWeeklyGrid();
+  Toast.error('Timetable cleared');
+}
+
+function autoGenerate() {
+  Toast.info('Auto-generation uses faculty-subject assignments to fill slots. Seeded timetable is already loaded.');
+}
+
+/* ═══════════ FACULTY VIEW ═══════════ */
+function renderFacultyTT() {
+  const tt     = DB.get('timetable') || [];
+  const facId  = document.getElementById('facTTSelect').value;
+  const faculty= DB.get('faculty') || [];
+  const facList= facId ? faculty.filter(f => f.id === facId) : faculty;
+
+  const map = {};
+  tt.forEach(s => {
+    const key = `${s.facultyId}-${s.day}-${s.periodIdx}`;
+    map[key]  = s;
+  });
+
+  let html = `<table class="fac-tt"><thead><tr><th>Faculty</th>`;
+  PERIODS.forEach(p => {
+    if (p.isBreak) html += `<th style="background:rgba(245,158,11,0.07);color:var(--warning-dark);font-size:10px">${p.breakLabel}</th>`;
+    else           html += `<th>${p.label}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  facList.forEach(f => {
+    DAYS.forEach((d, di) => {
+      html += di === 0
+        ? `<tr><td rowspan="6" style="font-weight:700;vertical-align:top;padding-top:14px;min-width:130px;border-right:2px solid var(--border)">${f.name}<br><span style="font-size:11px;color:var(--text-3);font-weight:400">${f.subject}</span></td>`
+        : '<tr>';
+
+      html += `<td style="font-size:11px;font-weight:700;color:var(--text-3);background:rgba(14,165,233,0.03)">${d}</td>`;
+
+      PERIODS.forEach(p => {
+        if (p.isBreak) { html += `<td class="break-td">${p.breakLabel}</td>`; return; }
+        const slot   = map[`${f.id}-${d}-${p.idx}`];
+        const course = slot ? DB.find('courses', slot.courseId) : null;
+        html += slot
+          ? `<td class="has-class">${slot.subject}<br><span style="font-size:10px;color:var(--text-3)">${course?.code||''} · ${slot.room||''}</span></td>`
+          : `<td class="free">—</td>`;
+      });
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('facTTWrap').innerHTML = html;
+}
+
+/* ═══════════ ROOMS ═══════════ */
+function renderRooms() {
+  const rooms = DB.get('rooms') || [];
+  const tt    = DB.get('timetable') || [];
+  const typeIcon = { Classroom:'🏫', Lab:'🔬', Hall:'🎭', 'Seminar Room':'🪑' };
+
+  document.getElementById('roomList').innerHTML = rooms.length
+    ? rooms.map(r => {
+        const usage = tt.filter(s => s.room === r.name).length;
+        const maxSlots = DAYS.length * CLASS_PERIODS.length;
+        const pct   = Math.round((usage / maxSlots) * 100);
+        return `
+          <div class="room-card glass">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:18px">${typeIcon[r.type]||'🏫'}</div>
+                <div>
+                  <div class="room-name">${r.name}</div>
+                  <div class="room-meta">${r.type} · Cap: ${r.capacity} · ${r.block}</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:5px">
+                <span class="badge badge-blue">${usage} periods</span>
+                <button class="btn-icon" onclick="deleteRoom('${r.id}')" style="font-size:12px;background:rgba(239,68,68,0.08)">🗑</button>
+              </div>
+            </div>
+            <div class="room-occ-bar">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px"><span>Occupancy</span><span>${pct}%</span></div>
+              <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px">No rooms added yet</div>';
+
+  renderRoomOccupancy();
+}
+
+function renderRoomOccupancy() {
+  const rooms = DB.get('rooms') || [];
+  const tt    = DB.get('timetable') || [];
+  const tbody = document.getElementById('roomOccBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = rooms.map(r => {
+    let total = 0;
+    const dayCounts = DAYS.map(d => {
+      const c = tt.filter(s => s.room === r.name && s.day === d).length;
+      total += c;
+      return c;
+    });
+    return `<tr>
+      <td><strong>${r.name}</strong><br><span style="font-size:11px;color:var(--text-3)">${r.type}</span></td>
+      ${dayCounts.map(c => `<td style="text-align:center;font-weight:${c>0?'700':'400'};color:${c>0?'var(--primary-dark)':'var(--text-4)'}">${c||'—'}</td>`).join('')}
+      <td style="text-align:center"><strong style="color:var(--teal-dark)">${total}</strong></td>
+    </tr>`;
+  }).join('');
+}
+
+function saveRoom() {
+  const name = document.getElementById('roomName').value.trim();
+  if (!name) { Toast.error('Room name required'); return; }
+  const rooms = DB.get('rooms') || [];
+  rooms.push({ id:'R'+String(rooms.length+1).padStart(3,'0'), name, capacity: Number(document.getElementById('roomCap').value)||60, type: document.getElementById('roomType').value, block: document.getElementById('roomBlock').value.trim() });
+  DB.set('rooms', rooms);
+  Modal.close('addRoomModal');
+  populateRoomSelect();
+  renderRooms();
+  Toast.success('Room added: ' + name);
+}
+
+function deleteRoom(id) {
+  if (!Utils.confirmDelete('Delete this room?')) return;
+  DB.set('rooms', (DB.get('rooms')||[]).filter(r => r.id !== id));
+  populateRoomSelect();
+  renderRooms();
+  Toast.error('Room removed');
+}
+
+/* ═══════════ TAB SWITCH ═══════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else { const m = document.querySelector(`.main-tab[onclick*="'${name}'"]`); if (m) m.classList.add('active'); }
+  if (name==='faculty') renderFacultyTT();
+  if (name==='rooms')   renderRooms();
+}
+</script>
+</body>
+</html>

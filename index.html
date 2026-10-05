@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduSoft — Login | Uniitechs</title>
+  <link rel="stylesheet" href="css/global.css">
+  <style>
+    /* ── Login-specific styles ── */
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+    /* floating bg orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: 0.35;
+      pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+      z-index: -1;
+    }
+    .orb-1 { width: 400px; height: 400px; background: #bae6fd; top: -100px; left: -100px; animation-delay: 0s; }
+    .orb-2 { width: 350px; height: 350px; background: #a5f3fc; bottom: -80px; right: -80px; animation-delay: 3s; }
+    .orb-3 { width: 250px; height: 250px; background: #c7d2fe; top: 40%; left: 55%; animation-delay: 5s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50%       { transform: translateY(-20px) scale(1.03); }
+    }
+
+    /* layout */
+    .login-wrap {
+      display: flex;
+      width: 100%;
+      max-width: 920px;
+      min-height: 540px;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(14,165,233,0.16);
+    }
+
+    /* left panel */
+    .login-left {
+      flex: 1;
+      background: linear-gradient(145deg, #0ea5e9 0%, #14b8a6 100%);
+      padding: 52px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle 300px at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 70%),
+        radial-gradient(circle 200px at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%);
+    }
+
+    .left-brand {
+      position: relative;
+    }
+
+    .left-brand .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .left-brand .logo-icon {
+      width: 50px; height: 50px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      backdrop-filter: blur(10px);
+    }
+
+    .left-brand .logo-text {
+      font-family: var(--font-display);
+      font-size: 36px;
+      color: white;
+      line-height: 1;
+    }
+
+    .left-brand .logo-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .left-headline {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+
+    .left-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.78);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .left-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .feature-pill .fp-icon { font-size: 16px; }
+    .feature-pill .fp-text { font-size: 12.5px; color: rgba(255,255,255,0.9); font-weight: 500; }
+
+    .left-clock {
+      position: relative;
+      text-align: center;
+      padding: 16px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+    }
+
+    .clock-time {
+      font-family: var(--font-display);
+      font-size: 38px;
+      color: white;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .clock-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* right panel */
+    .login-right {
+      width: 420px;
+      flex-shrink: 0;
+      padding: 48px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .login-heading {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .login-sub {
+      font-size: 13.5px;
+      color: var(--text-3);
+      margin-bottom: 32px;
+    }
+
+    /* step indicators */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+
+    .step-dot {
+      width: 28px; height: 4px;
+      border-radius: 99px;
+      background: var(--border);
+      transition: all 0.3s var(--ease);
+    }
+
+    .step-dot.active { background: var(--primary); width: 36px; }
+    .step-dot.done   { background: var(--teal); }
+
+    /* step panels */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; animation: slideUp 0.3s var(--ease) both; }
+
+    /* role selector chips */
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .role-chip {
+      padding: 12px 10px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.5);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.18s var(--ease);
+      user-select: none;
+    }
+
+    .role-chip:hover { border-color: var(--border-strong); background: var(--primary-light); }
+
+    .role-chip.selected {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(14,165,233,0.1), rgba(20,184,166,0.07));
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+    }
+
+    .role-chip .rc-icon { font-size: 22px; margin-bottom: 5px; }
+    .role-chip .rc-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+    .role-chip .rc-desc { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
+
+    /* OTP boxes */
+    .otp-grid {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .otp-box {
+      flex: 1;
+      height: 56px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.6);
+      color: var(--primary-dark);
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s, transform 0.15s;
+      letter-spacing: 4px;
+    }
+
+    .otp-box:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+      background: white;
+      transform: scale(1.04);
+    }
+
+    .otp-box.filled { border-color: var(--teal); background: var(--teal-light); }
+
+    /* divider */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 0;
+      color: var(--text-3);
+      font-size: 12px;
+    }
+    .or-divider::before,
+    .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* demo hint */
+    .demo-box {
+      padding: 12px 16px;
+      background: var(--primary-light);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-md);
+      margin-top: 20px;
+    }
+    .demo-box .demo-title { font-size: 11px; font-weight: 700; color: var(--primary-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .demo-box .demo-cred  { font-size: 12px; color: var(--primary-deeper); line-height: 1.9; }
+    .demo-box .demo-cred span { font-weight: 600; }
+
+    /* error shake */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-6px); }
+      75%       { transform: translateX(6px); }
+    }
+    .shake { animation: shake 0.35s ease; }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .login-left { display: none; }
+      .login-wrap { max-width: 420px; }
+      .login-right { width: 100%; padding: 36px 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- floating orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="login-wrap glass-strong">
+
+  <!-- LEFT PANEL -->
+  <div class="login-left">
+    <div class="left-brand">
+      <div class="logo-row">
+        <div class="logo-icon">🎓</div>
+        <div>
+          <div class="logo-text">EduSoft</div>
+          <div class="logo-sub">by Uniitechs</div>
+        </div>
+      </div>
+      <div class="left-headline">Complete Institute<br>Management System</div>
+      <div class="left-desc">Manage students, fees, attendance, faculty, exams and more — all in one place.</div>
+      <div class="left-features">
+        <div class="feature-pill"><span class="fp-icon">🎓</span><span class="fp-text">Student Admissions & Profiles</span></div>
+        <div class="feature-pill"><span class="fp-icon">💰</span><span class="fp-text">Fees with Auto Receipts</span></div>
+        <div class="feature-pill"><span class="fp-icon">📅</span><span class="fp-text">Attendance & Timetable</span></div>
+        <div class="feature-pill"><span class="fp-icon">📊</span><span class="fp-text">Reports & Analytics</span></div>
+      </div>
+    </div>
+    <div class="left-clock">
+      <div class="clock-time" id="clockTime">00:00:00</div>
+      <div class="clock-date" id="clockDate">Loading...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="login-right">
+
+    <!-- step indicator -->
+    <div class="steps">
+      <div class="step-dot active"  id="dot1"></div>
+      <div class="step-dot"         id="dot2"></div>
+      <div class="step-dot"         id="dot3"></div>
+    </div>
+
+    <!-- STEP 1: Role selection -->
+    <div class="step-panel active" id="step1">
+      <div class="login-heading">Welcome back!</div>
+      <div class="login-sub">Choose your role to continue</div>
+
+      <div class="role-grid">
+        <div class="role-chip selected" data-role="admin" onclick="selectRole(this)">
+          <div class="rc-icon">🔧</div>
+          <div class="rc-name">Admin</div>
+          <div class="rc-desc">Full access</div>
+        </div>
+        <div class="role-chip" data-role="student" onclick="selectRole(this)">
+          <div class="rc-icon">🎓</div>
+          <div class="rc-name">Student</div>
+          <div class="rc-desc">Portal access</div>
+        </div>
+        <div class="role-chip" data-role="faculty" onclick="selectRole(this)">
+          <div class="rc-icon">👩‍🏫</div>
+          <div class="rc-name">Faculty</div>
+          <div class="rc-desc">Teaching tools</div>
+        </div>
+        <div class="role-chip" data-role="parent" onclick="selectRole(this)">
+          <div class="rc-icon">👨‍👩‍👧</div>
+          <div class="rc-name">Parent</div>
+          <div class="rc-desc">View only</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg" onclick="goStep2()">
+        Continue <span style="margin-left:4px">→</span>
+      </button>
+    </div>
+
+    <!-- STEP 2: Credentials -->
+    <div class="step-panel" id="step2">
+      <div class="login-heading" id="step2Title">Sign In</div>
+      <div class="login-sub">Enter your credentials</div>
+
+      <div class="form-group">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="Enter username" autocomplete="username" autofocus>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="field">
+          <label>Password</label>
+          <div class="input-group">
+            <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" id="passInput">
+            <span class="input-suffix" style="cursor:pointer;user-select:none" onclick="togglePass()" id="passToggle" title="Show/hide">👁</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="submitCredentials()" id="signInBtn">
+        Sign In &amp; Get OTP →
+      </button>
+
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;font-size:13px" onclick="goStep1()">
+        ← Change role
+      </button>
+
+      <div class="demo-box">
+        <div class="demo-title">Demo Credentials</div>
+        <div class="demo-cred">
+          Admin: <span>admin</span> / <span>admin123</span><br>
+          Student: <span>student</span> / <span>student123</span><br>
+          Faculty: <span>faculty</span> / <span>faculty123</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: OTP -->
+    <div class="step-panel" id="step3">
+      <div class="login-heading">Verify OTP</div>
+      <div class="login-sub" id="otpSub">Enter the 4-digit OTP sent to your registered number</div>
+
+      <div style="padding:14px;background:var(--success-light);border-radius:10px;margin-bottom:20px;font-size:13px;color:var(--success-dark)">
+        <strong>Demo OTP:</strong> <span id="demoOtpHint" style="font-family:monospace;font-size:16px;letter-spacing:4px;font-weight:700">----</span>
+      </div>
+
+      <div class="otp-grid">
+        <input class="otp-box" id="otp0" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-box" id="otp1" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-box" id="otp2" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-box" id="otp3" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="verifyOtp()" id="verifyBtn">
+        Verify &amp; Enter →
+      </button>
+
+      <div style="text-align:center;margin-top:14px">
+        <span style="font-size:12.5px;color:var(--text-3)">Didn't receive it? </span>
+        <button class="btn btn-ghost" style="font-size:12.5px;padding:4px 10px;color:var(--primary)" onclick="resendOtp()">Resend OTP</button>
+      </div>
+
+      <button class="btn btn-ghost btn-full" style="margin-top:4px;font-size:13px" onclick="goStep2()">
+        ← Back
+      </button>
+    </div>
+
+  </div><!-- /login-right -->
+</div>
+
+<script src="js/core.js"></script>
+<script>
+  // ── state ──
+  let selectedRole = 'admin';
+  let pendingUsername = '';
+  let pendingOtp = '';
+
+  // ── clock ──
+  function updateClock() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const d = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('clockTime').textContent = t;
+    document.getElementById('clockDate').textContent  = d;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── role select ──
+  function selectRole(el) {
+    document.querySelectorAll('.role-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedRole = el.dataset.role;
+  }
+
+  // ── steps ──
+  function setStep(n) {
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+    for (let i = 1; i <= 3; i++) {
+      const dot = document.getElementById('dot' + i);
+      dot.classList.remove('active', 'done');
+      if (i < n)  dot.classList.add('done');
+      if (i === n) dot.classList.add('active');
+    }
+  }
+
+  function goStep1() { setStep(1); }
+
+  function goStep2() {
+    document.getElementById('step2Title').textContent =
+      `Sign In as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`;
+    // pre-fill username for demo convenience
+    document.getElementById('username').value = selectedRole;
+    setStep(2);
+    setTimeout(() => document.getElementById('username').focus(), 200);
+  }
+
+  function submitCredentials() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!username || !password) {
+      shakeForm('step2');
+      Toast.error('Please fill in all fields');
+      return;
+    }
+
+    // validate credentials first
+    const u = AUTH_USERS[username.toLowerCase()];
+    if (!u || u.password !== password) {
+      shakeForm('step2');
+      Toast.error('Invalid username or password');
+      return;
+    }
+
+    pendingUsername = username;
+    pendingOtp = u.otp;
+    document.getElementById('demoOtpHint').textContent = pendingOtp;
+    document.getElementById('otpSub').textContent =
+      `OTP sent to registered number for ${u.name}`;
+
+    // clear OTP boxes
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('otp' + i).value = '';
+      document.getElementById('otp' + i).classList.remove('filled');
+    }
+
+    setStep(3);
+    setTimeout(() => document.getElementById('otp0').focus(), 200);
+  }
+
+  function verifyOtp() {
+    let entered = '';
+    for (let i = 0; i < 4; i++) entered += document.getElementById('otp' + i).value;
+
+    if (entered.length < 4) {
+      shakeForm('step3');
+      Toast.error('Please enter the complete 4-digit OTP');
+      return;
+    }
+
+    if (entered !== pendingOtp) {
+      shakeForm('step3');
+      Toast.error('Incorrect OTP. Please try again.');
+      for (let i = 0; i < 4; i++) {
+        document.getElementById('otp' + i).value = '';
+        document.getElementById('otp' + i).classList.remove('filled');
+      }
+      document.getElementById('otp0').focus();
+      return;
+    }
+
+    // success
+    const session = Auth.login(pendingUsername, document.getElementById('password').value);
+    if (session) {
+      document.getElementById('verifyBtn').textContent = '✓ Verified! Redirecting...';
+      document.getElementById('verifyBtn').disabled = true;
+      Toast.success('Welcome back, ' + session.name + '!');
+      setTimeout(() => {
+        window.location.href = 'pages/dashboard.html';
+      }, 900);
+    }
+  }
+
+  function resendOtp() {
+    Toast.info('OTP resent! (Demo OTP: ' + pendingOtp + ')');
+    document.getElementById('demoOtpHint').textContent = pendingOtp;
+  }
+
+  // ── OTP input auto-advance ──
+  for (let i = 0; i < 4; i++) {
+    const box = document.getElementById('otp' + i);
+    box.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(-1);
+      if (this.value) {
+        this.classList.add('filled');
+        if (i < 3) document.getElementById('otp' + (i + 1)).focus();
+        else this.blur();
+      } else {
+        this.classList.remove('filled');
+      }
+    });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !this.value && i > 0) {
+        document.getElementById('otp' + (i - 1)).focus();
+      }
+    });
+    box.addEventListener('paste', function(e) {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,4);
+      for (let j = 0; j < text.length; j++) {
+        const b = document.getElementById('otp' + j);
+        if (b) { b.value = text[j]; b.classList.add('filled'); }
+      }
+      if (text.length === 4) document.getElementById('otp3').blur();
+    });
+  }
+
+  // ── Enter key support ──
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const active = document.querySelector('.step-panel.active')?.id;
+    if (active === 'step2') submitCredentials();
+    if (active === 'step3') verifyOtp();
+  });
+
+  // ── toggle password ──
+  function togglePass() {
+    const inp = document.getElementById('password');
+    const tog = document.getElementById('passToggle');
+    if (inp.type === 'password') { inp.type = 'text'; tog.textContent = '🙈'; }
+    else { inp.type = 'password'; tog.textContent = '👁'; }
+  }
+
+  // ── shake animation ──
+  function shakeForm(stepId) {
+    const el = document.getElementById(stepId);
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
+  }
+
+  // ── if already logged in, redirect ──
+  document.addEventListener('DOMContentLoaded', () => {
+    if (Auth.isLoggedIn()) {
+      window.location.href = 'pages/dashboard.html';
+    }
+  });
+</script>
+</body>
+</html>

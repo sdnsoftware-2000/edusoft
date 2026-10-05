@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports & Analytics — EduSoft</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .main-tabs{display:flex;gap:4px;padding:4px;background:rgba(14,165,233,0.07);border-radius:var(--radius-sm);margin-bottom:24px;width:fit-content;flex-wrap:wrap}
+    .main-tab{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .18s;border:none;background:none}
+    .main-tab.active{background:white;color:var(--primary-dark);font-weight:700;box-shadow:0 2px 8px rgba(14,165,233,0.14)}
+    .tab-pane{display:none}.tab-pane.active{display:block;animation:pageEnter .25s var(--ease) both}
+
+    /* Report card tiles */
+    .report-tile{border-radius:var(--radius-lg);padding:22px;border:1.5px solid var(--border);background:rgba(255,255,255,.55);cursor:pointer;transition:all .2s var(--ease);position:relative;overflow:hidden}
+    .report-tile:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(14,165,233,0.13);border-color:var(--border-strong)}
+    .report-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--teal))}
+    .rt-icon{font-size:28px;margin-bottom:12px}
+    .rt-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .rt-desc{font-size:12px;color:var(--text-3);line-height:1.5}
+    .rt-formats{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap}
+
+    /* KPI card */
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+    .kpi-card{border-radius:var(--radius);padding:16px 18px;text-align:center}
+    .kpi-val{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1}
+    .kpi-lbl{font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px;margin-top:6px}
+    .kpi-delta{font-size:11.5px;margin-top:4px}
+
+    /* Filter bar */
+    .rpt-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:14px 16px;background:rgba(14,165,233,0.04);border-radius:var(--radius-sm);border:1px solid var(--border)}
+    .rpt-filters select,.rpt-filters input{padding:8px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.7);font-family:var(--font);font-size:13px;color:var(--text);outline:none;transition:border .18s}
+    .rpt-filters select:focus,.rpt-filters input:focus{border-color:var(--primary)}
+
+    /* Custom builder */
+    .builder-field{padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:rgba(255,255,255,.5);margin-bottom:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
+    .builder-field:hover{border-color:var(--border-strong)}
+    .builder-field.selected{border-color:var(--primary);background:var(--primary-light)}
+    .builder-field input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px;cursor:pointer}
+    .builder-field .bf-label{font-size:13px;font-weight:600;color:var(--text);flex:1}
+    .builder-field .bf-desc{font-size:11.5px;color:var(--text-3)}
+
+    /* Print report area */
+    .print-area{background:white;border-radius:var(--radius-lg);padding:28px;box-shadow:0 4px 24px rgba(14,165,233,0.1);border:1px solid var(--border)}
+    .print-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid var(--border);margin-bottom:18px}
+    .print-brand{font-family:var(--font-display);font-size:24px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .print-brand-sub{font-size:10px;color:var(--text-3);letter-spacing:2px;text-transform:uppercase}
+    .print-report-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:2px}
+    .print-meta{font-size:12px;color:var(--text-3)}
+
+    /* Topbar */
+    .topbar{display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:150;align-items:center;justify-content:space-between;padding:0 18px;border-radius:0 0 16px 16px}
+    @media(max-width:900px){.topbar{display:flex}}
+    @media print{
+      .sidebar,.topbar,.main-tabs,.page-actions,.rpt-filters,.btn,.report-actions{display:none!important}
+      .main-content{margin-left:0!important;padding:0!important}
+      .glass{background:white!important;backdrop-filter:none!important;box-shadow:none!important;border:1px solid #e2e8f0!important}
+      body::before,body::after{display:none!important}
+      .print-area{box-shadow:none;border:none;padding:0}
+    }
+  </style>
+</head>
+<body>
+<div class="topbar glass">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="hamburger" class="btn-icon" style="font-size:18px">☰</button>
+    <span style="font-family:var(--font-display);font-size:20px;background:linear-gradient(135deg,var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">EduSoft</span>
+  </div>
+  <div class="avatar" data-user-avatar>A</div>
+</div>
+<div id="sidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:199;backdrop-filter:blur(2px)"></div>
+<nav class="sidebar glass">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand"><div class="brand-logo"><div class="brand-icon">🎓</div><span class="brand-name">EduSoft</span></div><div class="brand-tagline">by Uniitechs</div></div>
+    <div class="nav-section"><div class="nav-label">Main</div><a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a></div>
+    <div class="nav-section"><div class="nav-label">Management</div>
+      <a href="students.html"   class="nav-item" data-page="students">  <span class="nav-icon">🎓</span>Students</a>
+      <a href="courses.html"    class="nav-item" data-page="courses">   <span class="nav-icon">📚</span>Courses</a>
+      <a href="fees.html"       class="nav-item" data-page="fees">      <span class="nav-icon">💰</span>Fees</a>
+      <a href="attendance.html" class="nav-item" data-page="attendance"><span class="nav-icon">📅</span>Attendance</a>
+      <a href="exams.html"      class="nav-item" data-page="exams">     <span class="nav-icon">📝</span>Exams & Results</a>
+      <a href="faculty.html"    class="nav-item" data-page="faculty">   <span class="nav-icon">👩‍🏫</span>Faculty</a>
+      <a href="timetable.html"  class="nav-item" data-page="timetable"><span class="nav-icon">🕒</span>Timetable</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">Tools & Reports</div>
+      <a href="reports.html"       class="nav-item" data-page="reports">      <span class="nav-icon">📊</span>Reports</a>
+      <a href="library.html"       class="nav-item" data-page="library">      <span class="nav-icon">📦</span>Library</a>
+      <a href="communication.html" class="nav-item" data-page="communication"><span class="nav-icon">📣</span>Communication</a>
+      <a href="accounts.html"      class="nav-item" data-page="accounts">     <span class="nav-icon">🏧</span>Accounts</a>
+    </div>
+    <div class="nav-section"><div class="nav-label">System</div>
+      <a href="users.html"    class="nav-item" data-page="users">   <span class="nav-icon">🔐</span>Users & Access</a>
+      <a href="settings.html" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-card"><div class="avatar" data-user-avatar>A</div><div class="user-info"><div class="u-name" data-user-name>Admin</div><div class="u-role" data-user-role>Administrator</div></div></div>
+      <button class="btn-logout" onclick="Auth.logout()">⬡ Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content page-enter">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="breadcrumb"><a href="dashboard.html" style="color:var(--text-3);text-decoration:none">Home</a><span class="sep">›</span><span class="current">Reports</span></div>
+      <div class="page-title">Reports & Analytics</div>
+      <div class="page-sub">Comprehensive data insights across all modules</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Report</button>
+      <button class="btn btn-primary" onclick="switchTab('custom',null)">⚙️ Custom Report</button>
+    </div>
+  </div>
+
+  <!-- STAT OVERVIEW -->
+  <div class="stat-grid stagger" style="margin-bottom:24px">
+    <div class="stat-card glass blue"><div class="stat-icon">🎓</div><div class="stat-label">Total Students</div><div class="stat-value" id="rStatStudents">0</div><div class="stat-delta delta-up">enrolled</div></div>
+    <div class="stat-card glass success"><div class="stat-icon">💰</div><div class="stat-label">Fees Collected</div><div class="stat-value" id="rStatFees">₹0</div><div class="stat-delta delta-up">this session</div></div>
+    <div class="stat-card glass teal"><div class="stat-icon">📅</div><div class="stat-label">Avg Attendance</div><div class="stat-value" id="rStatAtt">—</div><div class="stat-delta delta-flat">overall</div></div>
+    <div class="stat-card glass accent"><div class="stat-icon">📝</div><div class="stat-label">Avg Score</div><div class="stat-value" id="rStatScore">—</div><div class="stat-delta delta-flat">all exams</div></div>
+    <div class="stat-card glass warn"><div class="stat-icon">👩‍🏫</div><div class="stat-label">Faculty</div><div class="stat-value" id="rStatFaculty">0</div><div class="stat-delta delta-flat">staff members</div></div>
+    <div class="stat-card glass danger"><div class="stat-icon">⏳</div><div class="stat-label">Fees Pending</div><div class="stat-value" id="rStatPending">₹0</div><div class="stat-delta delta-down">collection needed</div></div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('overview',this)">📊 Overview</button>
+    <button class="main-tab" onclick="switchTab('enrollment',this)">🎓 Enrollment</button>
+    <button class="main-tab" onclick="switchTab('fees',this)">💰 Fees</button>
+    <button class="main-tab" onclick="switchTab('attendance',this)">📅 Attendance</button>
+    <button class="main-tab" onclick="switchTab('exam',this)">📝 Exam Results</button>
+    <button class="main-tab" onclick="switchTab('custom',this)">⚙️ Custom Builder</button>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div id="tab-overview" class="tab-pane active">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card glass"><div class="card-header"><div class="card-title">Monthly Enrollment Trend</div></div><canvas id="ovEnrollChart" height="200"></canvas></div>
+      <div class="card glass"><div class="card-header"><div class="card-title">Fee Collection vs Pending</div></div><canvas id="ovFeeChart" height="200"></canvas></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+      <div class="card glass"><div class="card-header"><div class="card-title">Students by Course</div></div><canvas id="ovCourseChart" height="200"></canvas></div>
+      <div class="card glass"><div class="card-header"><div class="card-title">Attendance Overview</div></div><canvas id="ovAttChart" height="200"></canvas></div>
+      <div class="card glass"><div class="card-header"><div class="card-title">Grade Distribution</div></div><canvas id="ovGradeChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ ENROLLMENT ══ -->
+  <div id="tab-enrollment" class="tab-pane">
+    <div class="rpt-filters">
+      <select id="enrCourseF"><option value="">All Courses</option></select>
+      <select id="enrStatusF"><option value="">All Status</option><option>Active</option><option>Pending</option><option>Inactive</option></select>
+      <select id="enrBatchF"><option value="">All Batches</option></select>
+      <select id="enrGenderF"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
+      <button class="btn btn-primary btn-sm" onclick="renderEnrollReport()">Apply</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetEnrFilters()">Reset</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="exportEnrCSV()">⬇ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="printSection('enrPrint')">🖨 Print</button>
+    </div>
+    <div id="enrPrint">
+      <div class="kpi-row" id="enrKPIs"></div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-bottom:20px">
+        <div class="card glass"><div class="card-header"><div class="card-title">Enrollment by Course</div></div><canvas id="enrCourseChart" height="220"></canvas></div>
+        <div class="card glass"><div class="card-header"><div class="card-title">Gender Distribution</div></div><canvas id="enrGenderChart" height="220"></canvas></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Student Roster</div><div class="card-sub" id="enrCount">0 students</div></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Student</th><th>Course</th><th>Batch</th><th>Gender</th><th>Status</th><th>Fees</th><th>Admitted</th></tr></thead><tbody id="enrTable"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FEES ══ -->
+  <div id="tab-fees" class="tab-pane">
+    <div class="rpt-filters">
+      <select id="feeRptCourse"><option value="">All Courses</option></select>
+      <select id="feeRptMode"><option value="">All Modes</option><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option></select>
+      <input type="date" id="feeRptFrom" style="font-size:12.5px">
+      <span style="font-size:12px;color:var(--text-3)">to</span>
+      <input type="date" id="feeRptTo" style="font-size:12.5px">
+      <button class="btn btn-primary btn-sm" onclick="renderFeeReport()">Apply</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="exportFeeCSV()">⬇ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="printSection('feePrint')">🖨 Print</button>
+    </div>
+    <div id="feePrint">
+      <div class="kpi-row" id="feeKPIs"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+        <div class="card glass"><div class="card-header"><div class="card-title">Collection by Month</div></div><canvas id="feeMonthChart" height="220"></canvas></div>
+        <div class="card glass"><div class="card-header"><div class="card-title">Payment Mode Split</div></div><canvas id="feeModeChart" height="220"></canvas></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Transaction Log</div><div class="card-sub" id="feeRptCount">0 records</div></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Receipt</th><th>Student</th><th>Course</th><th>Amount</th><th>Mode</th><th>Date</th><th>Status</th></tr></thead><tbody id="feeRptTable"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ATTENDANCE ══ -->
+  <div id="tab-attendance" class="tab-pane">
+    <div class="rpt-filters">
+      <select id="attRptCourse"><option value="">All Courses</option></select>
+      <select id="attRptMonth"><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option></select>
+      <button class="btn btn-primary btn-sm" onclick="renderAttReport()">Apply</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="exportAttCSV()">⬇ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="printSection('attPrint')">🖨 Print</button>
+    </div>
+    <div id="attPrint">
+      <div class="kpi-row" id="attKPIs"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+        <div class="card glass"><div class="card-header"><div class="card-title">Daily Trend</div></div><canvas id="attTrendChart" height="220"></canvas></div>
+        <div class="card glass"><div class="card-header"><div class="card-title">Course-wise Avg</div></div><canvas id="attCourseChart" height="220"></canvas></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Student Attendance Report</div></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Student</th><th>Course</th><th>Present</th><th>Absent</th><th>Leave</th><th>Total</th><th>%</th><th>Remark</th></tr></thead><tbody id="attRptTable"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EXAM RESULTS ══ -->
+  <div id="tab-exam" class="tab-pane">
+    <div class="rpt-filters">
+      <select id="exRptExam"><option value="">All Exams</option></select>
+      <select id="exRptCourse"><option value="">All Courses</option></select>
+      <button class="btn btn-primary btn-sm" onclick="renderExamReport()">Apply</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="exportExamCSV()">⬇ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="printSection('exPrint')">🖨 Print</button>
+    </div>
+    <div id="exPrint">
+      <div class="kpi-row" id="exKPIs"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+        <div class="card glass"><div class="card-header"><div class="card-title">Score Distribution</div></div><canvas id="exScoreChart" height="220"></canvas></div>
+        <div class="card glass"><div class="card-header"><div class="card-title">Grade Breakdown</div></div><canvas id="exGradeChart" height="220"></canvas></div>
+      </div>
+      <div class="card glass">
+        <div class="card-header"><div class="card-title">Detailed Results</div></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>Rank</th><th>Student</th><th>Exam</th><th>Max</th><th>Obtained</th><th>%</th><th>Grade</th><th>Result</th></tr></thead><tbody id="exRptTable"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CUSTOM BUILDER ══ -->
+  <div id="tab-custom" class="tab-pane">
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px">
+      <div>
+        <div class="card glass" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Report Builder</div><div class="card-sub">Select fields to include</div></div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);margin-bottom:10px">Data Source</div>
+          <div class="field" style="margin-bottom:14px">
+            <select id="cbSource" onchange="renderBuilderFields()">
+              <option value="students">Students</option>
+              <option value="fees">Fee Transactions</option>
+              <option value="attendance">Attendance</option>
+              <option value="results">Exam Results</option>
+              <option value="faculty">Faculty</option>
+            </select>
+          </div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);margin-bottom:10px">Select Fields</div>
+          <div id="builderFieldList"></div>
+          <div style="margin-top:14px">
+            <div class="field" style="margin-bottom:10px"><label>Filter by Status</label><select id="cbStatus"><option value="">All</option><option>Active</option><option>Pending</option><option>Inactive</option></select></div>
+            <div class="field" style="margin-bottom:14px"><label>Sort by</label><select id="cbSort"><option value="">Default</option><option value="name">Name A–Z</option><option value="date">Date</option><option value="amount">Amount</option></select></div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="buildCustomReport()">⚙️ Generate Report</button>
+        </div>
+        <div class="card glass">
+          <div class="card-header"><div class="card-title">Saved Templates</div></div>
+          <div id="savedTemplates"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card glass" id="customReportOutput">
+          <div style="text-align:center;padding:48px;color:var(--text-3)">
+            <div style="font-size:40px;margin-bottom:12px">⚙️</div>
+            <div style="font-size:14px;font-weight:500">Select fields and click Generate Report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/core.js"></script>
+<script>
+'use strict';
+const AVATAR_COLORS=['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#ec4899'];
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initSidebar('reports');
+  updateHeaderStats();
+  populateCourseSelect('enrCourseF');populateCourseSelect('feeRptCourse');
+  populateCourseSelect('attRptCourse');populateCourseSelect('exRptCourse');
+  populateBatchFilter();populateExamFilter();
+  renderOverview();renderBuilderFields();renderSavedTemplates();
+  document.getElementById('feeRptFrom').value='2024-06-01';
+  document.getElementById('feeRptTo').value=Utils.today();
+});
+
+function populateBatchFilter(){
+  const batches=[...new Set((DB.get('students')||[]).map(s=>s.batch))].sort().reverse();
+  const el=document.getElementById('enrBatchF');if(!el)return;
+  el.innerHTML='<option value="">All Batches</option>'+batches.map(b=>`<option>${b}</option>`).join('');
+}
+function populateExamFilter(){
+  const exams=DB.get('exams')||[];
+  const el=document.getElementById('exRptExam');if(!el)return;
+  el.innerHTML='<option value="">All Exams</option>'+exams.map(e=>`<option value="${e.id}">${e.name} (${Utils.formatDate(e.date)})</option>`).join('');
+}
+
+/* ══ HEADER STATS ══ */
+function updateHeaderStats(){
+  const students=DB.get('students')||[];const txns=DB.get('feeTransactions')||[];
+  const log=DB.get('attendanceLog')||[];const results=DB.get('results')||[];const faculty=DB.get('faculty')||[];
+  const collected=txns.filter(t=>t.status!=='Refunded').reduce((a,t)=>a+Number(t.amount),0);
+  const pendingS=students.filter(s=>s.feesStatus!=='Paid');
+  const pendingAmt=pendingS.reduce((a,s)=>{const c=DB.find('courses',s.course);return a+Math.max(0,Number(c?.fee||0)-(txns.filter(t=>t.studentId===s.id).reduce((x,t)=>x+Number(t.amount),0)));},0);
+  const p=log.filter(r=>r.status==='present').length;const attPct=log.length?Math.round((p/log.length)*100):0;
+  const avgScore=results.length?Math.round(results.reduce((a,r)=>{const e=DB.find('exams',r.examId);return a+(e?(r.marksObtained/e.maxMarks)*100:0);},0)/results.length):0;
+  document.getElementById('rStatStudents').textContent=students.length;
+  document.getElementById('rStatFees').textContent=Utils.formatCurrency(collected);
+  document.getElementById('rStatAtt').textContent=attPct+'%';
+  document.getElementById('rStatScore').textContent=avgScore?avgScore+'%':'—';
+  document.getElementById('rStatFaculty').textContent=faculty.length;
+  document.getElementById('rStatPending').textContent=Utils.formatCurrency(pendingAmt);
+}
+
+/* ══ OVERVIEW CHARTS ══ */
+function renderOverview(){
+  const students=DB.get('students')||[];const courses=DB.get('courses')||[];
+  const txns=DB.get('feeTransactions')||[];const log=DB.get('attendanceLog')||[];const results=DB.get('results')||[];
+
+  // Enrollment trend
+  const months=['Jun','Jul','Aug','Sep','Oct','Nov'];
+  const enrData=[3,5,2,8,12,19];
+  makeChart('ovEnrollChart','bar',months,enrData,'rgba(14,165,233,0.65)');
+
+  // Fee doughnut
+  const collected=txns.reduce((a,t)=>a+Number(t.amount),0);
+  const pending=students.filter(s=>s.feesStatus!=='Paid').reduce((a,s)=>{const c=DB.find('courses',s.course);return a+Number(c?.fee||0);},0)-collected;
+  if(window._ovFee)window._ovFee.destroy();
+  window._ovFee=new Chart(document.getElementById('ovFeeChart').getContext('2d'),{type:'doughnut',data:{labels:['Collected','Pending'],datasets:[{data:[Math.max(0,collected),Math.max(0,pending)],backgroundColor:['rgba(20,184,166,.75)','rgba(239,68,68,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+
+  // Course pie
+  const cData=courses.map(c=>({name:c.code,val:students.filter(s=>s.course===c.id).length}));
+  if(window._ovCourse)window._ovCourse.destroy();
+  window._ovCourse=new Chart(document.getElementById('ovCourseChart').getContext('2d'),{type:'pie',data:{labels:cData.map(c=>c.name),datasets:[{data:cData.map(c=>c.val),backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.7)','rgba(99,102,241,.7)','rgba(245,158,11,.7)','rgba(236,72,153,.65)'],borderWidth:0,hoverOffset:5}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+
+  // Attendance doughnut
+  const p2=log.filter(r=>r.status==='present').length;
+  const a2=log.filter(r=>r.status==='absent').length;
+  const l2=log.filter(r=>r.status==='leave').length;
+  if(window._ovAtt)window._ovAtt.destroy();
+  window._ovAtt=new Chart(document.getElementById('ovAttChart').getContext('2d'),{type:'doughnut',data:{labels:['Present','Absent','Leave'],datasets:[{data:[p2,a2,l2],backgroundColor:['rgba(34,197,94,.75)','rgba(239,68,68,.7)','rgba(245,158,11,.7)'],borderWidth:0}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+
+  // Grade bar
+  const grades={A:0,'A+':0,'B+':0,B:0,'C+':0,C:0,F:0};
+  results.forEach(r=>{if(grades[r.grade]!==undefined)grades[r.grade]++;});
+  makeChart('ovGradeChart','bar',Object.keys(grades),Object.values(grades),'rgba(99,102,241,.65)');
+}
+
+function makeChart(id,type,labels,data,color){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  if(window['_ch_'+id])window['_ch_'+id].destroy();
+  window['_ch_'+id]=new Chart(ctx.getContext('2d'),{type,data:{labels,datasets:[{label:'',data,backgroundColor:Array.isArray(color)?color:color,borderRadius:type==='bar'?6:0,borderWidth:0}]},options:{responsive:true,plugins:{legend:{display:false}},scales:type==='bar'?{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10}}}}:undefined}});
+}
+
+/* ══ ENROLLMENT REPORT ══ */
+function renderEnrollReport(){
+  const courseF=document.getElementById('enrCourseF').value;
+  const statusF=document.getElementById('enrStatusF').value;
+  const batchF=document.getElementById('enrBatchF').value;
+  const genderF=document.getElementById('enrGenderF').value;
+  let students=DB.get('students')||[];
+  if(courseF)students=students.filter(s=>s.course===courseF);
+  if(statusF)students=students.filter(s=>s.status===statusF);
+  if(batchF)students=students.filter(s=>s.batch===batchF);
+  if(genderF)students=students.filter(s=>s.gender===genderF);
+
+  const active=students.filter(s=>s.status==='Active').length;
+  const paid=students.filter(s=>s.feesStatus==='Paid').length;
+  document.getElementById('enrCount').textContent=students.length+' students';
+  document.getElementById('enrKPIs').innerHTML=kpi('Total',students.length,'var(--primary-dark)')+kpi('Active',active,'var(--success-dark)')+kpi('Male',students.filter(s=>s.gender==='Male').length,'var(--accent)')+kpi('Female',students.filter(s=>s.gender==='Female').length,'var(--teal-dark)')+kpi('Fees Paid',paid,'var(--success-dark)')+kpi('Fees Due',students.length-paid,'var(--danger-dark)');
+
+  // charts
+  const courses=DB.get('courses')||[];
+  const cCounts=courses.map(c=>students.filter(s=>s.course===c.id).length);
+  if(window._enrC)window._enrC.destroy();
+  window._enrC=new Chart(document.getElementById('enrCourseChart').getContext('2d'),{type:'bar',data:{labels:courses.map(c=>c.code),datasets:[{label:'Students',data:cCounts,backgroundColor:['rgba(14,165,233,.65)','rgba(20,184,166,.65)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(236,72,153,.65)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  const m=students.filter(s=>s.gender==='Male').length,f=students.filter(s=>s.gender==='Female').length;
+  if(window._enrG)window._enrG.destroy();
+  window._enrG=new Chart(document.getElementById('enrGenderChart').getContext('2d'),{type:'doughnut',data:{labels:['Male','Female','Other'],datasets:[{data:[m,f,students.length-m-f],backgroundColor:['rgba(14,165,233,.75)','rgba(236,72,153,.7)','rgba(20,184,166,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+
+  document.getElementById('enrTable').innerHTML=students.map((s,i)=>{const c=DB.find('courses',s.course);const col=AVATAR_COLORS[parseInt(s.id.replace(/\D/g,''))%AVATAR_COLORS.length];return `<tr><td style="color:var(--text-3);font-size:12px">${i+1}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0">${(s.firstName[0]+s.lastName[0]).toUpperCase()}</div><div><div style="font-weight:600;font-size:13px">${s.firstName} ${s.lastName}</div><div style="font-size:10.5px;color:var(--text-3)">${s.rollNo||s.id}</div></div></div></td><td class="td-muted">${c?.name||'—'}</td><td class="td-muted">${s.batch}</td><td>${s.gender}</td><td>${Utils.statusBadge(s.status)}</td><td>${Utils.statusBadge(s.feesStatus)}</td><td class="td-muted">${Utils.formatDate(s.admissionDate)}</td></tr>`}).join('')||'<tr><td colspan="8"><div class="table-empty"><div class="empty-icon">🎓</div><div class="empty-msg">No students match</div></div></td></tr>';
+}
+
+/* ══ FEE REPORT ══ */
+function renderFeeReport(){
+  let txns=DB.get('feeTransactions')||[];
+  const courseF=document.getElementById('feeRptCourse').value;
+  const modeF=document.getElementById('feeRptMode').value;
+  const from=document.getElementById('feeRptFrom').value;
+  const to=document.getElementById('feeRptTo').value;
+  if(modeF)txns=txns.filter(t=>t.mode===modeF);
+  if(from)txns=txns.filter(t=>t.date>=from);
+  if(to)txns=txns.filter(t=>t.date<=to);
+  if(courseF)txns=txns.filter(t=>{const s=DB.find('students',t.studentId);return s?.course===courseF;});
+  txns.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const total=txns.reduce((a,t)=>a+Number(t.amount),0);
+  const avg=txns.length?Math.round(total/txns.length):0;
+  document.getElementById('feeRptCount').textContent=txns.length+' records';
+  document.getElementById('feeKPIs').innerHTML=kpi('Total Collected',Utils.formatCurrency(total),'var(--teal-dark)')+kpi('Transactions',txns.length,'var(--primary-dark)')+kpi('Avg per Txn',Utils.formatCurrency(avg),'var(--accent)')+kpi('Cash',txns.filter(t=>t.mode==='Cash').length,'var(--warning-dark)')+kpi('UPI/Online',txns.filter(t=>['UPI','Bank Transfer','NEFT'].includes(t.mode)).length,'var(--success-dark)')+kpi('Cheque/DD',txns.filter(t=>['Cheque','DD'].includes(t.mode)).length,'var(--text-2)');
+
+  // Month chart
+  const mData=Array(12).fill(0);
+  txns.forEach(t=>{const m=new Date(t.date).getMonth();if(!isNaN(m))mData[m]+=Number(t.amount);});
+  if(window._feeMC)window._feeMC.destroy();
+  window._feeMC=new Chart(document.getElementById('feeMonthChart').getContext('2d'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{label:'₹',data:mData,backgroundColor:'rgba(14,165,233,.22)',borderColor:'#0ea5e9',borderWidth:2,borderRadius:6,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:9}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // Mode doughnut
+  const modes={};txns.forEach(t=>{modes[t.mode]=(modes[t.mode]||0)+Number(t.amount);});
+  if(window._feeMD)window._feeMD.destroy();
+  window._feeMD=new Chart(document.getElementById('feeModeChart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(modes),datasets:[{data:Object.values(modes),backgroundColor:['rgba(14,165,233,.7)','rgba(20,184,166,.7)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(239,68,68,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+
+  document.getElementById('feeRptTable').innerHTML=txns.map((t,i)=>{const s=DB.find('students',t.studentId);const c=DB.find('courses',s?.course);return `<tr><td style="color:var(--text-3);font-size:12px">${i+1}</td><td><span class="badge badge-blue" style="font-family:monospace">${t.receiptNo}</span></td><td><strong>${t.studentName}</strong><br><span style="font-size:10.5px;color:var(--text-3)">${s?.rollNo||t.studentId}</span></td><td class="td-muted">${c?.name||'—'}</td><td><strong style="color:var(--teal-dark)">${Utils.formatCurrency(t.amount)}</strong></td><td class="td-muted">${t.mode}</td><td class="td-muted">${Utils.formatDate(t.date)}</td><td>${Utils.statusBadge(t.status)}</td></tr>`}).join('')||'<tr><td colspan="8"><div class="table-empty"><div class="empty-icon">💰</div><div class="empty-msg">No transactions</div></div></td></tr>';
+}
+
+/* ══ ATTENDANCE REPORT ══ */
+function renderAttReport(){
+  const courseF=document.getElementById('attRptCourse').value;
+  const monthIdx=Number(document.getElementById('attRptMonth').value);
+  const log=DB.get('attendanceLog')||[];
+  const students=(DB.get('students')||[]).filter(s=>s.status==='Active'&&(!courseF||s.course===courseF));
+  const mLog=log.filter(r=>new Date(r.date).getMonth()===monthIdx);
+
+  const allP=mLog.filter(r=>r.status==='present').length;
+  const allT=mLog.length;
+  const avgP=allT?Math.round((allP/allT)*100):0;
+  const below75=students.filter(s=>{const sl=mLog.filter(r=>r.studentId===s.id);return sl.length&&(sl.filter(r=>r.status==='present').length/sl.length)<.75;}).length;
+  document.getElementById('attKPIs').innerHTML=kpi('Avg Attendance',avgP+'%','var(--primary-dark)')+kpi('Total Records',allT,'var(--text-2)')+kpi('Present',allP,'var(--success-dark)')+kpi('Absent',mLog.filter(r=>r.status==='absent').length,'var(--danger-dark)')+kpi('Below 75%',below75,'var(--warning-dark)')+kpi('Working Days',allT?[...new Set(mLog.map(r=>r.date))].length:0,'var(--teal-dark)');
+
+  // Trend
+  const dateMap={};mLog.forEach(r=>{if(!dateMap[r.date])dateMap[r.date]={p:0,t:0};if(r.status==='present')dateMap[r.date].p++;dateMap[r.date].t++;});
+  const sorted=Object.entries(dateMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(window._attTC)window._attTC.destroy();
+  window._attTC=new Chart(document.getElementById('attTrendChart').getContext('2d'),{type:'line',data:{labels:sorted.map(([d])=>new Date(d).getDate()+''),datasets:[{label:'%',data:sorted.map(([,v])=>v.t?Math.round((v.p/v.t)*100):0),borderColor:'#0ea5e9',backgroundColor:'rgba(14,165,233,.1)',tension:.4,fill:true,pointRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // Course chart
+  const courses=DB.get('courses')||[];
+  const cAvg=courses.map(c=>{const ids=(DB.get('students')||[]).filter(s=>s.course===c.id).map(s=>s.id);const sl=mLog.filter(r=>ids.includes(r.studentId));return sl.length?Math.round((sl.filter(r=>r.status==='present').length/sl.length)*100):0;});
+  if(window._attCC)window._attCC.destroy();
+  window._attCC=new Chart(document.getElementById('attCourseChart').getContext('2d'),{type:'bar',data:{labels:courses.map(c=>c.code),datasets:[{label:'%',data:cAvg,backgroundColor:cAvg.map(v=>v>=75?'rgba(34,197,94,.65)':v>=50?'rgba(245,158,11,.65)':'rgba(239,68,68,.65)'),borderRadius:8,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(14,165,233,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  document.getElementById('attRptTable').innerHTML=students.map((s,i)=>{const sl=mLog.filter(r=>r.studentId===s.id);const p=sl.filter(r=>r.status==='present').length,ab=sl.filter(r=>r.status==='absent').length,lv=sl.filter(r=>r.status==='leave').length;const pct=sl.length?Math.round((p/sl.length)*100):0;const c=DB.find('courses',s.course);const pctC=pct>=75?'var(--success-dark)':pct>=50?'var(--warning-dark)':'var(--danger-dark)';return `<tr><td style="font-size:12px;color:var(--text-3)">${i+1}</td><td><strong>${s.firstName} ${s.lastName}</strong><br><span style="font-size:10.5px;color:var(--text-3)">${s.rollNo||s.id}</span></td><td class="td-muted">${c?.name||'—'}</td><td style="color:var(--success-dark);font-weight:600">${p}</td><td style="color:var(--danger-dark);font-weight:600">${ab}</td><td style="color:var(--warning-dark);font-weight:600">${lv}</td><td>${sl.length}</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress" style="flex:1;height:5px"><div class="progress-bar" style="width:${pct}%;background:${pctC}"></div></div><strong style="color:${pctC};font-size:12.5px">${pct}%</strong></div></td><td>${pct<75?'<span class="badge badge-red">⚠ Short</span>':'<span class="badge badge-green">OK</span>'}</td></tr>`}).join('');
+}
+
+/* ══ EXAM REPORT ══ */
+function renderExamReport(){
+  const examF=document.getElementById('exRptExam').value;
+  const courseF=document.getElementById('exRptCourse').value;
+  let results=DB.get('results')||[];
+  if(examF)results=results.filter(r=>r.examId===examF);
+  if(courseF)results=results.filter(r=>{const e=DB.find('exams',r.examId);return e?.courseId===courseF;});
+  results=results.sort((a,b)=>{const ea=DB.find('exams',a.examId),eb=DB.find('exams',b.examId);return(b.marksObtained/(eb?.maxMarks||100))-(a.marksObtained/(ea?.maxMarks||100));});
+
+  const pass=results.filter(r=>r.result==='Pass').length;
+  const avgPct=results.length?Math.round(results.reduce((a,r)=>{const e=DB.find('exams',r.examId);return a+(e?(r.marksObtained/e.maxMarks)*100:0);},0)/results.length):0;
+  const top=results[0];const topPct=top?Math.round((top.marksObtained/(DB.find('exams',top.examId)?.maxMarks||100))*100):0;
+  document.getElementById('exKPIs').innerHTML=kpi('Total Results',results.length,'var(--primary-dark)')+kpi('Pass',pass,'var(--success-dark)')+kpi('Fail',results.length-pass,'var(--danger-dark)')+kpi('Pass Rate',results.length?Math.round((pass/results.length)*100)+'%':'—','var(--teal-dark)')+kpi('Avg Score',avgPct?avgPct+'%':'—','var(--accent)')+kpi('Top Score',topPct?topPct+'%':'—','var(--warning-dark)');
+
+  // Score dist
+  const bkts={'>90':0,'80-89':0,'70-79':0,'60-69':0,'50-59':0,'40-49':0,'<40':0};
+  results.forEach(r=>{const e=DB.find('exams',r.examId);const p=e?(r.marksObtained/e.maxMarks)*100:0;if(p>=90)bkts['>90']++;else if(p>=80)bkts['80-89']++;else if(p>=70)bkts['70-79']++;else if(p>=60)bkts['60-69']++;else if(p>=50)bkts['50-59']++;else if(p>=40)bkts['40-49']++;else bkts['<40']++;});
+  if(window._exSC)window._exSC.destroy();
+  window._exSC=new Chart(document.getElementById('exScoreChart').getContext('2d'),{type:'bar',data:{labels:Object.keys(bkts),datasets:[{data:Object.values(bkts),backgroundColor:['rgba(34,197,94,.7)','rgba(34,197,94,.5)','rgba(14,165,233,.65)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(249,115,22,.65)','rgba(239,68,68,.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  // Grade
+  const gc={'A+':0,A:0,'B+':0,B:0,'C+':0,C:0,F:0};results.forEach(r=>{if(gc[r.grade]!==undefined)gc[r.grade]++;});
+  if(window._exGC)window._exGC.destroy();
+  window._exGC=new Chart(document.getElementById('exGradeChart').getContext('2d'),{type:'pie',data:{labels:Object.keys(gc),datasets:[{data:Object.values(gc),backgroundColor:['rgba(34,197,94,.75)','rgba(34,197,94,.5)','rgba(14,165,233,.7)','rgba(99,102,241,.65)','rgba(245,158,11,.65)','rgba(249,115,22,.65)','rgba(239,68,68,.7)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}}});
+
+  document.getElementById('exRptTable').innerHTML=results.map((r,i)=>{const s=DB.find('students',r.studentId);const e=DB.find('exams',r.examId);const pct=e?Math.round((r.marksObtained/e.maxMarks)*100):0;const gpMap={'A+':'gp-ap',A:'gp-a','B+':'gp-bp',B:'gp-b','C+':'gp-cp',C:'gp-c',F:'gp-f'};const col=AVATAR_COLORS[parseInt((r.studentId||'S0').replace(/\D/g,''))%AVATAR_COLORS.length];return `<tr><td><span style="font-size:13px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span></td><td><div style="display:flex;align-items:center;gap:7px"><div style="width:26px;height:26px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">${s?(s.firstName[0]+s.lastName[0]).toUpperCase():'?'}</div><div><div style="font-weight:600;font-size:13px">${s?s.firstName+' '+s.lastName:'—'}</div><div style="font-size:10.5px;color:var(--text-3)">${s?.rollNo||r.studentId}</div></div></div></td><td class="td-muted" style="font-size:12.5px">${e?.name||'—'}</td><td>${e?.maxMarks||'—'}</td><td><strong>${r.marksObtained}</strong></td><td><strong style="color:${pct>=75?'var(--success-dark)':pct>=50?'var(--warning-dark)':'var(--danger-dark)'}">${pct}%</strong></td><td><span class="grade-pill ${gpMap[r.grade]||'gp-na'}" style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800">${r.grade}</span></td><td>${Utils.statusBadge(r.result)}</td></tr>`}).join('');
+}
+
+/* ══ CUSTOM BUILDER ══ */
+const BUILDER_FIELDS={
+  students:[{id:'name',l:'Full Name'},{id:'rollNo',l:'Roll No.'},{id:'course',l:'Course'},{id:'batch',l:'Batch'},{id:'gender',l:'Gender'},{id:'status',l:'Status'},{id:'feesStatus',l:'Fees Status'},{id:'phone',l:'Phone'},{id:'email',l:'Email'},{id:'admissionDate',l:'Admission Date'},{id:'parentName',l:'Parent Name'}],
+  fees:[{id:'receiptNo',l:'Receipt No.'},{id:'studentName',l:'Student'},{id:'amount',l:'Amount'},{id:'date',l:'Date'},{id:'mode',l:'Payment Mode'},{id:'remarks',l:'Remarks'},{id:'status',l:'Status'}],
+  attendance:[{id:'date',l:'Date'},{id:'studentId',l:'Student ID'},{id:'status',l:'Status'}],
+  results:[{id:'studentId',l:'Student'},{id:'examId',l:'Exam'},{id:'marksObtained',l:'Marks'},{id:'grade',l:'Grade'},{id:'result',l:'Result'}],
+  faculty:[{id:'name',l:'Name'},{id:'subject',l:'Subject'},{id:'dept',l:'Department'},{id:'qualification',l:'Qualification'},{id:'experience',l:'Experience'},{id:'status',l:'Status'},{id:'salary',l:'Salary'},{id:'joinDate',l:'Join Date'}],
+};
+
+function renderBuilderFields(){
+  const src=document.getElementById('cbSource').value;
+  const fields=BUILDER_FIELDS[src]||[];
+  document.getElementById('builderFieldList').innerHTML=fields.map(f=>`<label class="builder-field"><input type="checkbox" class="bf-check" value="${f.id}" checked><div><div class="bf-label">${f.l}</div></div></label>`).join('');
+}
+
+function buildCustomReport(){
+  const src=document.getElementById('cbSource').value;
+  const statusF=document.getElementById('cbStatus').value;
+  const sortF=document.getElementById('cbSort').value;
+  const checked=[...document.querySelectorAll('.bf-check:checked')].map(c=>c.value);
+  if(!checked.length){Toast.error('Select at least one field');return;}
+
+  let data=DB.get(src==='fees'?'feeTransactions':src==='attendance'?'attendanceLog':src==='results'?'results':src)||[];
+  if(statusF&&src==='students')data=data.filter(r=>r.status===statusF);
+  if(sortF==='name')data=[...data].sort((a,b)=>(a.name||a.studentName||'').localeCompare(b.name||b.studentName||''));
+  if(sortF==='amount')data=[...data].sort((a,b)=>Number(b.amount)-Number(a.amount));
+
+  const fields=BUILDER_FIELDS[src]||[];
+  const selFields=fields.filter(f=>checked.includes(f.id));
+
+  const tableHTML=`<div class="print-area"><div class="print-header"><div><div class="print-brand">EduSoft</div><div class="print-brand-sub">by Uniitechs</div></div><div style="text-align:right"><div class="print-report-title">${src.charAt(0).toUpperCase()+src.slice(1)} Report</div><div class="print-meta">Generated: ${Utils.fullDate()}</div></div></div>
+  <div style="margin-bottom:14px;font-size:13px;color:var(--text-3)">${data.length} records · Fields: ${selFields.map(f=>f.l).join(', ')}</div>
+  <div style="overflow-x:auto"><table class="data-table"><thead><tr>${selFields.map(f=>`<th>${f.l}</th>`).join('')}</tr></thead><tbody>${data.slice(0,200).map(row=>`<tr>${selFields.map(f=>{let v=row[f.id]||'—';if(f.id==='course')v=getCourseName(v);if(f.id==='examId')v=DB.find('exams',v)?.name||v;if(f.id==='amount')v=Utils.formatCurrency(v);if(f.id==='date'||f.id==='admissionDate'||f.id==='joinDate')v=Utils.formatDate(v);return `<td>${v}</td>`;}).join('')}</tr>`).join('')}</tbody></table></div>
+  <div style="margin-top:16px;display:flex;gap:10px" class="report-actions"><button class="btn btn-primary btn-sm" onclick="window.print()">🖨 Print</button><button class="btn btn-outline btn-sm" onclick="exportCustomCSV()">⬇ Export CSV</button><button class="btn btn-outline btn-sm" onclick="saveTemplate()">💾 Save Template</button></div></div>`;
+
+  document.getElementById('customReportOutput').innerHTML=tableHTML;
+  window._lastCustomData={data,src,fields:selFields};
+  Toast.success(`Report generated — ${data.length} records`);
+}
+
+function exportCustomCSV(){
+  if(!window._lastCustomData){Toast.error('Generate a report first');return;}
+  const {data,fields}=window._lastCustomData;
+  const headers=fields.map(f=>f.l);
+  const rows=data.map(row=>fields.map(f=>`"${row[f.id]||''}"`).join(','));
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download=`custom_report_${Utils.today()}.csv`;a.click();
+  Toast.success('CSV exported!');
+}
+
+function saveTemplate(){
+  const name=prompt('Template name:','My Report');
+  if(!name)return;
+  const src=document.getElementById('cbSource').value;
+  const checked=[...document.querySelectorAll('.bf-check:checked')].map(c=>c.value);
+  const templates=DB.get('reportTemplates')||[];
+  templates.push({id:DB.nextId('reportTemplates','RPT'),name,src,fields:checked,savedAt:new Date().toISOString()});
+  DB.set('reportTemplates',templates);
+  renderSavedTemplates();Toast.success('Template saved: '+name);
+}
+
+function renderSavedTemplates(){
+  const templates=DB.get('reportTemplates')||[];
+  document.getElementById('savedTemplates').innerHTML=templates.length
+    ?templates.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="flex:1"><div style="font-weight:600">${t.name}</div><div style="font-size:11px;color:var(--text-3)">${t.src} · ${t.fields.length} fields</div></div><button class="btn-icon" onclick="loadTemplate('${t.id}')" style="font-size:11px">▶</button><button class="btn-icon" onclick="deleteTemplate('${t.id}')" style="font-size:11px;background:rgba(239,68,68,.08)">🗑</button></div>`).join('')
+    :'<div style="color:var(--text-3);font-size:12.5px;text-align:center;padding:12px">No saved templates yet</div>';
+}
+
+function loadTemplate(id){
+  const t=DB.find('reportTemplates',id);if(!t)return;
+  document.getElementById('cbSource').value=t.src;renderBuilderFields();
+  setTimeout(()=>{t.fields.forEach(fid=>{const cb=document.querySelector(`.bf-check[value="${fid}"]`);if(cb)cb.checked=true;});buildCustomReport();},100);
+}
+
+function deleteTemplate(id){DB.delete('reportTemplates',id);renderSavedTemplates();}
+
+/* ══ HELPERS ══ */
+function kpi(label,val,color){return `<div class="kpi-card glass"><div class="kpi-val" style="color:${color}">${val}</div><div class="kpi-lbl">${label}</div></div>`;}
+
+function printSection(id){
+  const el=document.getElementById(id);if(!el)return;
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>EduSoft Report</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Plus Jakarta Sans',sans-serif;color:#0f172a;padding:24px;font-size:12px}.data-table{width:100%;border-collapse:collapse}.data-table th,.data-table td{border:1px solid #e2e8f0;padding:7px 10px;text-align:left;font-size:12px}.data-table th{background:#f0f9ff;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b}.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600}.badge-green{background:#dcfce7;color:#15803d}.badge-red{background:#fee2e2;color:#b91c1c}.badge-yellow{background:#fef3c7;color:#b45309}.badge-blue{background:#e0f2fe;color:#0369a1}.badge-gray{background:#f1f5f9;color:#475569}.badge-teal{background:#ccfbf1;color:#0f766e}.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}.kpi-card{text-align:center;padding:12px;border:1px solid #e2e8f0;border-radius:10px}.kpi-val{font-size:20px;font-weight:800}.kpi-lbl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}.print-header{display:flex;justify-content:space-between;padding-bottom:12px;border-bottom:2px solid #bae6fd;margin-bottom:16px}.print-brand{font-family:'DM Serif Display',serif;font-size:22px;color:#0284c7}.progress{height:5px;background:#e0f2fe;border-radius:99px;overflow:hidden}.progress-bar{height:100%;background:#0ea5e9;border-radius:99px}@media print{body{padding:0}}</style></head><body>${el.innerHTML}<script>window.onload=()=>{window.print()}<\/script></body></html>`);
+  w.document.close();
+}
+
+function exportEnrCSV(){
+  const students=DB.get('students')||[];
+  const h=['ID','Name','Course','Batch','Gender','Status','Fees Status','Admitted'];
+  const r=students.map(s=>{const c=DB.find('courses',s.course);return [s.id,s.firstName+' '+s.lastName,c?.name||'',s.batch,s.gender,s.status,s.feesStatus,s.admissionDate].map(v=>`"${v}"`).join(',')});
+  dl(h,r,'enrollment_report');
+}
+function exportFeeCSV(){
+  const txns=DB.get('feeTransactions')||[];
+  const h=['Receipt','Student','Amount','Mode','Date','Status'];
+  const r=txns.map(t=>[t.receiptNo,t.studentName,t.amount,t.mode,t.date,t.status].map(v=>`"${v}"`).join(','));
+  dl(h,r,'fee_report');
+}
+function exportAttCSV(){
+  const log=DB.get('attendanceLog')||[];
+  const h=['Date','Student ID','Status'];
+  const r=log.map(l=>[l.date,l.studentId,l.status].map(v=>`"${v}"`).join(','));
+  dl(h,r,'attendance_report');
+}
+function exportExamCSV(){
+  const results=DB.get('results')||[];
+  const h=['Student','Exam','Marks','Grade','Result'];
+  const r=results.map(res=>{const s=DB.find('students',res.studentId);const e=DB.find('exams',res.examId);return [s?s.firstName+' '+s.lastName:'—',e?.name||'—',res.marksObtained,res.grade,res.result].map(v=>`"${v}"`).join(',')});
+  dl(h,r,'exam_report');
+}
+function dl(headers,rows,name){
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([headers.join(','),...rows].join('\n'));
+  a.download=`${name}_${Utils.today()}.csv`;a.click();Toast.success('Exported!');
+}
+function resetEnrFilters(){['enrCourseF','enrStatusF','enrBatchF','enrGenderF'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderEnrollReport();}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  else{const m=document.querySelector(`.main-tab[onclick*="'${name}'"]`);if(m)m.classList.add('active');}
+  if(name==='overview')renderOverview();
+  if(name==='enrollment'){renderEnrollReport();}
+  if(name==='fees')renderFeeReport();
+  if(name==='attendance')renderAttReport();
+  if(name==='exam')renderExamReport();
+}
+</script>
+</body>
+</html>
