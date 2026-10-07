@@ -269,6 +269,25 @@ const AVATAR_COLORS=['#0ea5e9','#14b8a6','#6366f1','#f59e0b','#22c55e','#ef4444'
 const BOOK_ICONS={Science:'🔬',Commerce:'📊',Technology:'💻','Arts / Humanities':'🎨',Language:'📝',Reference:'📖',Fiction:'📕',Other:'📗'};
 const CAT_COLORS={Science:'rgba(14,165,233,.65)',Commerce:'rgba(20,184,166,.65)',Technology:'rgba(99,102,241,.65)','Arts / Humanities':'rgba(236,72,153,.65)',Language:'rgba(245,158,11,.65)',Reference:'rgba(34,197,94,.65)',Fiction:'rgba(239,68,68,.65)',Other:'rgba(100,116,139,.55)'};
 let catView='cards';
+const API_BASE = 'http://localhost:5000/api';
+
+async function apiFetch(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    },
+    ...options
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'API request failed');
+  }
+
+  return data;
+}
 
 /* ══ SEED ══ */
 function seedLibrary(){
@@ -309,24 +328,50 @@ function seedLibrary(){
 }
 
 /* ══ INIT ══ */
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
   initSidebar('library');
-  seedLibrary();
+
+  try {
+    await loadLibraryData();
+  } catch (error) {
+    console.error(error);
+    Toast.error('Failed to load library data');
+  }
+
   populateCategoryFilter();
   populateMemberSelect();
   populateBookSelect();
   populateReturnSelect();
-  document.getElementById('issueDate').value=Utils.today();
-  document.getElementById('dueDate').value=futureDateStr(14);
-  document.getElementById('returnDate').value=Utils.today();
-  updateStats();renderCatalog();
+
+  document.getElementById('issueDate').value = Utils.today();
+  document.getElementById('dueDate').value = futureDateStr(14);
+  document.getElementById('returnDate').value = Utils.today();
+
+  updateStats();
+  renderCatalog();
 });
 
 function futureDateStr(days){const d=new Date();d.setDate(d.getDate()+days);return d.toISOString().split('T')[0];}
 function daysBetween(d1,d2){return Math.round((new Date(d2)-new Date(d1))/86400000);}
+async function loadLibraryData() {
+  const [books, issues] = await Promise.all([
+    apiFetch('/books'),
+    apiFetch('/books/issues')
+  ]);
+
+  window.libraryBooks = books;
+  window.libraryIssues = issues;
+}
+function getBooks() {
+  return window.libraryBooks || [];
+}
+
+function getIssues() {
+  return window.libraryIssues || [];
+}
 
 function populateCategoryFilter(){
-  const books=DB.get('books')||[];
+  const books = getBooks();
   const cats=[...new Set(books.map(b=>b.category))].sort();
   const el=document.getElementById('catCategory');if(!el)return;
   el.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
@@ -341,41 +386,98 @@ function populateMemberSelect(){
 }
 
 function populateBookSelect(){
-  const books=DB.get('books')||[];
+  const books = getBooks();
   const el=document.getElementById('issueBook');if(!el)return;
   el.innerHTML='<option value="">— Select Book —</option>'+
     books.map(b=>`<option value="${b.id}" ${b.available<=0?'disabled':''} style="color:${b.available<=0?'#94a3b8':'inherit'}">${b.title} — ${b.author} (Avail: ${b.available})</option>`).join('');
 }
 
 function populateReturnSelect(){
-  const issues=(DB.get('bookIssues')||[]).filter(i=>i.status!=='returned');
-  const el=document.getElementById('returnIssue');if(!el)return;
-  el.innerHTML='<option value="">— Select Issue Record —</option>'+issues.map(i=>{
-    const b=DB.find('books',i.bookId);
-    return `<option value="${i.id}">${b?.title||i.bookId} → ${i.memberName} (Due: ${Utils.formatDate(i.dueDate)})</option>`;
-  }).join('');
+  const sel = document.getElementById('returnIssue');
+
+  const issues = getIssues().filter(
+    issue => issue.status !== 'returned'
+  );
+
+  sel.innerHTML =
+    '<option value="">Select issued book</option>' +
+    issues.map(issue => {
+      const book = getBooks().find(
+        book => String(book.id) === String(issue.bookId)
+      );
+
+      return `
+        <option value="${issue.id}">
+          ${book ? book.title : 'Unknown book'} — ${issue.memberName}
+        </option>
+      `;
+    }).join('');
+
+  onReturnSelect();
 }
 
 /* ══ STATS ══ */
+/* ══ LIBRARY STATS ══ */
 function updateStats(){
-  const books=DB.get('books')||[];const issues=DB.get('bookIssues')||[];
-  const students=DB.get('students')||[];const faculty=DB.get('faculty')||[];
-  const active=issues.filter(i=>i.status!=='returned');
-  const overdue=active.filter(i=>i.dueDate<Utils.today());
-  const totalCopies=books.reduce((a,b)=>a+b.total,0);
-  const availCopies=books.reduce((a,b)=>a+b.available,0);
-  const fineCollected=issues.filter(i=>i.status==='returned'&&i.fineCollected).reduce((a,i)=>a+(i.fineCollected||0),0);
-  document.getElementById('lStatTotal').textContent=books.length+' titles / '+totalCopies+' copies';
-  document.getElementById('lStatAvail').textContent=availCopies;
-  document.getElementById('lStatIssued').textContent=active.length;
-  document.getElementById('lStatOverdue').textContent=overdue.length;
-  document.getElementById('lStatFine').textContent=Utils.formatCurrency(fineCollected);
-  document.getElementById('lStatMembers').textContent=students.length+faculty.length;
+
+  const books = getBooks();
+  const issues = getIssues();
+
+  const students = DB.get('students') || [];
+  const faculty = DB.get('faculty') || [];
+
+  const active = issues.filter(
+    issue => issue.status !== 'returned'
+  );
+
+  const overdue = active.filter(
+    issue => issue.dueDate < Utils.today()
+  );
+
+  const totalCopies = books.reduce(
+    (sum, book) => sum + Number(book.total || 0),
+    0
+  );
+
+  const availCopies = books.reduce(
+    (sum, book) => sum + Number(book.available || 0),
+    0
+  );
+
+  const fineCollected = issues
+    .filter(
+      issue =>
+        issue.status === 'returned' &&
+        Number(issue.fineCollected || 0) > 0
+    )
+    .reduce(
+      (sum, issue) =>
+        sum + Number(issue.fineCollected || 0),
+      0
+    );
+
+  document.getElementById('lStatTotal').textContent =
+    books.length + ' titles / ' + totalCopies + ' copies';
+
+  document.getElementById('lStatAvail').textContent =
+    availCopies;
+
+  document.getElementById('lStatIssued').textContent =
+    active.length;
+
+  document.getElementById('lStatOverdue').textContent =
+    overdue.length;
+
+  document.getElementById('lStatFine').textContent =
+    Utils.formatCurrency(fineCollected);
+
+  document.getElementById('lStatMembers').textContent =
+    students.length + faculty.length;
 }
 
 /* ══ CATALOG ══ */
 function renderCatalog(){
-  const books=DB.get('books')||[];
+  const books = getBooks();
   const q=(document.getElementById('catSearch')?.value||'').toLowerCase();
   const cat=document.getElementById('catCategory')?.value||'';
   const avail=document.getElementById('catAvail')?.value||'';
@@ -450,22 +552,71 @@ function setCatalogView(v){
 }
 
 /* ══ ADD / EDIT BOOK ══ */
-function saveBook(){
-  const title=document.getElementById('bTitle').value.trim();
-  const author=document.getElementById('bAuthor').value.trim();
-  const total=Number(document.getElementById('bTotal').value)||1;
-  if(!title){document.getElementById('bTitle').closest('.field').classList.add('has-error');Toast.error('Title required');return;}
-  if(!author){document.getElementById('bAuthor').closest('.field').classList.add('has-error');Toast.error('Author required');return;}
-  const editId=document.getElementById('editBookId').value;
-  const avail=Number(document.getElementById('bAvail').value)||total;
-  const data={title,author,isbn:document.getElementById('bIsbn').value.trim(),publisher:document.getElementById('bPublisher').value.trim(),category:document.getElementById('bCategory').value,edition:document.getElementById('bEdition').value.trim(),total,available:Math.min(avail,total),rack:document.getElementById('bRack').value.trim(),price:Number(document.getElementById('bPrice').value)||0};
-  if(editId){DB.update('books',editId,data);Toast.success('Book updated');}
-  else{data.id=DB.nextId('books','B');DB.push('books',data);Toast.success('Book added: '+title);}
-  Modal.close('addBookModal');updateStats();renderCatalog();populateBookSelect();populateCategoryFilter();
+async function saveBook(){
+  const editId = document.getElementById('editBookId').value;
+
+  const total = Number(document.getElementById('bTotal').value) || 0;
+  const available = Number(document.getElementById('bAvail').value) || total;
+
+  const bookData = {
+    title: document.getElementById('bTitle').value.trim(),
+    author: document.getElementById('bAuthor').value.trim(),
+    isbn: document.getElementById('bIsbn').value.trim() || undefined,
+    publisher: document.getElementById('bPublisher').value.trim() || undefined,
+    category: document.getElementById('bCategory').value,
+    edition: document.getElementById('bEdition').value.trim() || undefined,
+    total,
+    available,
+    rack: document.getElementById('bRack').value.trim() || undefined,
+    price: Number(document.getElementById('bPrice').value) || undefined
+  };
+
+  try {
+    if(editId){
+      const updatedBook = await apiFetch(`/books/${editId}`, {
+        method: 'PUT',
+        body: JSON.stringify(bookData)
+      });
+
+      const books = getBooks();
+      const index = books.findIndex(
+        b => String(b.id) === String(editId)
+      );
+
+      if(index !== -1){
+        books[index] = updatedBook;
+      }
+
+      Toast.success('Book updated successfully');
+    }else{
+      const newBook = await apiFetch('/books', {
+        method: 'POST',
+        body: JSON.stringify(bookData)
+      });
+
+      getBooks().push(newBook);
+
+      Toast.success('Book added successfully');
+    }
+
+    Modal.close('addBookModal');
+
+    populateCategoryFilter();
+    populateBookSelect();
+    updateStats();
+    renderCatalog();
+
+  }catch(error){
+    console.error(error);
+    Toast.error(error.message || 'Failed to save book');
+  }
 }
 
 function openEditBook(id){
-  const b=DB.find('books',id);if(!b)return;
+  const b = getBooks().find(
+    book => String(book.id) === String(id)
+  );
+  if(!b)return;
   document.getElementById('bookModalTitle').textContent='Edit Book';
   document.getElementById('editBookId').value=id;
   document.getElementById('bTitle').value=b.title||'';document.getElementById('bAuthor').value=b.author||'';
@@ -476,21 +627,74 @@ function openEditBook(id){
   Modal.open('addBookModal');
 }
 
-function deleteBook(id){
-  const b=DB.find('books',id);
-  if(!Utils.confirmDelete(`Remove "${b?.title}" from catalog?`))return;
-  DB.delete('books',id);updateStats();renderCatalog();
-  Toast.error('Book removed');
+async function deleteBook(id){
+  const book = getBooks().find(
+    b => String(b.id) === String(id)
+  );
+
+  if(!book){
+    Toast.error('Book not found');
+    return;
+  }
+
+  if(!confirm(`Delete "${book.title}"?`)){
+    return;
+  }
+
+  try{
+    await apiFetch(`/books/${id}`, {
+      method: 'DELETE'
+    });
+
+    const books = getBooks();
+    const index = books.findIndex(
+      b => String(b.id) === String(id)
+    );
+
+    if(index !== -1){
+      books.splice(index, 1);
+    }
+
+    populateCategoryFilter();
+    populateBookSelect();
+    updateStats();
+    renderCatalog();
+
+    Toast.success('Book deleted successfully');
+
+  }catch(error){
+    console.error(error);
+    Toast.error(error.message || 'Failed to delete book');
+  }
 }
 
 /* ══ ISSUE BOOK ══ */
+/* ══ ISSUE BOOK ══ */
 function onIssueBookSelect(){
-  const id=document.getElementById('issueBook').value;
-  const b=DB.find('books',id);
-  const box=document.getElementById('issueBookInfo');
-  if(!b||!id){box.style.display='none';return;}
-  box.style.display='block';
-  box.innerHTML=`📚 <strong>${b.title}</strong> by ${b.author} · ${b.category}<br>Available: <strong style="color:${b.available>0?'var(--success-dark)':'var(--danger-dark)'}">${b.available}/${b.total}</strong> copies · 📍 ${b.rack||'—'}`;
+
+  const id = document.getElementById('issueBook').value;
+
+  const b = getBooks().find(
+    book => String(book.id) === String(id)
+  );
+
+  const box = document.getElementById('issueBookInfo');
+
+  if(!b || !id){
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    📚 <strong>${b.title}</strong> by ${b.author} · ${b.category}<br>
+    Available:
+    <strong style="color:${b.available > 0 ? 'var(--success-dark)' : 'var(--danger-dark)'}">
+      ${b.available}/${b.total}
+    </strong>
+    copies · 📍 ${b.rack || '—'}
+  `;
 }
 
 function quickIssue(bookId){
@@ -499,159 +703,793 @@ function quickIssue(bookId){
   switchTab('issue',null);
 }
 
-function issueBook(){
-  const member=document.getElementById('issueMember').value;
-  const bookId=document.getElementById('issueBook').value;
-  if(!member||!bookId){Toast.error('Select member and book');return;}
-  const b=DB.find('books',bookId);
-  if(!b||b.available<=0){Toast.error('Book not available');return;}
-  const[type,id]=member.split('_');
-  const isStudent=type==='s';
-  const person=isStudent?DB.find('students',id):DB.find('faculty',id);
-  const memberName=isStudent?`${person?.firstName} ${person?.lastName}`:person?.name||'—';
-  const issue={id:DB.nextId('bookIssues','I'),bookId,memberId:id,memberName,memberType:isStudent?'student':'faculty',issueDate:document.getElementById('issueDate').value,dueDate:document.getElementById('dueDate').value,returnDate:null,finePerDay:Number(document.getElementById('finePerDay').value)||5,fine:0,status:'active'};
-  DB.push('bookIssues',issue);
-  DB.update('books',bookId,{available:b.available-1});
-  updateStats();populateBookSelect();populateReturnSelect();renderCatalog();
-  Toast.success(`"${b.title}" issued to ${memberName}`);
+async function issueBook(){
+  const memberValue = document.getElementById('issueMember').value;
+  const bookId = document.getElementById('issueBook').value;
+
+  if(!memberValue || !bookId){
+    Toast.error('Please select a member and book');
+    return;
+  }
+
+  const [memberType, memberId] = memberValue.split('_');
+
+  const memberList =
+    memberType === 's'
+      ? DB.get('students')
+      : DB.get('faculty');
+
+  const member = memberList.find(
+    m => String(m.id) === String(memberId)
+  );
+
+  const book = getBooks().find(
+    b => String(b.id) === String(bookId)
+  );
+
+  if(!member){
+    Toast.error('Member not found');
+    return;
+  }
+
+  if(!book){
+    Toast.error('Book not found');
+    return;
+  }
+
+  if(book.available <= 0){
+    Toast.error('Book is not available');
+    return;
+  }
+
+  const issueDate = document.getElementById('issueDate').value;
+  const dueDate = document.getElementById('dueDate').value;
+  const finePerDay =
+    Number(document.getElementById('finePerDay').value) || 5;
+
+  try{
+    const issue = await apiFetch('/books/issues', {
+      method: 'POST',
+      body: JSON.stringify({
+        bookId: Number(book.id),
+        memberId: Number(member.id),
+        memberType,
+        memberName:
+          member.name ||
+          `${member.firstName || ''} ${member.lastName || ''}`.trim(),
+        issueDate,
+        dueDate,
+        finePerDay
+      })
+    });
+
+    getIssues().unshift(issue);
+
+    // Update the local frontend copy of the book
+    book.available -= 1;
+
+    populateBookSelect();
+    populateReturnSelect();
+    updateStats();
+
+    document.getElementById('issueMember').value = '';
+    document.getElementById('issueBook').value = '';
+
+    Toast.success('Book issued successfully');
+
+    renderIssuedList();
+    renderCatalog();
+
+  }catch(error){
+    console.error(error);
+    Toast.error(error.message || 'Failed to issue book');
+  }
 }
 
 /* ══ RETURN BOOK ══ */
+/* ══ RETURN BOOK ══ */
 function onReturnSelect(){
-  const id=document.getElementById('returnIssue').value;
-  const issue=DB.find('bookIssues',id);
-  const box=document.getElementById('returnInfo');const fineBox=document.getElementById('fineBox');
-  if(!issue||!id){box.style.display='none';fineBox.style.display='none';return;}
-  const b=DB.find('books',issue.bookId);
-  const retDate=document.getElementById('returnDate').value||Utils.today();
-  const overdueDays=Math.max(0,daysBetween(issue.dueDate,retDate));
-  const fine=overdueDays*issue.finePerDay;
-  box.style.display='block';
-  box.innerHTML=`📚 <strong>${b?.title||'—'}</strong><br>Issued to: <strong>${issue.memberName}</strong> on ${Utils.formatDate(issue.issueDate)}<br>Due: <strong>${Utils.formatDate(issue.dueDate)}</strong>`;
-  if(fine>0){fineBox.style.display='block';document.getElementById('fineAmount').textContent=Utils.formatCurrency(fine);document.getElementById('fineDays').textContent=`${overdueDays} days overdue × ₹${issue.finePerDay}/day`;}
-  else fineBox.style.display='none';
+
+  const id = document.getElementById('returnIssue').value;
+
+  const issue = getIssues().find(
+    item => String(item.id) === String(id)
+  );
+
+  const box = document.getElementById('returnInfo');
+  const fineBox = document.getElementById('fineBox');
+
+  if(!issue || !id){
+    box.style.display = 'none';
+    fineBox.style.display = 'none';
+    return;
+  }
+
+  const b = getBooks().find(
+    book => String(book.id) === String(issue.bookId)
+  );
+
+  const retDate =
+    document.getElementById('returnDate').value ||
+    Utils.today();
+
+  const overdueDays = Math.max(
+    0,
+    daysBetween(issue.dueDate, retDate)
+  );
+
+  const fine =
+    overdueDays * Number(issue.finePerDay || 0);
+
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    📚 <strong>${b?.title || '—'}</strong><br>
+    Issued to:
+    <strong>${issue.memberName}</strong>
+    on ${Utils.formatDate(issue.issueDate)}<br>
+    Due:
+    <strong>${Utils.formatDate(issue.dueDate)}</strong>
+  `;
+
+  if(fine > 0){
+
+    fineBox.style.display = 'block';
+
+    document.getElementById('fineAmount').textContent =
+      Utils.formatCurrency(fine);
+
+    document.getElementById('fineDays').textContent =
+      `${overdueDays} days overdue × ₹${issue.finePerDay}/day`;
+
+  }else{
+
+    fineBox.style.display = 'none';
+
+  }
 }
 
-function returnBook(){
-  const issueId=document.getElementById('returnIssue').value;
-  if(!issueId){Toast.error('Select an issue record');return;}
-  const issue=DB.find('bookIssues',issueId);if(!issue)return;
-  const b=DB.find('books',issue.bookId);
-  const retDate=document.getElementById('returnDate').value||Utils.today();
-  const overdueDays=Math.max(0,daysBetween(issue.dueDate,retDate));
-  const fine=overdueDays*issue.finePerDay;
-  DB.update('bookIssues',issueId,{returnDate:retDate,status:'returned',fineCollected:fine});
-  if(b)DB.update('books',issue.bookId,{available:b.available+1});
-  updateStats();populateBookSelect();populateReturnSelect();renderCatalog();
-  document.getElementById('returnInfo').style.display='none';
-  document.getElementById('fineBox').style.display='none';
-  document.getElementById('returnIssue').value='';
-  Toast.success(`Book returned${fine>0?` · Fine collected: ${Utils.formatCurrency(fine)}`:''}!`);
-  if(fine>0)Toast.warning(`Collect fine of ${Utils.formatCurrency(fine)} from ${issue.memberName}`);
+async function returnBook(){
+  const issueId = document.getElementById('returnIssue').value;
+
+  if(!issueId){
+    Toast.error('Select an issue record');
+    return;
+  }
+
+  const issue = getIssues().find(
+    i => String(i.id) === String(issueId)
+  );
+
+  if(!issue){
+    Toast.error('Issue record not found');
+    return;
+  }
+
+  const retDate =
+    document.getElementById('returnDate').value || Utils.today();
+
+  const overdueDays = Math.max(
+    0,
+    daysBetween(issue.dueDate, retDate)
+  );
+
+  const fine =
+    overdueDays * Number(issue.finePerDay);
+
+  try{
+    const updatedIssue = await apiFetch(
+      `/books/issues/${issueId}/return`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          returnDate: retDate
+        })
+      }
+    );
+
+    // Update frontend's in-memory issue data
+    const issues = getIssues();
+
+    const index = issues.findIndex(
+      i => String(i.id) === String(issueId)
+    );
+
+    if(index !== -1){
+      issues[index] = {
+        ...issues[index],
+        ...updatedIssue
+      };
+    }
+
+    // Update the frontend book availability
+    const book = getBooks().find(
+      b => String(b.id) === String(issue.bookId)
+    );
+
+    if(book){
+      book.available += 1;
+    }
+
+    updateStats();
+    populateBookSelect();
+    populateReturnSelect();
+    renderCatalog();
+
+    document.getElementById('returnInfo').style.display = 'none';
+    document.getElementById('fineBox').style.display = 'none';
+    document.getElementById('returnIssue').value = '';
+
+    Toast.success(
+      `Book returned${
+        fine > 0
+          ? ` · Fine collected: ${Utils.formatCurrency(fine)}`
+          : ''
+      }!`
+    );
+
+    if(fine > 0){
+      Toast.warning(
+        `Collect fine of ${Utils.formatCurrency(fine)} from ${issue.memberName}`
+      );
+    }
+
+  }catch(error){
+    console.error(error);
+    Toast.error(error.message || 'Failed to return book');
+  }
 }
 
 /* ══ ISSUED LIST ══ */
 function renderIssuedList(){
-  const issues=(DB.get('bookIssues')||[]).filter(i=>i.status!=='returned');
-  const typeF=document.getElementById('issuedFilterType')?.value||'';
-  const filtered=issues.filter(i=>!typeF||i.memberType===typeF);
-  const today=Utils.today();
-  document.getElementById('issuedList').innerHTML=filtered.length
-    ?filtered.map(i=>{const b=DB.find('books',i.bookId);const overdue=i.dueDate<today;const days=overdue?daysBetween(i.dueDate,today):daysBetween(today,i.dueDate);const color=AVATAR_COLORS[parseInt(i.memberId.replace(/\D/g,''))%AVATAR_COLORS.length];const init=i.memberName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();return `<div class="issue-card${overdue?' '+'' :''}">
-      <div class="ic-avatar" style="background:${color}">${init}</div>
-      <div style="font-size:18px">${BOOK_ICONS[b?.category||'Other']||'📗'}</div>
-      <div class="ic-info">
-        <div class="ic-name">${b?.title||'—'}</div>
-        <div class="ic-meta">${i.memberName} · ${i.memberType} · Issued: ${Utils.formatDate(i.issueDate)}</div>
-        ${overdue?`<div class="ic-overdue">⚠ ${days} days OVERDUE · Fine: ${Utils.formatCurrency(days*i.finePerDay)}</div>`:`<div style="font-size:11.5px;color:var(--success-dark)">Due in ${days} days</div>`}
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:12px;color:var(--text-3)">Due</div>
-        <div style="font-size:13px;font-weight:600;color:${overdue?'var(--danger-dark)':'var(--text)'}">${Utils.formatDate(i.dueDate)}</div>
-        ${Utils.statusBadge(overdue?'Pending':'Active')}
-      </div>
-    </div>`}).join('')
-    :'<div style="text-align:center;padding:32px;color:var(--text-3)"><div style="font-size:32px;margin-bottom:8px">📚</div><div style="font-size:14px">No books currently issued</div></div>';
-}
+  const issues = getIssues().filter(
+    issue => issue.status !== 'returned'
+  );
 
+  const typeF =
+    document.getElementById('issuedFilterType')?.value || '';
+
+  const filtered = issues.filter(
+    issue => !typeF || issue.memberType === typeF
+  );
+
+  const today = Utils.today();
+
+  document.getElementById('issuedList').innerHTML =
+    filtered.length
+      ? filtered.map(issue => {
+          const book = getBooks().find(
+            book => String(book.id) === String(issue.bookId)
+          );
+
+          const overdue = issue.dueDate < today;
+
+          const days = overdue
+            ? daysBetween(issue.dueDate, today)
+            : daysBetween(today, issue.dueDate);
+
+          const memberNumber =
+            parseInt(
+              String(issue.memberId).replace(/\D/g, '')
+            ) || 0;
+
+          const color =
+            AVATAR_COLORS[
+              memberNumber % AVATAR_COLORS.length
+            ];
+
+          const init = issue.memberName
+            .split(' ')
+            .map(name => name[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+
+          return `
+            <div class="issue-card">
+              <div class="ic-avatar" style="background:${color}">
+                ${init}
+              </div>
+
+              <div style="font-size:18px">
+                ${BOOK_ICONS[book?.category || 'Other'] || '📗'}
+              </div>
+
+              <div class="ic-info">
+                <div class="ic-name">
+                  ${book?.title || '—'}
+                </div>
+
+                <div class="ic-meta">
+                  ${issue.memberName} · ${issue.memberType} ·
+                  Issued: ${Utils.formatDate(issue.issueDate)}
+                </div>
+
+                ${
+                  overdue
+                    ? `
+                      <div class="ic-overdue">
+                        ⚠ ${days} days OVERDUE ·
+                        Fine: ${Utils.formatCurrency(
+                          days * Number(issue.finePerDay)
+                        )}
+                      </div>
+                    `
+                    : `
+                      <div style="font-size:11.5px;color:var(--success-dark)">
+                        Due in ${days} days
+                      </div>
+                    `
+                }
+              </div>
+
+              <div style="text-align:right">
+                <div style="font-size:12px;color:var(--text-3)">
+                  Due
+                </div>
+
+                <div style="font-size:13px;font-weight:600;color:${
+                  overdue
+                    ? 'var(--danger-dark)'
+                    : 'var(--text)'
+                }">
+                  ${Utils.formatDate(issue.dueDate)}
+                </div>
+
+                ${Utils.statusBadge(
+                  overdue ? 'Pending' : 'Active'
+                )}
+              </div>
+            </div>
+          `;
+        }).join('')
+      : `
+        <div style="text-align:center;padding:32px;color:var(--text-3)">
+          <div style="font-size:32px;margin-bottom:8px">📚</div>
+          <div style="font-size:14px">
+            No books currently issued
+          </div>
+        </div>
+      `;
+}
 /* ══ OVERDUE & FINES ══ */
 function renderOverdue(){
-  const issues=DB.get('bookIssues')||[];const today=Utils.today();
-  const overdue=issues.filter(i=>i.status!=='returned'&&i.dueDate<today);
-  document.getElementById('overdueSubtitle').textContent=overdue.length+' books overdue';
-  document.getElementById('overdueList').innerHTML=overdue.length
-    ?overdue.map(i=>{const b=DB.find('books',i.bookId);const days=daysBetween(i.dueDate,today);const fine=days*i.finePerDay;const color=AVATAR_COLORS[parseInt(i.memberId.replace(/\D/g,''))%AVATAR_COLORS.length];const init=i.memberName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();return `<div class="issue-card">
-      <div class="ic-avatar" style="background:${color}">${init}</div>
-      <div class="ic-info">
-        <div class="ic-name">${b?.title||'—'}</div>
-        <div class="ic-meta">${i.memberName} (${i.memberType}) · Issued: ${Utils.formatDate(i.issueDate)}</div>
-        <div class="ic-overdue">⚠ ${days} days overdue</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:18px;font-weight:800;color:var(--danger-dark)">${Utils.formatCurrency(fine)}</div>
-        <div style="font-size:11px;color:var(--text-3)">fine accrued</div>
-      </div>
-    </div>`}).join('')
-    :'<div style="text-align:center;padding:28px;color:var(--text-3)"><div style="font-size:32px;margin-bottom:8px">🎉</div><div>No overdue books!</div></div>';
+  const issues = getIssues();
+  const today = Utils.today();
 
-  // Fine summary
-  const totalFineAccrued=overdue.reduce((a,i)=>a+daysBetween(i.dueDate,today)*i.finePerDay,0);
-  const fineCollected=issues.filter(i=>i.status==='returned'&&i.fineCollected).reduce((a,i)=>a+(i.fineCollected||0),0);
-  document.getElementById('fineSummary').innerHTML=`
-    <div style="text-align:center;padding:14px 0"><div style="font-size:30px;font-weight:800;color:var(--danger-dark)">${Utils.formatCurrency(totalFineAccrued)}</div><div style="font-size:12px;color:var(--text-3);margin-top:4px">total fine accrued</div></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px"><span style="color:var(--text-3)">Collected so far</span><strong style="color:var(--success-dark)">${Utils.formatCurrency(fineCollected)}</strong></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px"><span style="color:var(--text-3)">Pending collection</span><strong style="color:var(--danger-dark)">${Utils.formatCurrency(totalFineAccrued)}</strong></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px"><span style="color:var(--text-3)">Overdue books</span><strong>${overdue.length}</strong></div>`;
+  const overdue = issues.filter(
+    issue =>
+      issue.status !== 'returned' &&
+      issue.dueDate < today
+  );
 
-  // Fine history (returned with fine)
-  const fineIssues=issues.filter(i=>i.status==='returned'&&i.fineCollected>0);
-  document.getElementById('fineHistory').innerHTML=fineIssues.length
-    ?fineIssues.map(i=>{const b=DB.find('books',i.bookId);return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><div style="font-weight:600">${i.memberName}</div><div style="font-size:11px;color:var(--text-3)">${b?.title||'—'} · Returned ${Utils.formatDate(i.returnDate)}</div></div><strong style="color:var(--danger-dark)">${Utils.formatCurrency(i.fineCollected)}</strong></div>`}).join('')
-    :'<div style="color:var(--text-3);font-size:12.5px;text-align:center;padding:12px">No fines collected yet</div>';
+  document.getElementById('overdueSubtitle').textContent =
+    overdue.length + ' books overdue';
+
+  document.getElementById('overdueList').innerHTML =
+    overdue.length
+      ? overdue.map(issue => {
+          const book = getBooks().find(
+            book => String(book.id) === String(issue.bookId)
+          );
+
+          const days = daysBetween(issue.dueDate, today);
+          const fine =
+            days * Number(issue.finePerDay);
+
+          const memberNumber =
+            parseInt(
+              String(issue.memberId).replace(/\D/g, '')
+            ) || 0;
+
+          const color =
+            AVATAR_COLORS[
+              memberNumber % AVATAR_COLORS.length
+            ];
+
+          const init = issue.memberName
+            .split(' ')
+            .map(name => name[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+
+          return `
+            <div class="issue-card">
+              <div class="ic-avatar" style="background:${color}">
+                ${init}
+              </div>
+
+              <div class="ic-info">
+                <div class="ic-name">
+                  ${book?.title || '—'}
+                </div>
+
+                <div class="ic-meta">
+                  ${issue.memberName} (${issue.memberType}) ·
+                  Issued: ${Utils.formatDate(issue.issueDate)}
+                </div>
+
+                <div class="ic-overdue">
+                  ⚠ ${days} days overdue
+                </div>
+              </div>
+
+              <div style="text-align:right">
+                <div style="font-size:18px;font-weight:800;color:var(--danger-dark)">
+                  ${Utils.formatCurrency(fine)}
+                </div>
+
+                <div style="font-size:11px;color:var(--text-3)">
+                  fine accrued
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')
+      : `
+        <div style="text-align:center;padding:28px;color:var(--text-3)">
+          <div style="font-size:32px;margin-bottom:8px">🎉</div>
+          <div>No overdue books!</div>
+        </div>
+      `;
+
+  const totalFineAccrued = overdue.reduce(
+    (total, issue) =>
+      total +
+      daysBetween(issue.dueDate, today) *
+        Number(issue.finePerDay),
+    0
+  );
+
+  const fineCollected = issues
+    .filter(
+      issue =>
+        issue.status === 'returned' &&
+        Number(issue.fineCollected) > 0
+    )
+    .reduce(
+      (total, issue) =>
+        total + Number(issue.fineCollected),
+      0
+    );
+
+  document.getElementById('fineSummary').innerHTML = `
+    <div style="text-align:center;padding:14px 0">
+      <div style="font-size:30px;font-weight:800;color:var(--danger-dark)">
+        ${Utils.formatCurrency(totalFineAccrued)}
+      </div>
+
+      <div style="font-size:12px;color:var(--text-3);margin-top:4px">
+        total fine accrued
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text-3)">Collected so far</span>
+      <strong style="color:var(--success-dark)">
+        ${Utils.formatCurrency(fineCollected)}
+      </strong>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text-3)">Pending collection</span>
+      <strong style="color:var(--danger-dark)">
+        ${Utils.formatCurrency(totalFineAccrued)}
+      </strong>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text-3)">Overdue books</span>
+      <strong>${overdue.length}</strong>
+    </div>
+  `;
+
+  const fineIssues = issues.filter(
+    issue =>
+      issue.status === 'returned' &&
+      Number(issue.fineCollected) > 0
+  );
+
+  document.getElementById('fineHistory').innerHTML =
+    fineIssues.length
+      ? fineIssues.map(issue => {
+          const book = getBooks().find(
+            book => String(book.id) === String(issue.bookId)
+          );
+
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <div>
+                <div style="font-weight:600">
+                  ${issue.memberName}
+                </div>
+
+                <div style="font-size:11px;color:var(--text-3)">
+                  ${book?.title || '—'} ·
+                  Returned ${Utils.formatDate(issue.returnDate)}
+                </div>
+              </div>
+
+              <strong style="color:var(--danger-dark)">
+                ${Utils.formatCurrency(
+                  Number(issue.fineCollected)
+                )}
+              </strong>
+            </div>
+          `;
+        }).join('')
+      : `
+        <div style="color:var(--text-3);font-size:12.5px;text-align:center;padding:12px">
+          No fines collected yet
+        </div>
+      `;
 }
-
 function sendOverdueReminders(){Toast.info('Overdue reminders sent to all members via SMS');}
 
 /* ══ ANALYTICS ══ */
 function renderAnalytics(){
-  const books=DB.get('books')||[];const issues=DB.get('bookIssues')||[];
-  const cats={};books.forEach(b=>{cats[b.category]=(cats[b.category]||0)+b.total;});
-  const colors=Object.keys(cats).map(c=>CAT_COLORS[c]||'rgba(14,165,233,.65)');
-  if(window._catC)window._catC.destroy();
-  window._catC=new Chart(document.getElementById('catChart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:colors,borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+  const books = getBooks();
+  const issues = getIssues();
 
-  // Issue trend (monthly)
-  const mData=Array(12).fill(0);issues.forEach(i=>{const m=new Date(i.issueDate).getMonth();if(!isNaN(m))mData[m]++;});
-  if(window._itC)window._itC.destroy();
-  window._itC=new Chart(document.getElementById('issueTrendChart').getContext('2d'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{label:'Issues',data:mData,backgroundColor:'rgba(14,165,233,.22)',borderColor:'#0ea5e9',borderWidth:2,borderRadius:6,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(14,165,233,.06)'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  const cats = {};
+
+  books.forEach(book => {
+    cats[book.category] =
+      (cats[book.category] || 0) + book.total;
+  });
+
+  const colors = Object.keys(cats).map(
+    category =>
+      CAT_COLORS[category] ||
+      'rgba(14,165,233,.65)'
+  );
+
+  if(window._catC) {
+    window._catC.destroy();
+  }
+
+  window._catC = new Chart(
+    document.getElementById('catChart').getContext('2d'),
+    {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(cats),
+        datasets: [{
+          data: Object.values(cats),
+          backgroundColor: colors,
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '55%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 10 },
+              boxWidth: 10
+            }
+          }
+        }
+      }
+    }
+  );
+
+  // Issue trend
+  const mData = Array(12).fill(0);
+
+  issues.forEach(issue => {
+    const month = new Date(issue.issueDate).getMonth();
+
+    if(!isNaN(month)){
+      mData[month]++;
+    }
+  });
+
+  if(window._itC) {
+    window._itC.destroy();
+  }
+
+  window._itC = new Chart(
+    document.getElementById('issueTrendChart').getContext('2d'),
+    {
+      type: 'bar',
+      data: {
+        labels: [
+          'Jan','Feb','Mar','Apr','May','Jun',
+          'Jul','Aug','Sep','Oct','Nov','Dec'
+        ],
+        datasets: [{
+          label: 'Issues',
+          data: mData,
+          backgroundColor: 'rgba(14,165,233,.22)',
+          borderColor: '#0ea5e9',
+          borderWidth: 2,
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(14,165,233,.06)'
+            },
+            ticks: {
+              font: { size: 11 }
+            }
+          },
+          x: {
+            grid: { display: false },
+            ticks: {
+              font: { size: 10 }
+            }
+          }
+        }
+      }
+    }
+  );
 
   // Top books
-  const bookCount={};issues.forEach(i=>{bookCount[i.bookId]=(bookCount[i.bookId]||0)+1;});
-  const sorted=Object.entries(bookCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  document.getElementById('topBooks').innerHTML=sorted.length
-    ?sorted.map(([id,cnt],i)=>{const b=DB.find('books',id);return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-size:16px">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]}</span><div style="flex:1"><div style="font-weight:600">${b?.title||'—'}</div><div style="font-size:11px;color:var(--text-3)">${b?.author||'—'}</div></div><strong style="color:var(--primary-dark)">${cnt}x</strong></div>`}).join('')
-    :'<div style="color:var(--text-3);font-size:12.5px;text-align:center;padding:14px">No issue data yet</div>';
+  const bookCount = {};
 
-  // Availability doughnut
-  const totalCopies=books.reduce((a,b)=>a+b.total,0);
-  const availCopies=books.reduce((a,b)=>a+b.available,0);
-  if(window._avC)window._avC.destroy();
-  window._avC=new Chart(document.getElementById('availChart').getContext('2d'),{type:'doughnut',data:{labels:['Available','Issued'],datasets:[{data:[availCopies,totalCopies-availCopies],backgroundColor:['rgba(34,197,94,.75)','rgba(239,68,68,.65)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}});
+  issues.forEach(issue => {
+    bookCount[issue.bookId] =
+      (bookCount[issue.bookId] || 0) + 1;
+  });
+
+  const sorted = Object.entries(bookCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  document.getElementById('topBooks').innerHTML =
+    sorted.length
+      ? sorted.map(([bookId, count], index) => {
+          const book = books.find(
+            b => String(b.id) === String(bookId)
+          );
+
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <span style="font-size:16px">
+                ${['🥇','🥈','🥉','4️⃣','5️⃣'][index]}
+              </span>
+
+              <div style="flex:1">
+                <div style="font-weight:600">
+                  ${book?.title || '—'}
+                </div>
+
+                <div style="font-size:11px;color:var(--text-3)">
+                  ${book?.author || '—'}
+                </div>
+              </div>
+
+              <strong style="color:var(--primary-dark)">
+                ${count}x
+              </strong>
+            </div>
+          `;
+        }).join('')
+      : `
+        <div style="color:var(--text-3);font-size:12.5px;text-align:center;padding:14px">
+          No issue data yet
+        </div>
+      `;
+
+  // Availability
+  const totalCopies = books.reduce(
+    (total, book) => total + book.total,
+    0
+  );
+
+  const availCopies = books.reduce(
+    (total, book) => total + book.available,
+    0
+  );
+
+  if(window._avC) {
+    window._avC.destroy();
+  }
+
+  window._avC = new Chart(
+    document.getElementById('availChart').getContext('2d'),
+    {
+      type: 'doughnut',
+      data: {
+        labels: ['Available', 'Issued'],
+        datasets: [{
+          data: [
+            availCopies,
+            totalCopies - availCopies
+          ],
+          backgroundColor: [
+            'rgba(34,197,94,.75)',
+            'rgba(239,68,68,.65)'
+          ],
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 11 },
+              boxWidth: 12
+            }
+          }
+        }
+      }
+    }
+  );
 }
 
 /* ══ EXPORT ══ */
 function exportCatalogCSV(){
-  const books=DB.get('books')||[];
+  const books = getBooks();
   const h=['ID','Title','Author','ISBN','Category','Publisher','Edition','Total','Available','Rack','Price'];
   const r=books.map(b=>[b.id,b.title,b.author,b.isbn||'',b.category,b.publisher||'',b.edition||'',b.total,b.available,b.rack||'',b.price||''].map(v=>`"${v}"`).join(','));
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='library_catalog_'+Utils.today()+'.csv';a.click();
   Toast.success('Catalog exported!');
 }
 function exportIssuedCSV(){
-  const issues=(DB.get('bookIssues')||[]).filter(i=>i.status!=='returned');
-  const h=['Issue ID','Book','Member','Type','Issue Date','Due Date','Fine/Day'];
-  const r=issues.map(i=>{const b=DB.find('books',i.bookId);return [i.id,b?.title||'',i.memberName,i.memberType,i.issueDate,i.dueDate,i.finePerDay].map(v=>`"${v}"`).join(',')});
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...r].join('\n'));a.download='issued_books_'+Utils.today()+'.csv';a.click();
+  const issues = getIssues().filter(
+    issue => issue.status !== 'returned'
+  );
+
+  const h = [
+    'Issue ID',
+    'Book',
+    'Member',
+    'Type',
+    'Issue Date',
+    'Due Date',
+    'Fine/Day'
+  ];
+
+  const r = issues.map(issue => {
+    const book = getBooks().find(
+      book => String(book.id) === String(issue.bookId)
+    );
+
+    return [
+      issue.id,
+      book?.title || '',
+      issue.memberName,
+      issue.memberType,
+      issue.issueDate,
+      issue.dueDate,
+      issue.finePerDay
+    ]
+      .map(value => `"${value}"`)
+      .join(',');
+  });
+
+  const a = document.createElement('a');
+
+  a.href =
+    'data:text/csv;charset=utf-8,' +
+    encodeURIComponent(
+      [h.join(','), ...r].join('\n')
+    );
+
+  a.download =
+    'issued_books_' + Utils.today() + '.csv';
+
+  a.click();
+
   Toast.success('Exported!');
 }
 

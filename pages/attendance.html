@@ -713,6 +713,46 @@
 
 <script src="../js/core.js"></script>
 <script>
+   console.log("ATTENDANCE SCRIPT LOADED");
+  const API_BASE = 'http://localhost:5000/api';
+
+  window.attendanceData = [];
+  window.studentsData = [];
+
+  async function apiFetch(endpoint, options = {}) {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      },
+      ...options
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.message || 'API request failed');
+    }
+
+    return data;
+  }
+
+  async function loadStudentsFromAPI() {
+    window.studentsData = await apiFetch('/students');
+    return window.studentsData;
+  }
+
+  async function loadAttendanceFromAPI() {
+    window.attendanceData = await apiFetch('/attendance');
+    return window.attendanceData;
+  }
+
+async function loadAttendanceData() {
+  await Promise.all([
+    loadStudentsFromAPI(),
+    loadAttendanceFromAPI()
+  ]);
+}
 
 /* ════════════════════════════════
    STATE
@@ -723,6 +763,8 @@ let isEditMode    = false;
 let calYear       = new Date().getFullYear();
 let calMonth      = new Date().getMonth();
 let clickedDay    = null;
+
+
 
 /* ════════════════════════════════
    SEED ATTENDANCE (realistic demo data)
@@ -787,9 +829,11 @@ function saveHolidays(list) {
 /* ════════════════════════════════
    INIT
 ════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initSidebar('attendance');
-  seedAttendance();
+  // seedAttendance();
+
+  await loadAttendanceData();
 
   const today = Utils.today();
   document.getElementById('markDate').value = today;
@@ -822,7 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function populateBatchSelect() {
-  const students = DB.get('students') || [];
+  const students = studentsData || [];
   const batches  = [...new Set(students.map(s => s.batch))].sort().reverse();
   const sel = document.getElementById('markBatch');
   if (!sel) return;
@@ -910,8 +954,11 @@ function onDateOrCourseChange() {
   if (!date) return;
 
   // check if already saved
-  const log     = DB.get('attendanceLog') || [];
-  const dayLog  = log.filter(r => r.date === date);
+  const log = attendanceData || []; 
+  const dayLog = log.filter(r => {
+    const recordDate = new Date(r.date).toISOString().slice(0, 10);
+    return recordDate === date;
+  });
   const hasSaved= dayLog.length > 0;
 
   document.getElementById('savedBanner').classList.toggle('show', hasSaved);
@@ -1004,13 +1051,24 @@ function setMark(studentId, status) {
 }
 
 function getMarkStudents() {
-  const course = document.getElementById('markCourse').value;
-  const batch  = document.getElementById('markBatch').value;
-  return (DB.get('students') || []).filter(s =>
-    s.status === 'Active' &&
-    (!course || s.course === course) &&
-    (!batch  || s.batch  === batch)
-  );
+  const course = document.getElementById('markCourse')?.value || '';
+  const batch = document.getElementById('markBatch')?.value || '';
+
+  return studentsData.filter(s => {
+    if (s.status && s.status.toLowerCase() !== 'active') {
+      return false;
+    }
+
+    if (course && String(s.courseId) !== String(course)) {
+      return false;
+    }
+
+    if (batch && s.batch !== batch) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 function updateSummaryBar(students) {
@@ -1050,36 +1108,51 @@ function editSavedAttendance() {
   Toast.info('Edit mode — make changes and save again');
 }
 
-function saveAttendance() {
-  const date     = document.getElementById('markDate').value;
+async function saveAttendance() {
+  const date = document.getElementById('markDate').value;
   const students = getMarkStudents();
-  const marked   = students.filter(s => markState[s.id]);
 
-  if (!date) { Toast.error('Please select a date'); return; }
-  if (!marked.length) { Toast.error('Please mark at least one student'); return; }
+  const marked = students.filter(s => markState[s.id]);
 
-  const log      = DB.get('attendanceLog') || [];
-  const filtered = log.filter(r => r.date !== date ||
-    !students.find(s => s.id === r.studentId)); // keep other students' records
+  if (!date) {
+    Toast.error('Please select a date.');
+    return;
+  }
 
-  const now = new Date().toISOString();
-  marked.forEach(s => {
-    filtered.push({ date, studentId: s.id, status: markState[s.id], savedAt: now });
-  });
+  if (!students.length) {
+    Toast.error('No students found.');
+    return;
+  }
 
-  DB.set('attendanceLog', filtered);
-  updateStats();
+  if (!marked.length) {
+    Toast.error('Please mark attendance for at least one student.');
+    return;
+  }
 
-  const p = marked.filter(s => markState[s.id]==='present').length;
-  const a = marked.filter(s => markState[s.id]==='absent').length;
-  const l = marked.filter(s => markState[s.id]==='leave').length;
+  try {
+    const response = await apiFetch('/attendance/bulk', {
+      method: 'POST',
+      body: JSON.stringify({
+        date,
+        studentIds: students.map(s => s.id),
+        records: marked.map(s => ({
+          studentId: s.id,
+          status: markState[s.id]
+        }))
+      })
+    });
 
-  Toast.success(`Attendance saved! ${p} present · ${a} absent · ${l} leave`);
-  document.getElementById('lastSavedLabel').textContent = 'Last saved: ' + new Date().toLocaleTimeString('en-IN');
-  document.getElementById('saveBtn').disabled = true;
-  document.getElementById('savedBanner').classList.add('show');
-  document.getElementById('savedBannerText').textContent =
-    `Attendance saved for ${Utils.formatDate(date)}`;
+    await loadAttendanceFromAPI();
+
+    Toast.success('Attendance saved successfully.');
+
+    onDateOrCourseChange();
+
+    return response;
+  } catch (error) {
+    console.error('Save attendance error:', error);
+    Toast.error(error.message || 'Failed to save attendance.');
+  }
 }
 
 /* ════════════════════════════════

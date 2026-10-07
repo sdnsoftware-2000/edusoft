@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  duration  String
+  seats     Int
+  fee       Decimal
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students Student[]
+  exams    Exam[]
+}
+
+model Student {
+  id            Int      @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  phone         String
+  batch         String
+  gender        String
+  dob           DateTime
+  address       String
+  status        String
+  feesStatus    String
+  admissionDate DateTime
+  rollNo        String   @unique
+  parentName    String
+  parentPhone   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  feeTransactions FeeTransaction[]
+  results         Result[]
+  attendance      Attendance[]
+
+  courseId Int?
+  course   Course? @relation(fields: [courseId], references: [id])
+}
+
+model Faculty {
+  id            Int      @id @default(autoincrement())
+  name          String
+  subject       String
+  qualification String
+  experience    String
+  phone         String
+  email         String   @unique
+  status        String
+  joinDate      DateTime
+  salary        Decimal
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FeeTransaction {
+  id          Int      @id @default(autoincrement())
+  receiptNo   String   @unique
+  studentId   Int
+  studentName String
+  amount      Decimal
+  date        DateTime
+  mode        String
+  remarks     String?
+  status      String
+  createdAt   DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  name      String
+  courseId  Int
+  date      DateTime
+  duration  Int
+  maxMarks  Int
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id])
+  results Result[]
+}
+
+model Result {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  examId        Int
+  marksObtained Float
+  grade         String
+  result        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+  exam    Exam    @relation(fields: [examId], references: [id])
+
+  @@unique([studentId, examId])
+}
+
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  priority  String
+  audience  String
+  date      DateTime
+  postedBy  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Book {
+  id        Int      @id @default(autoincrement())
+  title     String
+  author    String
+  isbn      String?  @unique
+  publisher String?
+  category  String
+  edition   String?
+  total     Int
+  available Int
+  rack      String?
+  price     Decimal?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  issues BookIssue[]
+}
+
+model BookIssue {
+  id            Int       @id @default(autoincrement())
+  bookId        Int
+  memberId      Int
+  memberType    String
+  memberName    String
+  issueDate     DateTime
+  dueDate       DateTime
+  returnDate    DateTime?
+  finePerDay    Decimal   @default(5)
+  fine          Decimal   @default(0)
+  fineCollected Decimal   @default(0)
+  status        String    @default("active")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id])
+
+  @@index([bookId])
+  @@index([memberId, memberType])
+  @@index([status])
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  date      DateTime
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, date])
+}
